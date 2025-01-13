@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\Novi backend za SWE.props" />
+</Project>

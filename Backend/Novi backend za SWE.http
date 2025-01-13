@@ -1,0 +1,6 @@
+@Novi_backend_za_SWE_HostAddress = http://localhost:5153
+
+GET {{Novi_backend_za_SWE_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
