@@ -86,7 +86,7 @@
 	.sign-control {padding-left: 20px;padding-right: 0;margin-bottom: 30px;}
 	.login-resources ul li {float: none;width: auto;display: inline-block;margin-right: 10px;}
 	.login-resources ul li a {padding: 13px 15px;}
-	.signin-popup {width: 100%;padding: 0 20px;}
+	.signin-popup {width: 100%;padding: 95px 40px 0px 40px;}
 	.cmp-info {padding: 40px 20px 0 20px;}
 	.signup-tab {margin-top: 0;}
 	.full-pagi {margin-bottom: 20px;}
@@ -121,7 +121,7 @@
 	.comment_box input {width: 84%;}
 	.comment_box {width: 88%;}
 	.no-pd {padding: 0;}
-	.sign-in-page {padding: 60px 0;}
+	.sign-in-page {padding: 170px 0 170px 0;}
 	.overview-box {width: 100%;}
 	.close-box {top: -23px;right: 2px;}
 	.forum-links ul li {margin-right: 20px;}

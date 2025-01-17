@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import $ from 'jquery';
 import moment from 'moment';
 import Cookies from 'js-cookie'
+import { useNavigate } from 'react-router-dom';
 
 function Main() {
  
@@ -19,6 +20,7 @@ function Main() {
   const [NazivPicker, setNazivPicker] = useState("");
   const [NazivZaSlanje, setNazivZaSlanje] = useState("default");
 
+  
 
   useEffect(() => {
     const radio1 = document.getElementById('radio1');
@@ -509,8 +511,8 @@ function Main() {
                         </ul>
                       </div>{/*post-st end*/}
                     </div>{/*post-topbar end*/}
-                    <div className="posts-section">
-                      <Dogadjaj primljenDatum={dateZaSlanje} primljenNaziv={NazivZaSlanje}/>
+                    <div className="posts-section" >
+                      <Dogadjaj primljenDatum={dateZaSlanje} primljenNaziv={NazivZaSlanje} />
 
                       
                     </div>{/*posts-section end*/}

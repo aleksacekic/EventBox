@@ -181,19 +181,19 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
       <div className="divreakcije">
         <button
           className={`zainteresovan ${zainteresovanActive ? 'active' : ''}`}
-          onClick={handleZainteresovanClick}
+          onClick={(e) => { e.stopPropagation(); handleZainteresovanClick(); }}
         >
           Zainteresovan sam
         </button>
         <button
           className={`mozda ${mozdaActive ? 'active' : ''}`}
-          onClick={handleMozdaClick}
+          onClick={(e) => { e.stopPropagation(); handleMozdaClick(); }}
         >
           Mozda
         </button>
         <button
           className={`nisamzainteresovan ${nisamZainteresovanActive ? 'active' : ''}`}
-          onClick={handleNisamZainteresovanClick}
+          onClick={(e) => { e.stopPropagation(); handleNisamZainteresovanClick(); }}
         >
           Nisam zainteresovan
         </button>

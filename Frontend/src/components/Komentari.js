@@ -141,7 +141,7 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika }) {
   return (
     <div>
       {komentari.length > 0 && dogadjajId === prikazaniDogadjaj ? (
-        <div className="comment-sec">
+        <div className="comment-sec" >
           <ul>
 
             {komentari[0].komentari.map((komentar) => (  //MORA komentari[0] jer niz komentari sadrzi samo jedan objekat koji ima svoje polje komentari, a unutar tog polja se nalazi niz nasih komentara

@@ -11,7 +11,7 @@ const HideShowMapa = ({ latitude, longitude }) => {
 
   return (
     <div>
-      <button id="toggleMapa" className={`prikazimapubutton ${mapVisible ? 'active' : ''}`} onClick={toggleMap}>
+      <button id="toggleMapa" className={`prikazimapubutton ${mapVisible ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); toggleMap(); }}>
         {mapVisible ? 'Zatvori mapu dogadjaja' : 'Prikazi mapu dogadjaja'}
       </button>
       {mapVisible && (

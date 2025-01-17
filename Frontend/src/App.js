@@ -5,6 +5,7 @@ import Profile from './Pages/Profile';
 import Admin from './Pages/Admin';
 import ProfilTudji from './Pages/ProfilTudji'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import DogadjajZasebno from './Pages/DogadjajZasebno';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/pocetna" element={<HomePage />} />
           <Route path="/" element={<LoginRegistracija />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/objava/:id" element={<DogadjajZasebno />} />
           {/* <Route path="/profilkorisnika/:id" element={<ProfilTudji />} /> */}
           <Route path="/profilkorisnika" element={<ProfilTudji />} />
         </Routes>

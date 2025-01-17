@@ -511,12 +511,17 @@ function Dogadjaj({ primljenDatum, primljenNaziv}) {
       });
   };
 
-  console.log(dogadjaji);
-  const korisnik_Id = Cookies.get('userID');
+ //Za prebacivanje na posebnu objavu.
+   //const navigate = useNavigate();
+   const handleClickObjava = (id) => {
+     //const id = 5; // hardcoded ID za testiranje
+     navigate(`/objava/${id}`);
+   };
+   
   return (
     <div>
       {dogadjaji.map((dogadjaj,index) => (
-        <div className="post-bar" key={dogadjaj.id}>
+        <div className="post-bar" key={dogadjaj.id} onClick={() => handleClickObjava(dogadjaj.id)} style={{ cursor: 'pointer', margin: '20px', padding: '10px', border: '1px solid black' }}>
           <div className="post_topbar">
             <div className="usy-dt">
             {korisnik ? (
@@ -536,10 +541,10 @@ function Dogadjaj({ primljenDatum, primljenNaziv}) {
 
             {/* moze i (dogadjaj.userName_Kreatora === korisnik.korisnicko_Ime) */}
             {(dogadjaj.iD_Kreatora === korisnik.id) && (
-              <div className={`ed-opts ${activeIndex === index ? 'active' : ''}`}>
-              <a className="ed-opts-open" onClick={() => toggleOptions(index)}><i className="la la-ellipsis-v" /></a>
+              <div className={`ed-opts ${activeIndex === index ? 'active' : ''}`} onClick={(e) => { e.stopPropagation();}}>
+              <a className="ed-opts-open" onClick={(e) => { e.stopPropagation(); toggleOptions(index)}}><i className="la la-ellipsis-v" /></a>
               <ul className={`ed-options ${activeIndex === index ? 'active' : ''}`}>
-                <li><a className='opcijeobjava' onClick={() => obrisiObjavu(dogadjaj.id)}>Obrisi objavu</a></li>
+                <li><a className='opcijeobjava' onClick={(e) => { e.stopPropagation(); obrisiObjavu(dogadjaj.id)}}>Obrisi objavu</a></li>
               </ul>
             </div>
             )
@@ -570,7 +575,7 @@ function Dogadjaj({ primljenDatum, primljenNaziv}) {
           </div>
           <div className="job-status-bar">
             <ul className="like-com d-flex">
-              <li className="komentardiv" onClick={(event) => otvoriDiv(event, dogadjaj.id)}>
+              <li className="komentardiv" onClick={(e) => { e.stopPropagation(); otvoriDiv(e, dogadjaj.id)}}>
                 <img src="images/com.png" className="com-slika" />
                 <a href="#" className="com">Komentar</a>
               </li>
@@ -578,12 +583,12 @@ function Dogadjaj({ primljenDatum, primljenNaziv}) {
                 <img src="images/share1.png" />
                 <a href="#" className="share">Posalji prijatelju</a>
               </li> */}
-              <li className="prijavidiv" onClick={(event) => prikaziPopupFormu(event, dogadjaj.id)}>
+              <li className="prijavidiv" onClick={(e) => { e.stopPropagation(); prikaziPopupFormu(e, dogadjaj.id)}}>
                 <img src="images/report17.png" />
                 <a href="#" className="report-to-admin">Prijavi objavu</a>
               </li>
-              <div id={"popup-overlay"+ dogadjaj.id} className="popup-overlay" />
-              <div id={"popup-form"+ dogadjaj.id} className="popup-form">
+              <div id={"popup-overlay"+ dogadjaj.id} className="popup-overlay" onClick={(e) => { e.stopPropagation();}}/>
+              <div id={"popup-form"+ dogadjaj.id} className="popup-form" onClick={(e) => { e.stopPropagation();}}>
                 {/* HTML kod forme */}
                 <div className="form-options">
                   <label>
@@ -620,16 +625,16 @@ function Dogadjaj({ primljenDatum, primljenNaziv}) {
                 </div>
 
               </div>
-              <div id="popup" className="popup">
+              <div id="popup" className="popup" onClick={(e) => { e.stopPropagation();}}>
                 <span className="close" onClick={zatvoriPopup}>×</span>
                 <p>Uspesno ste prijavili objavu koja krsi pravila zajednice. Administrator ce uskoro pregledati vasu prijavu. Hvala!</p>
               </div>
-              <div id="overlay1" className="overlay1" />
+              <div id="overlay1" className="overlay1" onClick={(e) => { e.stopPropagation();}}/>
             </ul>
           </div>
           {/* DEO ZA KOMENTARE ! ! !  */}
           {prikaziKomentare && prikazaniDogadjaj === dogadjaj.id && (
-            <div className="comment-section">
+            <div className="comment-section"  onClick={(e) => { e.stopPropagation(); }}>
               <Komentari dogadjajId={dogadjaj.id} prikazaniDogadjaj={prikazaniDogadjaj} korisnikovaSlika={korisnik.korisnikImage}/>
             </div>)}
         </div>))}
