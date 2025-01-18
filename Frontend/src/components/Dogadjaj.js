@@ -503,7 +503,7 @@ function Dogadjaj({ primljenDatum, primljenNaziv}) {
         data.datumrodjenja = formatiranDatum;
         //console.log(formatiranDatum);
         setKorisnik(data);
-        console.log(data);
+        //console.log(data);
         setmojdatum(formatiranDatum);
       })
       .catch((error) => {
@@ -513,15 +513,17 @@ function Dogadjaj({ primljenDatum, primljenNaziv}) {
 
  //Za prebacivanje na posebnu objavu.
    //const navigate = useNavigate();
-   const handleClickObjava = (id) => {
-     //const id = 5; // hardcoded ID za testiranje
-     navigate(`/objava/${id}`);
-   };
+
+   const handleClickObjava = (id, obj) => {
+    navigate(`/objava/${id}`, { state: { obj } });
+};
+
+   //console.log("Korisnik: ", korisnik);
    
   return (
     <div>
       {dogadjaji.map((dogadjaj,index) => (
-        <div className="post-bar" key={dogadjaj.id} onClick={() => handleClickObjava(dogadjaj.id)} style={{ cursor: 'pointer', margin: '20px', padding: '10px', border: '1px solid black' }}>
+        <div className="post-bar" key={dogadjaj.id} onClick={() => handleClickObjava(dogadjaj.id, korisnik)} style={{ cursor: 'pointer', margin: '20px', padding: '10px', border: '1px solid black' }}>
           <div className="post_topbar">
             <div className="usy-dt">
             {korisnik ? (

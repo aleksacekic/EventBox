@@ -22,6 +22,28 @@ namespace EventBoxApi.Controllers
             this._dogadjajRepo = dr;
         }
 
+        [HttpGet]
+        [EnableCors("CORS")]
+        [Route("VratiDogadjaj/{id}")]
+        public async Task<ActionResult> VratiDogadjaj(int id)
+        {
+            try
+            {
+                var dogadjaj = await Context.Dogadjaji.FindAsync(id);
+                if (dogadjaj == null)
+                {
+                    return NotFound($"Događaj sa ID-em {id} nije pronađen.");
+                }
+
+                return Ok(dogadjaj);
+            }
+            catch (Exception e)
+            {
+                return BadRequest($"Greška prilikom vraćanja događaja: {e.Message}");
+            }
+        }
+
+
         [HttpPost]
         [EnableCors("CORS")]
         [Route("DodajDogadjaj/{kreator}/{datum_objave}/{naslov}/{datum_dogadjaja}/{vreme_pocetka}/{opis}/{kategorija}/{x}/{y}")]
