@@ -266,10 +266,10 @@ function DogadjajPosebnaStrana() {
         <div>
            <div className="col-lg-6 col-md-8 no-pd">
            <div className="main-ws-sec">
-            <button onClick={handleBackClick} style={{ margin: '10px', padding: '5px 10px' }}>
-                Vrati se nazad
+            <button onClick={handleBackClick} className="back-btn">
+              <i className="la la-arrow-left ikonicaback"></i>
             </button>
-            <div className="post-bar" key={dogadjaj.id}>
+            <div className="post-barALTERNATIVE" key={dogadjaj.id}>
           <div className="post_topbar">
             <div className="usy-dt">
             {obj ? (

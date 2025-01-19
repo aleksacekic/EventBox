@@ -523,7 +523,7 @@ function Dogadjaj({ primljenDatum, primljenNaziv}) {
   return (
     <div>
       {dogadjaji.map((dogadjaj,index) => (
-        <div className="post-bar" key={dogadjaj.id} onClick={() => handleClickObjava(dogadjaj.id, korisnik)} style={{ cursor: 'pointer', margin: '20px', padding: '10px', border: '1px solid black' }}>
+        <div className="post-bar" key={dogadjaj.id} onClick={() => handleClickObjava(dogadjaj.id, korisnik)} style={{ cursor: 'pointer' }}>
           <div className="post_topbar">
             <div className="usy-dt">
             {korisnik ? (
