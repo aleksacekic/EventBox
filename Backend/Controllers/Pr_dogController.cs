@@ -1,6 +1,7 @@
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Models;
 
@@ -11,10 +12,12 @@ namespace EventBoxApi.Controllers
     public class Pr_dogController : ControllerBase
     {
         public EventBoxContext Context { get; set; }
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public Pr_dogController(EventBoxContext context)
+        public Pr_dogController(EventBoxContext context, IHubContext<NotificationHub> hubContext)
         {
             Context = context;
+            _hubContext = hubContext;
         }
 
         [HttpPost]
@@ -24,21 +27,33 @@ namespace EventBoxApi.Controllers
         {
             try
             {
-		await Validnost.Validiraj(Context, Request);
-                Dogadjaj d = await Context.Dogadjaji.FindAsync(dogadjaj_Id);
-                Prijavljeni_dogadjaj pr_dog = await Context.Prijavljeni_dogadjaji.Where(p => p.Dogadjaj_Id == d).FirstOrDefaultAsync();
-                if(pr_dog == null)
+            await Validnost.Validiraj(Context, Request);
+                    Dogadjaj d = await Context.Dogadjaji.FindAsync(dogadjaj_Id);
+                    Prijavljeni_dogadjaj pr_dog = await Context.Prijavljeni_dogadjaji.Where(p => p.Dogadjaj_Id == d).FirstOrDefaultAsync();
+                    if (pr_dog == null)
+            {
+                pr_dog = new Prijavljeni_dogadjaj
                 {
-                    pr_dog = new Prijavljeni_dogadjaj();
-                    pr_dog.Dogadjaj_Id = d;
-                    pr_dog.Broj_prijava = 1;
-                    Context.Prijavljeni_dogadjaji.Add(pr_dog);
-                    await Context.SaveChangesAsync();
-                    return Ok("Dogadjaj je prvi put prijavljen tako je upisan kao Prijavljen_dogadjaj"); 
-                }
+                    Dogadjaj_Id = d,
+                    Broj_prijava = 1
+                };
+                Context.Prijavljeni_dogadjaji.Add(pr_dog);
+                await Context.SaveChangesAsync();
+            }
+            else
+            {
                 pr_dog.Broj_prijava++;
                 Context.Prijavljeni_dogadjaji.Update(pr_dog);
                 await Context.SaveChangesAsync();
+            }
+
+                //OVDE MOZE DA BUDE PROBLEM! Proveri!
+                int korisnik_Id = int.Parse(Request.Headers["UserID"]);
+                // Slanje notifikacije kreatoru događaja
+                if (d.ID_Kreatora != korisnik_Id)  // Ne šaljemo notifikaciju korisniku koji je prijavio događaj
+                {
+                    await _hubContext.Clients.User(d.KreatorId.ToString()).SendAsync("ReceiveEventReport", "Dogadjaj je prijavljen", dogadjaj_Id);
+                }
                 return Ok("Dogadjaj je vec prijavljen tako je sada azuriran");
             }
             catch(Exception ex)

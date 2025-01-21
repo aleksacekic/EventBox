@@ -95,6 +95,7 @@ builder.Services.AddTransient<IFileService, FileService>();
 builder.Services.AddTransient<IDogadjajRepo, DogadjajRepo>();
 builder.Services.AddTransient<IKorisnikRepo, KorisnikRepo>();
 builder.Services.AddControllersWithViews();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -111,10 +112,16 @@ app.UseStaticFiles(new StaticFileOptions {
     FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath,"Uploads")),
     RequestPath = "/Resources"
 });
-app.UseCors("CORS");
+
 
 app.UseCookiePolicy();
 
 app.MapControllers();
+
+// Postavi rute za SignalR
+app.UseRouting();
+app.UseCors("CORS");
+app.MapHub<NotificationHub>("/notificationHub");
+
 
 app.Run();

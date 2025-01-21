@@ -8,13 +8,22 @@ namespace Models
     public class Notifikacija
     {
         [Key]
-        public int Id {get;set;}
+        public int Id { get; set; }
+
         [Required]
-        public string Poruka {get;set;}
+        public int Korisnik_Id { get; set; } // ID korisnika na koji se odnosi notifikacija
+
         [Required]
-        public DateTime Vreme {get;set;}
+        public string TipNotifikacije { get; set; } // Tip notifikacije (komentar, reakcija, prijava)
+
         [Required]
+        public string Sadrzaj { get; set; } // Sadržaj notifikacije (tekst komentara, tip reakcije, ili sadržaj prijave)
+
+        [Required]
+        public DateTime Vreme { get; set; } // Vremenski žig
+
+        [ForeignKey("Korisnik_Id")]
         [JsonIgnore]
-        public virtual Korisnik Korisnik_Id {get;set;} //REFERENCA
+        public virtual Korisnik Korisnik { get; set; } // Referenca na korisnika
     }
 }

@@ -1,6 +1,7 @@
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Models;
 
@@ -11,9 +12,12 @@ namespace EventBoxApi.Controllers
     public class ReakcijaController : ControllerBase 
     {
         public EventBoxContext Context;
-        public ReakcijaController(EventBoxContext context)
+
+        private readonly IHubContext<NotificationHub> _hubContext;
+        public ReakcijaController(EventBoxContext context, IHubContext<NotificationHub> hubContext)
         {
             this.Context = context;
+             _hubContext = hubContext;
         }
 
         [HttpPost]
@@ -38,6 +42,12 @@ namespace EventBoxApi.Controllers
                 Context.Reakcije.Add(r);
                 Context.Dogadjaji.Update(d);
                 await Context.SaveChangesAsync();
+
+                // Slanje notifikacije kreatoru događaja
+                if (d.ID_Kreatora != korisnik_Id)  // Ne šaljemo notifikaciju korisniku koji je postavio reakciju
+                {
+                    await _hubContext.Clients.User(d.KreatorId.ToString()).SendAsync("ReceiveNewReaction", tip, dogadjaj_Id);
+                }
                 return Ok("Uspesno je dodata rekcija");
             }
             catch(Exception ex)

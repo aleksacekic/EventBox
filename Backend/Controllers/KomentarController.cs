@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Microsoft.AspNetCore.SignalR;
 
 namespace EventBoxApi.Controllers
 {
@@ -11,9 +12,11 @@ namespace EventBoxApi.Controllers
     public class KomentarController : ControllerBase
     {
         public EventBoxContext Context;
-        public KomentarController(EventBoxContext context)
+        private readonly IHubContext<NotificationHub> _hubContext;
+        public KomentarController(EventBoxContext context, IHubContext<NotificationHub> hubContext)
         {
             this.Context = context;
+            _hubContext = hubContext;
         }
 
         [HttpPost]
@@ -34,6 +37,18 @@ namespace EventBoxApi.Controllers
 
                 Context.Komentari.Add(k);
                 await Context.SaveChangesAsync();
+
+                if (d.ID_Kreatora != korisnik_Id)  // Ne šaljemo notifikaciju korisniku koji je postavio komentar
+               {
+                Console.WriteLine("IZ KONTROLERA");
+                //Console.WriteLine("Type of d.ID_Kreatora: " + d.ID_Kreatora.GetType());
+                //Console.WriteLine("Type of korisnik_Id: " + korisnik_Id.GetType());
+                Console.WriteLine("Kreator ID: " + d.ID_Kreatora);
+                Console.WriteLine("Korisnik ID: " + korisnik_Id);
+                Console.WriteLine("Comment text: " + tekst);
+            await _hubContext.Clients.All.SendAsync("ReceiveNewComment", tekst, dogadjaj_Id);
+            }
+
                 return Ok("Uspesno je napravljen novi komentar");
             }
             catch(Exception ex)
