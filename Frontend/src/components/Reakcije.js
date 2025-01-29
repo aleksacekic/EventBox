@@ -10,7 +10,7 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log(IDucitanidogadjaji);
+        //console.log(IDucitanidogadjaji);
         //const dogadjajiIds = [39, 40, 43]; // Primer niza ID-jeva događaja
         const idKorisnika = Cookies.get('userID'); // ID korisnika
 

@@ -131,7 +131,7 @@ function Header() {
         //console.log(data.datum_rodjenja);
         const formatiranDatum = formatirajDatum(data.datum_rodjenja);
         data.datumrodjenja = formatiranDatum;
-        console.log(formatiranDatum);
+        //console.log(formatiranDatum);
         setKorisnik(data);
         setmojdatum(formatiranDatum);
       })

@@ -10,6 +10,7 @@ import $ from 'jquery';
 import moment from 'moment';
 import Cookies from 'js-cookie'
 import { useNavigate } from 'react-router-dom';
+import { HubConnectionBuilder } from '@microsoft/signalr';
 
 function Main() {
  
@@ -377,9 +378,10 @@ function Main() {
   const formatirajDatum = (datum) => {
     return moment(datum).format('DD.MM.YYYY');
   };
+
+  const korisnik_Id = Cookies.get('userID');
   
   const ucitajKorisnika = () => {
-    const korisnik_Id = Cookies.get('userID');
     const url = `http://localhost:5153/Korisnik/VratiKorisnika_ID/${korisnik_Id}`;
     fetch(url)
       .then((res) => res.json())
@@ -387,7 +389,7 @@ function Main() {
         //console.log(data.datum_rodjenja);
         const formatiranDatum = formatirajDatum(data.datum_rodjenja);
         data.datumrodjenja = formatiranDatum;
-        console.log(formatiranDatum);
+        //console.log(formatiranDatum);
         setKorisnik(data);
         setmojdatum(formatiranDatum);
       })
@@ -395,6 +397,118 @@ function Main() {
         console.log(error);
       });
   };
+
+  //-------------------------------------------------------------------------------------------------------
+   //ovo sluzi za prosledjivanje dogadjajId iz Komentari.js u Dogajdaj.js pa u Main.js
+
+  const [selectedDogadjajId, setSelectedDogadjajId] = useState();
+  const handleDogadjajId = (id) => {
+   
+      setSelectedDogadjajId(id);
+      console.log(`Primljen dogadjajId u Main: ${id}`);
+    
+  };
+
+    //-------------------------------------------------------------------------------------------------------
+
+   const [connection, setConnection] = useState(null);
+    const [notifications, setNotifications] = useState([]);
+    const [dogadjaj, setDogadjaj] = useState({});
+  
+      useEffect(() => {
+        async function fetchDogadjaj(id) {
+            try {
+                if (!id) return;
+                const response = await fetch(`http://localhost:5153/Dogadjaj/VratiDogadjaj/${id}`);
+                console.log(response);
+                if (!response.ok) {
+                    throw new Error(`Greška pri dohvatanju događaja: ${response.statusText}`);
+                }
+                const data = await response.json();
+                console.log(data);
+                setDogadjaj(data);
+            } catch (error) {
+                console.error('Greška pri dohvaćanju podataka o događaju:', error);
+            }
+        }
+
+        if (selectedDogadjajId) { 
+          fetchDogadjaj(selectedDogadjajId);
+      }
+  
+    }, [selectedDogadjajId]);
+  
+
+  
+    useEffect(() => {
+    
+      
+          if (!korisnik_Id) {
+            console.log("Nema userID, ne mogu da pokrenem SignalR.");
+            return;
+        }
+    
+        console.log("Kreiram SignalR konekciju za userID:", korisnik_Id);
+        const connect = new HubConnectionBuilder()
+            .withUrl(`http://localhost:5153/notificationHub?userId=${encodeURIComponent(korisnik_Id)}`)
+            .build();
+    
+        connect.start()
+            .then(() => console.log("Connected to SignalR hub"))
+            .catch(err => console.error("Connection failed: ", err));
+    
+        connect.on("ReceiveNewComment", (commentText, eventId) => {
+            console.log("New comment received:", commentText, "Event ID:", eventId);
+            setNotifications((prevNotifications) => [...prevNotifications, commentText]);
+        });
+    
+        setConnection(connect);
+    
+        
+      return () => {
+        if (connection) {
+          connection.stop();
+        }
+      };
+      
+    
+      
+  }, []);
+  
+
+  //   console.log("AJDI0:" + dogadjaj.iD_Kreatora);
+  //   useEffect(() => {
+  //     console.log(dogadjaj);
+  //     console.log("AJDI1:" + dogadjaj.iD_Kreatora);
+  //     if (!dogadjaj.iD_Kreatora) return;
+  //     console.log("AJDI2:" + dogadjaj.iD_Kreatora);
+  //     const connect = new HubConnectionBuilder()
+  //     .withUrl("http://localhost:5153/notificationHub?userId=" + encodeURIComponent(dogadjaj.iD_Kreatora))
+  //     .build();
+  //     console.log("AJDI3:" + dogadjaj.iD_Kreatora);
+  
+  // connect.start()
+  //     .then(() => console.log("Connected to SignalR hub"))
+  //     .catch(err => console.error("Connection failed: ", err));
+  
+  
+  //       connect.on("ReceiveNewComment", (commentText, eventId) => {
+  //         console.log("New comment received:", commentText, "Event ID:", eventId);
+  //         setNotifications((prevNotifications) => [...prevNotifications, commentText]);
+  //       });
+        
+  
+  
+  //     setConnection(connect);
+  
+  //     return () => {
+  //       if (connection) {
+  //         connection.stop();
+  //       }
+  //     };
+  //   }, [dogadjaj.iD_Kreatora]);
+    //-------------------------------------------------------------------------------------------------------
+
 
   return (
     <div>
@@ -512,7 +626,7 @@ function Main() {
                       </div>{/*post-st end*/}
                     </div>{/*post-topbar end*/}
                     <div className="posts-section" >
-                      <Dogadjaj primljenDatum={dateZaSlanje} primljenNaziv={NazivZaSlanje} />
+                      <Dogadjaj primljenDatum={dateZaSlanje} primljenNaziv={NazivZaSlanje} onDogadjajIdChange={handleDogadjajId} />
 
                       
                     </div>{/*posts-section end*/}
@@ -590,12 +704,18 @@ function Main() {
                       </div>
                       <div className="jobs-list">
                         <div className="job-info">
-                          <div className="job-details">
+                        <h2>Notifications</h2>
+                          <ul>
+                            {notifications.map((notif, index) => (
+                              <li key={index}>{notif}</li>
+                            ))}
+                          </ul>
+                          {/* <div className="job-details">
                             <p>Korisnik Ime Prezime je reagovao/la na vas dogadjaj ImeDogadjaja: Zainteresovan.</p>
                           </div>
                           <div className="hr-rate">
                             <span>Danas, 17:38</span>
-                          </div>
+                          </div> */}
                         </div>{/*job-info end*/}
                         <div className="job-info">
                           <div className="job-details">

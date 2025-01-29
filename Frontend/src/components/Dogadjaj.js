@@ -9,7 +9,8 @@ import Cookies from 'js-cookie'
 import { useNavigate } from 'react-router-dom';
 
 
-function Dogadjaj({ primljenDatum, primljenNaziv}) {
+function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
+   //ovo trece sluzi za prosledjivanje dogadjajId iz Komentari.js u Dogajdaj.js pa u Main.js
   // console.log(filtriraniDogadjaji);
   const google = window.google;
   const navigate = useNavigate();
@@ -208,7 +209,7 @@ function Dogadjaj({ primljenDatum, primljenNaziv}) {
       setIsMyDogadjaj(false);
     }
   }*/
- console.log(IDucitanidogadjaji);
+ //console.log(IDucitanidogadjaji);
  
 
   function prikaziTekstOstalo() {
@@ -484,16 +485,18 @@ function Dogadjaj({ primljenDatum, primljenNaziv}) {
     }
   };
 
-  useEffect(() => {
-    ucitajKorisnika();
-  }, []);
-
+  
   const formatirajDatum = (datum) => {
     return moment(datum).format('DD.MM.YYYY');
   };
+
+  let korisnik_Id;
+  useEffect(() => {
+    korisnik_Id = Cookies.get('userID');
+  }, []);
   
   const ucitajKorisnika = () => {
-    const korisnik_Id = Cookies.get('userID');
+
     const url = `http://localhost:5153/Korisnik/VratiKorisnika_ID/${korisnik_Id}`;
     fetch(url)
       .then((res) => res.json())
@@ -510,6 +513,11 @@ function Dogadjaj({ primljenDatum, primljenNaziv}) {
         console.log(error);
       });
   };
+  
+  useEffect(() => {
+    ucitajKorisnika();
+  }, []);
+
 
  //Za prebacivanje na posebnu objavu.
    //const navigate = useNavigate();
@@ -637,7 +645,7 @@ function Dogadjaj({ primljenDatum, primljenNaziv}) {
           {/* DEO ZA KOMENTARE ! ! !  */}
           {prikaziKomentare && prikazaniDogadjaj === dogadjaj.id && (
             <div className="comment-section"  onClick={(e) => { e.stopPropagation(); }}>
-              <Komentari dogadjajId={dogadjaj.id} prikazaniDogadjaj={prikazaniDogadjaj} korisnikovaSlika={korisnik.korisnikImage}/>
+              <Komentari dogadjajId={dogadjaj.id} prikazaniDogadjaj={prikazaniDogadjaj} korisnikovaSlika={korisnik.korisnikImage} onDogadjajIdSubmit={onDogadjajIdChange}/>
             </div>)}
         </div>))}
       <button className='ucitajjosdogadjaja' onClick={() => UcitajDalje()}>Ucitaj jos dogadjaja...</button>

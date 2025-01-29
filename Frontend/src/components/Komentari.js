@@ -4,7 +4,7 @@ import Cookies from 'js-cookie'
 import { useNavigate } from 'react-router-dom';
 
 
-function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika }) {
+function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjajIdSubmit}) {
 
   const [komentari, setKomentari] = useState([]);
   const [noviKomentar, setNoviKomentar] = useState('');
@@ -43,6 +43,8 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika }) {
     setNoviKomentar(event.target.value);
   };
 
+
+
   const handleFormSubmit = async (event) => {
     event.preventDefault();
     try {
@@ -55,6 +57,7 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika }) {
         }
       );
       if (response.ok) {
+        onDogadjajIdSubmit(dogadjajId); //ovo sluzi za prosledjivanje dogadjajId iz Komentari.js u Dogajdaj.js pa u Main.js
         fetchKomentari();
         setNoviKomentar('');
       } else if (response.status === 401){
@@ -118,15 +121,15 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika }) {
     ucitajKorisnika();
   }, []);
   const ucitajKorisnika = () => {
-    console.log("USO SAM !")
+    //console.log("USO SAM !")
     const korisnik_Id = Cookies.get('userID');
-    console.log(korisnik_Id);
+    //console.log(korisnik_Id);
     const url = `http://localhost:5153/Korisnik/VratiKorisnika_ID/${korisnik_Id}`;
-    console.log(url);
+    //console.log(url);
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        console.log(data);
+        //console.log(data);
         //console.log(data.datum_rodjenja);
         setKorisnik(data);
       })

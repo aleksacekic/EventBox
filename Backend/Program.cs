@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using EventBoxApi.Repo.Abstract;
 using EventBoxApi.Repo.Implementation;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.SignalR;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -96,6 +97,11 @@ builder.Services.AddTransient<IDogadjajRepo, DogadjajRepo>();
 builder.Services.AddTransient<IKorisnikRepo, KorisnikRepo>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
+
+//OVO JE MNOGO POMOGLO ZA SIGNALR !!!!!!!
+builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
+
+
 
 var app = builder.Build();
 

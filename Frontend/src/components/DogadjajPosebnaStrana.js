@@ -12,6 +12,23 @@ import { useLocation } from 'react-router-dom';
 
 function DogadjajPosebnaStrana() {
     const [dogadjaj, setDogadjaj] = useState({});
+    useEffect(() => {
+        async function fetchDogadjaj(id) {
+            try {
+                const response = await fetch(`http://localhost:5153/Dogadjaj/VratiDogadjaj/${id}`);
+                if (!response.ok) {
+                    throw new Error(`Greška pri dohvaćanju događaja: ${response.statusText}`);
+                }
+                const data = await response.json();
+                setDogadjaj(data);
+            } catch (error) {
+                console.error('Greška pri dohvaćanju podataka o događaju:', error);
+            }
+        }
+
+        fetchDogadjaj(id); 
+    }, []);
+
     //const [korisnik, setKorisnik] = useState(null);
     const [activeIndex, setActiveIndex] = useState(null);
     const [prikazaniDogadjaj, setPrikazaniDogadjaj] = useState(null);
