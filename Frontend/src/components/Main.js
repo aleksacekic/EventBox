@@ -440,15 +440,16 @@ function Main() {
   
 
   
-    useEffect(() => {
     
-      
+    useEffect(() => {
           if (!korisnik_Id) {
             console.log("Nema userID, ne mogu da pokrenem SignalR.");
             return;
         }
     
         console.log("Kreiram SignalR konekciju za userID:", korisnik_Id);
+
+        
         const connect = new HubConnectionBuilder()
             .withUrl(`http://localhost:5153/notificationHub?userId=${encodeURIComponent(korisnik_Id)}`)
             .build();
@@ -464,12 +465,13 @@ function Main() {
     
         setConnection(connect);
     
-        
+
       return () => {
-        if (connection) {
-          connection.stop();
+        if (connect) {
+            console.log("Stopping SignalR connection...");
+            connect.stop();
         }
-      };
+    };
       
     
       
@@ -508,7 +510,7 @@ function Main() {
   //     };
   //   }, [dogadjaj.iD_Kreatora]);
     //-------------------------------------------------------------------------------------------------------
-
+console.log(notifications);
 
   return (
     <div>

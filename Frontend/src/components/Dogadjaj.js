@@ -277,6 +277,8 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
 
 
   const fetchDogadjaji = () => {
+    console.log(brojPosiljke);
+    console.log(ukupnoElemenata);
     const url = `http://localhost:5153/Dogadjaj/VratiDogadjajeZaHomePage/${brojPosiljke}/${ukupnoElemenata}`;
     fetch(url, {
       method: 'GET',
@@ -350,9 +352,12 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
 
   const fetchDogPoNaziv = async (prosledjenNaziv) =>
     {
-
+      //console.log("SACE UDJE U FETCH DOG PO NAZIV");
+      //console.log(primljenNaziv); // OVDE DEFAULT?
+      //console.log(prosledjenNaziv);
       if(primljenNaziv !== "default")
       { 
+        console.log("USO!!!!!");
         console.log("Usao sam u NazivFetch:" +"Posiljka: " +brojPosiljkeNaziv +"  ukupno: "+ ukupnoElemenataNaziv);
         const url = `http://localhost:5153/Dogadjaj/VratiDogadjajePoNazivu/${prosledjenNaziv}/${brojPosiljkeNaziv}/${ukupnoElemenataNaziv}`;
         await fetch(url, {
@@ -361,6 +366,8 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
         })
         .then(res => res.json())
         .then(data => {
+          console.log("SACE DATA:");
+          console.log(data);
           if(data.kraj === undefined)
           {
             if (brojPosiljkeNaziv === 1)
