@@ -48,12 +48,13 @@ namespace EventBoxApi.Controllers
             }
 
                 //OVDE MOZE DA BUDE PROBLEM! Proveri!
-                int korisnik_Id = int.Parse(Request.Headers["UserID"]);
+                //int korisnik_Id = int.Parse(Request.Headers["UserID"]);
+                //Console.WriteLine(korisnik_Id);
                 // Slanje notifikacije kreatoru događaja
-                if (d.ID_Kreatora != korisnik_Id)  // Ne šaljemo notifikaciju korisniku koji je prijavio događaj
-                {
-                    await _hubContext.Clients.User(d.KreatorId.ToString()).SendAsync("ReceiveEventReport", "Dogadjaj je prijavljen", dogadjaj_Id);
-                }
+                //if (d.ID_Kreatora != korisnik_Id)  // Ne šaljemo notifikaciju korisniku koji je prijavio događaj
+                //{
+                    await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveEventReport", "Dogadjaj je prijavljen", dogadjaj_Id);
+               //}
                 return Ok("Dogadjaj je vec prijavljen tako je sada azuriran");
             }
             catch(Exception ex)

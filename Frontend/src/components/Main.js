@@ -415,6 +415,22 @@ function Main() {
     const [notifications, setNotifications] = useState([]);
     const [dogadjaj, setDogadjaj] = useState({});
   
+
+    //sredi ovo - dupli kod
+    async function fetchDogadjaj(id) {
+      try {
+          if (!id) return null;
+          const response = await fetch(`http://localhost:5153/Dogadjaj/VratiDogadjaj/${id}`);
+          if (!response.ok) {
+              throw new Error(`Greška pri dohvatanju događaja: ${response.statusText}`);
+          }
+          return await response.json();
+      } catch (error) {
+          console.error('Greška pri dohvaćanju podataka o događaju:', error);
+          return null;
+      }
+  }
+
       useEffect(() => {
         async function fetchDogadjaj(id) {
             try {
@@ -442,46 +458,51 @@ function Main() {
   
     
     useEffect(() => {
-          if (!korisnik_Id) {
-            console.log("Nema userID, ne mogu da pokrenem SignalR.");
-            return;
-        }
-    
-        console.log("Kreiram SignalR konekciju za userID:", korisnik_Id);
-
-        
-        const connect = new HubConnectionBuilder()
-            .withUrl(`http://localhost:5153/notificationHub?userId=${encodeURIComponent(korisnik_Id)}`)
-            .build();
-    
-        connect.start()
-            .then(() => console.log("Connected to SignalR hub"))
-            .catch(err => console.error("Connection failed: ", err));
-    
-        // connect.on("ReceiveNewComment", (commentText, eventId) => {
-        //     console.log("New comment received:", commentText, "Event ID:", eventId);
-        //     setNotifications((prevNotifications) => [...prevNotifications, commentText]);
-        // });
-
-        connect.on("ReceiveNewReaction", (reactionType, eventId) => {
+      if (!korisnik_Id) {
+          console.log("Nema userID, ne mogu da pokrenem SignalR.");
+          return;
+      }
+  
+      console.log("Kreiram SignalR konekciju za userID:", korisnik_Id);
+  
+      const connect = new HubConnectionBuilder()
+          .withUrl(`http://localhost:5153/notificationHub?userId=${encodeURIComponent(korisnik_Id)}`)
+          .build();
+  
+      connect.start()
+          .then(() => console.log("Connected to SignalR hub"))
+          .catch(err => console.error("Connection failed: ", err));
+  
+      connect.on("ReceiveNewReaction", async (reactionType, eventId) => {
           console.log("New reaction received:", reactionType, "Event ID:", eventId);
-          setNotifications((prevNotifications) => [...prevNotifications, reactionType]);
+  
+          const dogadjaj = await fetchDogadjaj(eventId);
+          console.log(dogadjaj);
+          if (dogadjaj) {
+              setNotifications((prev) => [
+                  ...prev,
+                  {
+                      reactionType,
+                      eventId,
+                      eventName: dogadjaj.naslov, 
+                      organizer: dogadjaj.userName_Kreatora, 
+                      time: new Date().toLocaleString("sr-RS"), // Dodaj trenutni timestamp
+                  }
+              ]);
+          }
       });
   
-    
-        setConnection(connect);
-    
-
+      setConnection(connect);
+  
       return () => {
-        if (connect) {
-          console.log("Stopping SignalR connection...");
-          //connect.off("ReceiveNewComment");
-          connect.off("ReceiveNewReaction");
-          connect.stop();
-        }
-    };
-      
+          if (connect) {
+              console.log("Stopping SignalR connection...");
+              connect.off("ReceiveNewReaction");
+              connect.stop();
+          }
+      };
   }, []);
+
 
   useEffect(() => {
     if (!korisnik_Id) {
@@ -491,7 +512,6 @@ function Main() {
 
   console.log("Kreiram SignalR konekciju za userID:", korisnik_Id);
 
-  
   const connect = new HubConnectionBuilder()
       .withUrl(`http://localhost:5153/notificationHub?userId=${encodeURIComponent(korisnik_Id)}`)
       .build();
@@ -500,15 +520,26 @@ function Main() {
       .then(() => console.log("Connected to SignalR hub"))
       .catch(err => console.error("Connection failed: ", err));
 
-  connect.on("ReceiveNewComment", (commentText, eventId) => {
+
+    connect.on("ReceiveNewComment", async (commentText, eventId) => {
       console.log("New comment received:", commentText, "Event ID:", eventId);
-      setNotifications((prevNotifications) => [...prevNotifications, commentText]);
+
+      const dogadjaj = await fetchDogadjaj(eventId);
+      if (dogadjaj) {
+          setNotifications((prev) => [
+              ...prev,
+              {
+                  commentText,
+                  eventId,
+                  eventName: dogadjaj.naslov, 
+                  organizer: dogadjaj.userName_Kreatora, 
+                  time: new Date().toLocaleString("sr-RS"), // Dodaj trenutni timestamp
+              }
+          ]);
+      }
   });
 
-
-
   setConnection(connect);
-
 
 return () => {
   if (connect) {
@@ -516,6 +547,52 @@ return () => {
     connect.off("ReceiveNewComment");
     connect.stop();
   }
+};
+
+}, []);
+
+useEffect(() => {
+  if (!korisnik_Id) {
+    console.log("Nema userID, ne mogu da pokrenem SignalR.");
+    return;
+}
+
+console.log("Kreiram SignalR konekciju za userID:", korisnik_Id);
+
+const connect = new HubConnectionBuilder()
+    .withUrl(`http://localhost:5153/notificationHub?userId=${encodeURIComponent(korisnik_Id)}`)
+    .build();
+
+connect.start()
+    .then(() => console.log("Connected to SignalR hub"))
+    .catch(err => console.error("Connection failed: ", err));
+
+connect.on("ReceiveEventReport", async (reason, eventId) => {
+  console.log("New report received:", reason, "Event ID:", eventId);
+
+  const dogadjaj = await fetchDogadjaj(eventId);
+  if (dogadjaj) {
+      setNotifications((prev) => [
+          ...prev,
+          {
+              reason,
+              eventId,
+              eventName: dogadjaj.naslov, 
+              organizer: dogadjaj.userName_Kreatora, 
+              time: new Date().toLocaleString("sr-RS"), // Dodaj trenutni timestamp
+          }
+      ]);
+  }
+});
+
+setConnection(connect);
+
+return () => {
+if (connect) {
+  console.log("Stopping SignalR connection...");
+  connect.off("ReceiveEventReport");
+  connect.stop();
+}
 };
 
 }, []);
@@ -748,52 +825,32 @@ console.log(notifications);
                         <i className="la la-ellipsis-v" />
                       </div>
                       <div className="jobs-list">
-                        <div className="job-info">
-                        <h2>Notifications</h2>
-                          <ul>
-                            {notifications.map((notif, index) => (
-                              <li key={index}>{notif}</li>
-                            ))}
-                          </ul>
-                          {/* <div className="job-details">
-                            <p>Korisnik Ime Prezime je reagovao/la na vas dogadjaj ImeDogadjaja: Zainteresovan.</p>
+                     
+                      {notifications.length > 0 ? (
+                        notifications.map((notif, index) => (
+                          <div className="job-info" key={index}>
+                            <div className="job-details">
+                              <p>{notif.organizer} je {notif.reactionType ? " reagovao" 
+                              : notif.reason ? " prijavio" 
+                              : notif.commentText ? " komentarisao" 
+                              : ""}  '{notif.reactionType || notif.commentText || ""}' 
+                              {notif.reactionType ? " na" 
+                                : notif.reason ? " " 
+                                : notif.commentText ? " na" 
+                                : ""} Vaš događaj {notif.eventName}.</p>
+                            </div>
+                            <div className="hr-rate">
+                              <span>{notif.time}</span> 
+                            </div>
                           </div>
-                          <div className="hr-rate">
-                            <span>Danas, 17:38</span>
-                          </div> */}
-                        </div>{/*job-info end*/}
-                        <div className="job-info">
-                          <div className="job-details">
-                            <p>Korisnik Ime Prezime je dodao komentar na vas dogadjaj ImeDogadjaja.</p>
-                          </div>
-                          <div className="hr-rate">
-                            <span>Sreda, 20:20</span>
-                          </div>
-                        </div>{/*job-info end*/}
-                        <div className="job-info">
-                          <div className="job-details">
-                            <p>Lorem ipsum dolor sit amet, consec adipiscing elit..</p>
-                          </div>
-                          <div className="hr-rate">
-                            <span>Petak, 18:04</span>
-                          </div>
-                        </div>{/*job-info end*/}
-                        <div className="job-info">
-                          <div className="job-details">
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit..</p>
-                          </div>
-                          <div className="hr-rate">
-                            <span>Petak, 9:18</span>
-                          </div>
-                        </div>{/*job-info end*/}
-                        <div className="job-info">
-                          <div className="job-details">
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit..</p>
-                          </div>
-                          <div className="hr-rate">
-                            <span>Subota, 21:36</span>
-                          </div>
-                        </div>{/*job-info end*/}
+                        ))
+                      ) : (
+                        <p style={{ textAlign: "center", color: "gray", marginTop: "10px" }}>
+                          Trenutno nema notifikacija.
+                        </p>
+                      )}
+
+  
                       </div>{/*jobs-list end*/}
                     </div>{/*widget-jobs end*/}
                     {/* Predlog za PRONALAZENJE LJUDI ! ! */}

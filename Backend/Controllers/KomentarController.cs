@@ -39,12 +39,12 @@ namespace EventBoxApi.Controllers
                 await Context.SaveChangesAsync();
 
                 //Console.WriteLine($"Pokušaj slanja notifikacije korisniku {d.ID_Kreatora} za događaj {dogadjaj_Id}");
-                if(d.ID_Kreatora != korisnik_Id)
-                {
+                //if(d.ID_Kreatora != korisnik_Id)
+                //{
                     Console.WriteLine($"Slanje notifikacije korisniku {d.ID_Kreatora}");
-                     await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewComment", tekst, dogadjaj_Id);
+                    await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewComment", tekst, dogadjaj_Id);
                      
-                }
+                //}
                
 
                 //Console.WriteLine("Poziv ka hubu je izvršen.");

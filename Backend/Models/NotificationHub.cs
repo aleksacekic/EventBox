@@ -72,6 +72,15 @@ public async Task NotifyNewComment(string userId, string commentText, int eventI
 
     public async Task NotifyEventReported(string userId, string reason, int eventId)
     {
-        await Clients.User(userId).SendAsync("ReceiveEventReport", reason, eventId);
+        if (_userConnections.TryGetValue(userId, out string connectionId))
+        {
+            Console.WriteLine($"Found connectionId: {connectionId}");
+            await Clients.Client(connectionId).SendAsync("ReceiveEventReport", reason, eventId);
+            Console.WriteLine("Notification sent successfully.");
+        }
+        else
+        {
+            Console.WriteLine($"No connection found for userId: {userId}");
+        }
     }
 }
