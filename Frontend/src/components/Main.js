@@ -458,24 +458,67 @@ function Main() {
             .then(() => console.log("Connected to SignalR hub"))
             .catch(err => console.error("Connection failed: ", err));
     
-        connect.on("ReceiveNewComment", (commentText, eventId) => {
-            console.log("New comment received:", commentText, "Event ID:", eventId);
-            setNotifications((prevNotifications) => [...prevNotifications, commentText]);
-        });
+        // connect.on("ReceiveNewComment", (commentText, eventId) => {
+        //     console.log("New comment received:", commentText, "Event ID:", eventId);
+        //     setNotifications((prevNotifications) => [...prevNotifications, commentText]);
+        // });
+
+        connect.on("ReceiveNewReaction", (reactionType, eventId) => {
+          console.log("New reaction received:", reactionType, "Event ID:", eventId);
+          setNotifications((prevNotifications) => [...prevNotifications, reactionType]);
+      });
+  
     
         setConnection(connect);
     
 
       return () => {
         if (connect) {
-            console.log("Stopping SignalR connection...");
-            connect.stop();
+          console.log("Stopping SignalR connection...");
+          //connect.off("ReceiveNewComment");
+          connect.off("ReceiveNewReaction");
+          connect.stop();
         }
     };
       
-    
-      
   }, []);
+
+  useEffect(() => {
+    if (!korisnik_Id) {
+      console.log("Nema userID, ne mogu da pokrenem SignalR.");
+      return;
+  }
+
+  console.log("Kreiram SignalR konekciju za userID:", korisnik_Id);
+
+  
+  const connect = new HubConnectionBuilder()
+      .withUrl(`http://localhost:5153/notificationHub?userId=${encodeURIComponent(korisnik_Id)}`)
+      .build();
+
+  connect.start()
+      .then(() => console.log("Connected to SignalR hub"))
+      .catch(err => console.error("Connection failed: ", err));
+
+  connect.on("ReceiveNewComment", (commentText, eventId) => {
+      console.log("New comment received:", commentText, "Event ID:", eventId);
+      setNotifications((prevNotifications) => [...prevNotifications, commentText]);
+  });
+
+
+
+  setConnection(connect);
+
+
+return () => {
+  if (connect) {
+    console.log("Stopping SignalR connection...");
+    connect.off("ReceiveNewComment");
+    connect.stop();
+  }
+};
+
+}, []);
   
 
   //   console.log("AJDI0:" + dogadjaj.iD_Kreatora);

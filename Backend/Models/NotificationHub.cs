@@ -34,20 +34,7 @@ public class NotificationHub : Hub
     }
 
 
-    // public async Task NotifyNewComment(string userId, string commentText, int eventId)
-    // {
-    //     await Clients.User(userId).SendAsync("ReceiveNewComment", commentText, eventId);
-    // }
 
-//     public async Task NotifyNewComment(string userId, string commentText, int eventId)
-// {
-//     Console.WriteLine($"Sending notification to {userId}");
-//     if (_userConnections.TryGetValue(userId, out string connectionId))
-//     {
-//         Console.WriteLine($"Found connectionId: {connectionId}");
-//         await Clients.Client(connectionId).SendAsync("ReceiveNewComment", commentText, eventId);
-//     }
-// }
 
 public async Task NotifyNewComment(string userId, string commentText, int eventId)
 {
@@ -69,7 +56,17 @@ public async Task NotifyNewComment(string userId, string commentText, int eventI
 
     public async Task NotifyNewReaction(string userId, string reactionType, int eventId)
     {
-        await Clients.User(userId).SendAsync("ReceiveNewReaction", reactionType, eventId);
+        
+        if (_userConnections.TryGetValue(userId, out string connectionId))
+        {
+            Console.WriteLine($"Found connectionId: {connectionId}");
+            await Clients.Client(connectionId).SendAsync("ReceiveNewReaction", reactionType, eventId);
+            Console.WriteLine("Notification sent successfully.");
+        }
+        else
+        {
+            Console.WriteLine($"No connection found for userId: {userId}");
+        }
     }
 
 

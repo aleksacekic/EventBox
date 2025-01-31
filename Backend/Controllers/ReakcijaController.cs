@@ -39,15 +39,18 @@ namespace EventBoxApi.Controllers
                 r.Tip = tip;
                 r.Korisnik_ID = korisnik_Id;
                 r.Dogadjaj_ID = d;
+                //Console.WriteLine("SACEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
+                //Console.WriteLine(d.ID_Kreatora);
                 Context.Reakcije.Add(r);
                 Context.Dogadjaji.Update(d);
                 await Context.SaveChangesAsync();
 
-                // Slanje notifikacije kreatoru događaja
-                if (d.ID_Kreatora != korisnik_Id)  // Ne šaljemo notifikaciju korisniku koji je postavio reakciju
-                {
-                    await _hubContext.Clients.User(d.KreatorId.ToString()).SendAsync("ReceiveNewReaction", tip, dogadjaj_Id);
-                }
+      
+                await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewReaction", tip, dogadjaj_Id);
+                //await _hubContext.Clients.All.SendAsync("ReceiveNewReaction", tip, dogadjaj_Id);
+
+
+                
                 return Ok("Uspesno je dodata rekcija");
             }
             catch(Exception ex)
