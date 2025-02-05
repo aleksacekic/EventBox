@@ -17,6 +17,122 @@
 	/* padding-bottom:4px; */
 }
 
+/* CHAT */
+.chat-container {
+	display: flex;
+	height: 80vh;
+	width: 80%;
+	margin: auto;
+	border: 1px solid #ddd;
+	border-radius: 10px;
+	overflow: hidden;
+	background: #f9f9f9;
+  }
+  
+  /* Leva strana - lista korisnika */
+  .chat-sidebar {
+	width: 30%;
+	background: #ffffff;
+	border-right: 1px solid #ddd;
+	padding: 10px;
+	overflow-y: auto;
+  }
+  
+  .chat-sidebar h2 {
+	font-size: 18px;
+	margin-bottom: 10px;
+  }
+  
+  .chat-user {
+	padding: 12px;
+	cursor: pointer;
+	border-radius: 5px;
+	margin-bottom: 5px;
+	transition: 0.3s;
+  }
+  
+  .chat-user:hover {
+	background: #f0f0f0;
+  }
+  
+  .chat-user.active {
+	background: #007bff;
+	color: white;
+  }
+  
+  /* Desna strana - aktivni chat */
+  .chat-main {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	background: white;
+  }
+  
+  .chat-header {
+	background: #007bff;
+	color: white;
+	padding: 15px;
+	font-size: 18px;
+	font-weight: bold;
+  }
+  
+  .chat-messages {
+	flex: 1;
+	padding: 10px;
+	overflow-y: auto;
+  }
+  
+  .message {
+	padding: 8px 12px;
+	border-radius: 15px;
+	margin: 5px 0;
+	max-width: 70%;
+  }
+  
+  .my-message {
+	background: #007bff;
+	color: white;
+	align-self: flex-end;
+  }
+  
+  .their-message {
+	background: #f0f0f0;
+	color: black;
+	align-self: flex-start;
+  }
+  
+  /* Input za poruke */
+  .chat-input {
+	display: flex;
+	padding: 10px;
+	border-top: 1px solid #ddd;
+  }
+  
+  .chat-input input {
+	flex: 1;
+	padding: 10px;
+	border: 1px solid #ccc;
+	border-radius: 5px;
+  }
+  
+  .chat-input button {
+	background: #007bff;
+	color: white;
+	border: none;
+	padding: 10px 15px;
+	margin-left: 5px;
+	border-radius: 5px;
+	cursor: pointer;
+  }
+  
+  .no-chat {
+	text-align: center;
+	padding: 20px;
+	color: #888;
+  }
+
+  /* ================================================================================== */
+
 
 
 .back-btn{

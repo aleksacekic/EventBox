@@ -57,7 +57,7 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
         }
       );
       if (response.ok) {
-        onDogadjajIdSubmit(dogadjajId); //ovo sluzi za prosledjivanje dogadjajId iz Komentari.js u Dogajdaj.js pa u Main.js
+        //onDogadjajIdSubmit(dogadjajId); //ovo sluzi za prosledjivanje dogadjajId iz Komentari.js u Dogajdaj.js pa u Main.js
         fetchKomentari();
         setNoviKomentar('');
       } else if (response.status === 401){
