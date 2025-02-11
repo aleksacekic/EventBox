@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
@@ -7,23 +8,29 @@ namespace Models
     [Table("Notifikacija")]
     public class Notifikacija
     {
-        [Key]
-        public int Id { get; set; }
+    [Key]
+    public int Id { get; set; }
 
-        [Required]
-        public int Korisnik_Id { get; set; } // ID korisnika na koji se odnosi notifikacija
+    [Required]
+    public int KorisnikKojiReagujeId { get; set; }
 
-        [Required]
-        public string TipNotifikacije { get; set; } // Tip notifikacije (komentar, reakcija, prijava)
+    [Required]
+    public string TipReakcije { get; set; }
 
-        [Required]
-        public string Sadrzaj { get; set; } // Sadržaj notifikacije (tekst komentara, tip reakcije, ili sadržaj prijave)
+    public string SadrzajReakcije { get; set; }
 
-        [Required]
-        public DateTime Vreme { get; set; } // Vremenski žig
+    [Required]
+    public DateTime Vreme { get; set; } = DateTime.Now;
+    
+    [Required]
+    [JsonIgnore]
+    public virtual Korisnik Korisnik { get; set; }
 
-        [ForeignKey("Korisnik_Id")]
-        [JsonIgnore]
-        public virtual Korisnik Korisnik { get; set; } // Referenca na korisnika
+    [Required]
+    public int KorisnikCijaJeObjavaId {get; set;}
+
     }
 }
+
+
+

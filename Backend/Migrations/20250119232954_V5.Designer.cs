@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Models;
 
@@ -11,9 +12,11 @@ using Models;
 namespace EventBoxApi.Migrations
 {
     [DbContext(typeof(EventBoxContext))]
-    partial class EventBoxContextModelSnapshot : ModelSnapshot
+    [Migration("20250119232954_V5")]
+    partial class V5
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -234,20 +237,14 @@ namespace EventBoxApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("KorisnikCijaJeObjavaId")
+                    b.Property<int>("Korisnik_Id")
                         .HasColumnType("int");
 
-                    b.Property<int>("KorisnikId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("KorisnikKojiReagujeId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SadrzajReakcije")
+                    b.Property<string>("Sadrzaj")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("TipReakcije")
+                    b.Property<string>("TipNotifikacije")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -256,7 +253,7 @@ namespace EventBoxApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("KorisnikId");
+                    b.HasIndex("Korisnik_Id");
 
                     b.ToTable("Notifikacija");
                 });
@@ -385,7 +382,7 @@ namespace EventBoxApi.Migrations
                 {
                     b.HasOne("Models.Korisnik", "Korisnik")
                         .WithMany("Lista_Notifikacija")
-                        .HasForeignKey("KorisnikId")
+                        .HasForeignKey("Korisnik_Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

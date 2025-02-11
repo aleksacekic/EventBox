@@ -294,6 +294,20 @@ namespace EventBoxApi.Controllers
             }
         }
 
+        [HttpGet]
+        [EnableCors("CORS")]
+        [Route("VratiNotifikacijeKorisnika/{korisnik_Id}")]
+        public async Task<ActionResult> VratiNotifikacijeKorisnika(int korisnik_Id)
+        {
+            Console.WriteLine("USO U NOTIFIKACIJE");
+            //await Validnost.Validiraj(Context, Request);
+            Korisnik k = await Context.Korisnici.Where(p => p.Id == korisnik_Id).Include(p => p.Lista_Notifikacija).FirstOrDefaultAsync();
+            Console.WriteLine(k.Lista_Notifikacija);
+            Console.WriteLine("GOTOVE NOTIFIKACIJE");
+            return Ok(k.Lista_Notifikacija);
+        }
+
+
         [HttpPut]
         [EnableCors("CORS")]
         [Route("BlokirajKorisnika/{korisnik_id}")]

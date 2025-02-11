@@ -9,8 +9,9 @@ import { Link } from 'react-router-dom';
 import $ from 'jquery';
 import moment from 'moment';
 import Cookies from 'js-cookie'
-import { useNavigate } from 'react-router-dom';
 import { HubConnectionBuilder } from '@microsoft/signalr';
+import { useNavigate } from 'react-router-dom';
+
 
 function Main() {
  
@@ -632,6 +633,11 @@ if (connect) {
     //-------------------------------------------------------------------------------------------------------
 console.log(notifications);
 
+const navigate = useNavigate();
+const handleClickObjava = (id, obj) => {
+  navigate(`/objava/${id}`, { state: { obj } });
+};
+
   return (
     <div>
       <main>
@@ -824,11 +830,12 @@ console.log(notifications);
                         <h3>Notifikacije</h3>
                         <i className="la la-ellipsis-v" />
                       </div>
+                      
                       <div className="jobs-list">
                      
                       {notifications.length > 0 ? (
                         notifications.map((notif, index) => (
-                          <div className="job-info" key={index}>
+                          <div className="job-info" key={index} onClick={() => handleClickObjava(notif.eventId, korisnik)}>
                             <div className="job-details">
                               <p>{notif.organizer} je {notif.reactionType ? " reagovao" 
                               : notif.reason ? " prijavio" 

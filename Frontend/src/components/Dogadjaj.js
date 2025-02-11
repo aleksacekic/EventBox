@@ -196,9 +196,10 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
 
 
   const [korisnik, setKorisnik] = useState(null);
-  const [mojdatum, setmojdatum] = useState();
+  const [korisnik_Id, setKorisnikId] = useState(null);
+  const [ucitavaSe, setUcitavaSe] = useState(true); // indikator ucitavanja
 
-  const [isMyDogadjaj, setIsMyDogadjaj] = useState(true);
+
 
   
   /*function proveriDogadjajZaBrisanje(event, dogadjajId) {
@@ -497,34 +498,50 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
     return moment(datum).format('DD.MM.YYYY');
   };
 
-  let korisnik_Id;
+  
+
+  // Postavljamo korisnik_Id iz cookies-a odmah po učitavanju komponente
   useEffect(() => {
-    korisnik_Id = Cookies.get('userID');
+    const id = Cookies.get('userID');
+    if (id) {
+      setKorisnikId(id);
+    } else {
+      setUcitavaSe(false); // Ako nema userID u cookies-u, prekidamo učitavanje
+    }
   }, []);
   
-  const ucitajKorisnika = () => {
-
-    const url = `http://localhost:5153/Korisnik/VratiKorisnika_ID/${korisnik_Id}`;
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        //console.log(data.datum_rodjenja);
-        const formatiranDatum = formatirajDatum(data.datum_rodjenja);
-        data.datumrodjenja = formatiranDatum;
-        //console.log(formatiranDatum);
+  // Kada imamo korisnik_Id, učitavamo korisnika
+  useEffect(() => {
+    if (!korisnik_Id) return;
+  
+    const ucitajKorisnika = async () => {
+      try {
+        setUcitavaSe(true); // Počinjemo učitavanje
+        const response = await fetch(`http://localhost:5153/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
+        if (!response.ok) throw new Error("Greška pri učitavanju korisnika");
+  
+        const data = await response.json();
+        data.datumrodjenja = formatirajDatum(data.datum_rodjenja);
         setKorisnik(data);
-        //console.log(data);
-        setmojdatum(formatiranDatum);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  };
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setUcitavaSe(false); // Završavamo učitavanje
+      }
+    };
   
-  useEffect(() => {
     ucitajKorisnika();
-  }, []);
+  }, [korisnik_Id]);
 
+
+  // JSX provera da izbegnemo grešku
+if (ucitavaSe) {
+  return <p>Učitavanje...</p>; // Prikazujemo loader dok se učitava korisnik
+}
+
+if (!korisnik) {
+  return <p>Niste prijavljeni.</p>; // Ako korisnik nije postavljen, znači da nije ulogovan
+}
 
  //Za prebacivanje na posebnu objavu.
    //const navigate = useNavigate();

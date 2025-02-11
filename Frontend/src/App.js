@@ -7,6 +7,7 @@ import ProfilTudji from './Pages/ProfilTudji'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import DogadjajZasebno from './Pages/DogadjajZasebno';
 import Chat from './Pages/Chat';
+import NotifikacijaTest from './Pages/NotifikacijaTest';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           {/* <Route path="/proba" element={<Proba />} /> */}
           {/* <Route path="/profilkorisnika/:id" element={<ProfilTudji />} /> */}
           <Route path="/profilkorisnika" element={<ProfilTudji />} />
+          <Route path="/proba" element={<NotifikacijaTest />} />
         </Routes>
       </div>
     </Router>

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Models;
 
@@ -11,9 +12,11 @@ using Models;
 namespace EventBoxApi.Migrations
 {
     [DbContext(typeof(EventBoxContext))]
-    partial class EventBoxContextModelSnapshot : ModelSnapshot
+    [Migration("20250210202647_V7")]
+    partial class V7
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -234,10 +237,7 @@ namespace EventBoxApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("KorisnikCijaJeObjavaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("KorisnikId")
+                    b.Property<int?>("KorisnikId")
                         .HasColumnType("int");
 
                     b.Property<int>("KorisnikKojiReagujeId")
@@ -383,13 +383,9 @@ namespace EventBoxApi.Migrations
 
             modelBuilder.Entity("Models.Notifikacija", b =>
                 {
-                    b.HasOne("Models.Korisnik", "Korisnik")
+                    b.HasOne("Models.Korisnik", null)
                         .WithMany("Lista_Notifikacija")
-                        .HasForeignKey("KorisnikId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Korisnik");
+                        .HasForeignKey("KorisnikId");
                 });
 
             modelBuilder.Entity("Models.Poruka", b =>

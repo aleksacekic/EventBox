@@ -16,10 +16,10 @@ namespace EventBoxApi.Controllers
             this.Context = context;
         }
 
-        [HttpPost]
+        //[HttpPost]
         [EnableCors("CORS")]
-        [Route("PostaviNotifikaciju/{tipNotifikacije}/{sadrzaj}/{vreme}/{korisnik_Id}")]
-        public async Task<ActionResult> PostaviNotifikaciju(string tipNotifikacije, string sadrzaj, DateTime vreme, int korisnik_Id)
+        [HttpPost("PostaviNotifikaciju/{korisnik_reaguje_Id}/{tip_reakcije}/{sadrzaj_reakcije}/{vreme}/{korisnik_Id}")]
+        public async Task<ActionResult> PostaviNotifikaciju(int korisnik_reaguje_Id, string tip_reakcije, string sadrzaj_reakcije, DateTime vreme, int korisnik_Id)
         {
             try
             {
@@ -28,13 +28,15 @@ namespace EventBoxApi.Controllers
                 {
                     return NotFound("Korisnik nije pronađen");
                 }
-
+               
                 Notifikacija n = new Notifikacija
                 {
-                    TipNotifikacije = tipNotifikacije,
-                    Sadrzaj = sadrzaj,
+                    KorisnikKojiReagujeId = korisnik_reaguje_Id,
+                    TipReakcije = tip_reakcije,
+                    SadrzajReakcije = sadrzaj_reakcije,
                     Vreme = vreme,
-                    Korisnik_Id = korisnik_Id
+                    KorisnikCijaJeObjavaId = korisnik_Id,
+                    Korisnik = k
                 };
 
                 Context.Notifikacije.Add(n);
@@ -46,6 +48,8 @@ namespace EventBoxApi.Controllers
                 return BadRequest("Nije uspesno ubacena nova notifikacija: " + ex.Message);
             }
         }
+
+        
 
         [HttpDelete]
         [EnableCors("CORS")]
