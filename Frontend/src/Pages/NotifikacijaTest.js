@@ -14,8 +14,9 @@ const NotifikacijaTest = () => {
     const sadrzajReakcije = "kaludjeruu";
     const vreme = new Date().toISOString().slice(0, 19);
     const korisnikId = 8;
+    const dogadjajID= 31;
 
-    const url = `${baseUrl}/Notifikacija/PostaviNotifikaciju/${korisnikReagujeId}/${tipReakcije}/${sadrzajReakcije}/${vreme}/${korisnikId}`;
+    const url = `${baseUrl}/Notifikacija/PostaviNotifikaciju/${dogadjajID}/${korisnikReagujeId}/${tipReakcije}/${sadrzajReakcije}/${vreme}/${korisnikId}`;
 
     try {
       const response = await fetch(url, {

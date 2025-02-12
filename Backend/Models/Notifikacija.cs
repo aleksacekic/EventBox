@@ -12,6 +12,9 @@ namespace Models
     public int Id { get; set; }
 
     [Required]
+    public int DogadjajId { get; set; }
+
+    [Required]
     public int KorisnikKojiReagujeId { get; set; }
 
     [Required]

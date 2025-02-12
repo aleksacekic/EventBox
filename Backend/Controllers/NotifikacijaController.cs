@@ -18,8 +18,8 @@ namespace EventBoxApi.Controllers
 
         //[HttpPost]
         [EnableCors("CORS")]
-        [HttpPost("PostaviNotifikaciju/{korisnik_reaguje_Id}/{tip_reakcije}/{sadrzaj_reakcije}/{vreme}/{korisnik_Id}")]
-        public async Task<ActionResult> PostaviNotifikaciju(int korisnik_reaguje_Id, string tip_reakcije, string sadrzaj_reakcije, DateTime vreme, int korisnik_Id)
+        [HttpPost("PostaviNotifikaciju/{dogadjaj_Id}/{korisnik_reaguje_Id}/{tip_reakcije}/{sadrzaj_reakcije}/{vreme}/{korisnik_Id}")]
+        public async Task<ActionResult> PostaviNotifikaciju(int dogadjaj_Id, int korisnik_reaguje_Id, string tip_reakcije, string sadrzaj_reakcije, DateTime vreme, int korisnik_Id)
         {
             try
             {
@@ -31,6 +31,7 @@ namespace EventBoxApi.Controllers
                
                 Notifikacija n = new Notifikacija
                 {
+                    DogadjajId = dogadjaj_Id,
                     KorisnikKojiReagujeId = korisnik_reaguje_Id,
                     TipReakcije = tip_reakcije,
                     SadrzajReakcije = sadrzaj_reakcije,

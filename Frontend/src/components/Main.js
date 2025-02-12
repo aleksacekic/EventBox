@@ -410,6 +410,90 @@ function Main() {
     
   };
 
+  //----------------------------------------------
+  const fetchNotifikacije = async () => {
+    try {
+        const response = await fetch(`http://localhost:5153/Korisnik/VratiNotifikacijeKorisnika/${korisnik_Id}`);
+        const data = await response.json();
+
+       //koristimo fetchDogadjaj unutar map, jer eventName dolazi iz zasebnog API poziva. Pošto map ne podržava await, koristićemo Promise.all da sačekamo sve zahteve pre nego što ažuriramo setNotifications.
+        const mappedNotifikacije = await Promise.all(
+            data.map(async (not) => {
+                const dogadjaj = await fetchDogadjaj(not.dogadjajId);
+                //const korisnik = await ucitajKorisnika(not.korisnikCijaJeObjavaId);
+                return {
+                    reactionType: not.tipReakcije || null,
+                    commentText: not.sadrzajReakcije || null,
+                    reason: not.tipReakcije || null,
+                    eventId: not.dogadjajId,
+                    eventName: dogadjaj?.naslov || "Nepoznat dogadjaj", // Ako ne postoji naziv
+                    organizer: not.korisnikCijaJeObjavaId,
+                    //korisnik?.ime || "Nepoznat korisnik"
+                    time: new Date(not.vreme).toLocaleString("sr-RS"),
+                };
+            })
+        );
+
+        setNotifications(mappedNotifikacije.slice(0, 5)); // Ograniči na 5
+    } catch (error) {
+        console.error("Greška pri učitavanju notifikacija:", error);
+    }
+};
+
+const postaviNotifikaciju = async (dogadjajId,korisnikReagujeId, tipReakcije,sadrzajReakcije, vreme, korisnikId ) => {
+  try {
+      const response = await fetch(`http://localhost:5153/Notifikacija/PostaviNotifikaciju`, {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+              dogadjajId: dogadjajId,
+              korisnikKojiReagujeId: korisnikReagujeId,
+              tipReakcije: tipReakcije,
+              sadrzajReakcije: sadrzajReakcije,
+              vreme: vreme,
+              korisnikCijaJeObjavaId: korisnikId,
+          })
+      });
+      if (!response.ok) {
+          throw new Error("Neuspešno postavljanje notifikacije");
+      }
+
+      return await response.json();
+  } catch (error) {
+      console.error("Greška prilikom postavljanja notifikacije:", error);
+      return null;
+  }
+};
+
+const postNot = async (dogadjajId,korisnikReagujeId, tipReakcije,sadrzajReakcije, vreme, korisnikId ) => {
+try {
+    
+  const response = await fetch(`http://localhost:5153/Notifikacija/PostaviNotifikaciju/${dogadjajId}/${korisnikReagujeId}/${tipReakcije}/${sadrzajReakcije}/${vreme}/${korisnikId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  });
+  console.log(response);
+  if (response.ok) {
+    return await response.json(); // response.ok
+  }
+  else{
+    throw new Error("Neuspešno postavljanje notifikacije");
+  }
+} catch (error) {
+  console.error(error);
+  return null;
+}
+};
+
+
+
+
+
     //-------------------------------------------------------------------------------------------------------
 
    const [connection, setConnection] = useState(null);
@@ -464,6 +548,8 @@ function Main() {
           return;
       }
   
+      fetchNotifikacije();
+  
       console.log("Kreiram SignalR konekciju za userID:", korisnik_Id);
   
       const connect = new HubConnectionBuilder()
@@ -474,21 +560,34 @@ function Main() {
           .then(() => console.log("Connected to SignalR hub"))
           .catch(err => console.error("Connection failed: ", err));
   
-      connect.on("ReceiveNewReaction", async (reactionType, eventId) => {
-          console.log("New reaction received:", reactionType, "Event ID:", eventId);
+      connect.on("ReceiveNewReaction", async (reactionType, eventId, reactingUserId) => {
+          console.log("New reaction received:", reactionType, "Event ID:", eventId, "Reacting User ID:", reactingUserId);
   
           const dogadjaj = await fetchDogadjaj(eventId);
           console.log(dogadjaj);
+  
           if (dogadjaj) {
+              // Čuvanje notifikacije u bazi
+              await postNot(
+                  eventId,   // ID događaja
+                  8,         // Korisnik koji reaguje
+                  reactionType,           // Tip reakcije 
+                  reactionType,           // Pošto SadrzajReakcije može biti isti kao tip 
+                  new Date().toISOString(), // Trenutno vreme u ISO format
+                  dogadjaj.iD_Kreatora    // Korisnik čija je objava (vlasnik događaja)
+                              
+              );
+  
+              // Ažuriranje lokalne liste notifikacija
               setNotifications((prev) => [
-                  ...prev,
-                  {
-                      reactionType,
-                      eventId,
+                  { 
+                      reactionType, 
+                      eventId, 
                       eventName: dogadjaj.naslov, 
                       organizer: dogadjaj.userName_Kreatora, 
-                      time: new Date().toLocaleString("sr-RS"), // Dodaj trenutni timestamp
-                  }
+                      time: new Date().toLocaleString("sr-RS") 
+                  },
+                  ...prev.slice(0, 4) // Ograničava listu na 5 notifikacija
               ]);
           }
       });
@@ -503,6 +602,7 @@ function Main() {
           }
       };
   }, []);
+  
 
 
   useEffect(() => {
@@ -510,6 +610,8 @@ function Main() {
       console.log("Nema userID, ne mogu da pokrenem SignalR.");
       return;
   }
+
+  fetchNotifikacije(); 
 
   console.log("Kreiram SignalR konekciju za userID:", korisnik_Id);
 
@@ -527,16 +629,10 @@ function Main() {
 
       const dogadjaj = await fetchDogadjaj(eventId);
       if (dogadjaj) {
-          setNotifications((prev) => [
-              ...prev,
-              {
-                  commentText,
-                  eventId,
-                  eventName: dogadjaj.naslov, 
-                  organizer: dogadjaj.userName_Kreatora, 
-                  time: new Date().toLocaleString("sr-RS"), // Dodaj trenutni timestamp
-              }
-          ]);
+        setNotifications((prev) => [
+          { commentText, eventId, eventName: dogadjaj.naslov, organizer: dogadjaj.userName_Kreatora, time: new Date().toLocaleString("sr-RS") },
+          ...prev.slice(0, 4) // Ograničava listu na 5 notifikacija
+      ]);
       }
   });
 
@@ -558,6 +654,8 @@ useEffect(() => {
     return;
 }
 
+fetchNotifikacije();
+
 console.log("Kreiram SignalR konekciju za userID:", korisnik_Id);
 
 const connect = new HubConnectionBuilder()
@@ -573,16 +671,10 @@ connect.on("ReceiveEventReport", async (reason, eventId) => {
 
   const dogadjaj = await fetchDogadjaj(eventId);
   if (dogadjaj) {
-      setNotifications((prev) => [
-          ...prev,
-          {
-              reason,
-              eventId,
-              eventName: dogadjaj.naslov, 
-              organizer: dogadjaj.userName_Kreatora, 
-              time: new Date().toLocaleString("sr-RS"), // Dodaj trenutni timestamp
-          }
-      ]);
+    setNotifications((prev) => [
+      { reason, eventId, eventName: dogadjaj.naslov, organizer: dogadjaj.userName_Kreatora, time: new Date().toLocaleString("sr-RS") },
+      ...prev.slice(0, 4) // Ograničava listu na 5 notifikacija
+  ]);
   }
 });
 
