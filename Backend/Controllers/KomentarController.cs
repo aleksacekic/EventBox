@@ -42,7 +42,7 @@ namespace EventBoxApi.Controllers
                 //if(d.ID_Kreatora != korisnik_Id)
                 //{
                     Console.WriteLine($"Slanje notifikacije korisniku {d.ID_Kreatora}");
-                    await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewComment", tekst, dogadjaj_Id);
+                    await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewComment", tekst, dogadjaj_Id, korisnik_Id);
                      
                 //}
                

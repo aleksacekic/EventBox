@@ -11,9 +11,9 @@ public class NotificationHub : Hub
         var httpContext = Context.GetHttpContext();
         if (httpContext != null && httpContext.Request.Query.ContainsKey("userID"))
         {
-            Console.WriteLine("User connected: " + httpContext.Request.Query["userID"]);
+            //Console.WriteLine("User connected: " + httpContext.Request.Query["userID"]);
             string userId = httpContext.Request.Query["userID"];
-            Console.WriteLine($"User connected: {userId} with ConnectionId: {Context.ConnectionId}");
+            //Console.WriteLine($"User connected: {userId} with ConnectionId: {Context.ConnectionId}");
             _userConnections[userId] = Context.ConnectionId;
            
         }
@@ -36,14 +36,14 @@ public class NotificationHub : Hub
 
 
 
-public async Task NotifyNewComment(string userId, string commentText, int eventId)
+public async Task NotifyNewComment(string userId, string commentText, int eventId, int reactingUserId)
 {
-    Console.WriteLine($"Sending notification to {userId}");
+    //Console.WriteLine($"Sending notification to {userId}");
     if (_userConnections.TryGetValue(userId, out string connectionId))
     {
-        Console.WriteLine($"Found connectionId: {connectionId}");
-        await Clients.Client(connectionId).SendAsync("ReceiveNewComment", commentText, eventId);
-        Console.WriteLine("Notification sent successfully.");
+        //Console.WriteLine($"Found connectionId: {connectionId}");
+        await Clients.Client(connectionId).SendAsync("ReceiveNewComment", commentText, eventId, reactingUserId);
+        //Console.WriteLine("Notification sent successfully.");
     }
     else
     {
@@ -54,14 +54,14 @@ public async Task NotifyNewComment(string userId, string commentText, int eventI
 
 
 
-    public async Task NotifyNewReaction(string userId, string reactionType, int eventId)
+    public async Task NotifyNewReaction(string userId, string reactionType, int eventId, int reactingUserId)
     {
         
         if (_userConnections.TryGetValue(userId, out string connectionId))
         {
-            Console.WriteLine($"Found connectionId: {connectionId}");
-            await Clients.Client(connectionId).SendAsync("ReceiveNewReaction", reactionType, eventId);
-            Console.WriteLine("Notification sent successfully.");
+            //Console.WriteLine($"Found connectionId: {connectionId}");
+            await Clients.Client(connectionId).SendAsync("ReceiveNewReaction", reactionType, eventId, reactingUserId);
+            //Console.WriteLine("Notification sent successfully.");
         }
         else
         {
@@ -74,9 +74,9 @@ public async Task NotifyNewComment(string userId, string commentText, int eventI
     {
         if (_userConnections.TryGetValue(userId, out string connectionId))
         {
-            Console.WriteLine($"Found connectionId: {connectionId}");
+            //Console.WriteLine($"Found connectionId: {connectionId}");
             await Clients.Client(connectionId).SendAsync("ReceiveEventReport", reason, eventId);
-            Console.WriteLine("Notification sent successfully.");
+            //Console.WriteLine("Notification sent successfully.");
         }
         else
         {

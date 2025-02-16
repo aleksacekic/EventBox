@@ -299,13 +299,36 @@ namespace EventBoxApi.Controllers
         [Route("VratiNotifikacijeKorisnika/{korisnik_Id}")]
         public async Task<ActionResult> VratiNotifikacijeKorisnika(int korisnik_Id)
         {
-            Console.WriteLine("USO U NOTIFIKACIJE");
             //await Validnost.Validiraj(Context, Request);
             Korisnik k = await Context.Korisnici.Where(p => p.Id == korisnik_Id).Include(p => p.Lista_Notifikacija).FirstOrDefaultAsync();
-            Console.WriteLine(k.Lista_Notifikacija);
-            Console.WriteLine("GOTOVE NOTIFIKACIJE");
+            
             return Ok(k.Lista_Notifikacija);
         }
+
+        [HttpGet]
+        [EnableCors("CORS")]
+        [Route("VratiPetNotifikacijaKorisnika/{korisnik_Id}")]
+        public async Task<ActionResult> VratiPetNotifikacijaKorisnika(int korisnik_Id)
+        {
+            Korisnik k = await Context.Korisnici
+                .Where(p => p.Id == korisnik_Id)
+                .Include(p => p.Lista_Notifikacija)
+                .FirstOrDefaultAsync();
+
+            if (k == null)
+            {
+                return NotFound("Korisnik nije pronađen");
+            }
+
+            //sortirano po vremenu
+            var poslednjihPetNotifikacija = k.Lista_Notifikacija
+                .OrderByDescending(n => n.Vreme)
+                .Take(5)
+                .ToList();
+
+            return Ok(poslednjihPetNotifikacija);
+        }
+
 
 
         [HttpPut]

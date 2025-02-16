@@ -44,9 +44,9 @@ namespace EventBoxApi.Controllers
                 Context.Reakcije.Add(r);
                 Context.Dogadjaji.Update(d);
                 await Context.SaveChangesAsync();
-
-
-                await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewReaction", tip, dogadjaj_Id);
+                Console.WriteLine("SACEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
+                Console.WriteLine(tip, dogadjaj_Id, korisnik_Id);
+                await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewReaction", tip, dogadjaj_Id, korisnik_Id);
                 //await _hubContext.Clients.All.SendAsync("ReceiveNewReaction", tip, dogadjaj_Id);
 
 
@@ -87,7 +87,7 @@ namespace EventBoxApi.Controllers
                 await Context.SaveChangesAsync();
                 //if(d.ID_Kreatora != korisnik_id)
                 //{
-                    await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewReaction", tip_trenutni, dogadjaj_id);
+                    await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewReaction", tip_trenutni, dogadjaj_id, korisnik_id);
                 //}
                 return Ok($"Uspesno je promenjena reakcija korisnika sa ID-em: {korisnik_id} na dogadjaj: {d.Naslov}");
                          

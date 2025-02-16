@@ -195,12 +195,12 @@ function Header() {
                     <Link to="/profil">Profil</Link>
                   </a>
                 </li>
-                {/* <li>
-                  <a href="#" className="not-box-open">
+                <li>
+                  <a>
                     <span><img src="images/icon6.png" /></span>
-                    Poruke
+                    <Link to="/chat">Poruke</Link>
                   </a>
-                </li> */}
+                </li>
                 <li>
                   <a href="#" className="not-box-open notifikacije-u-hederu" onClick={prikaziFormu} style={{ display: 'none' }}>
                     <span><img src="images/icon7.png" /></span>

@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-
+import { useParams, useNavigate } from 'react-router-dom';
 
 const users = [
   { id: 1, name: "Marko Markovic" },
   { id: 2, name: "Ana Anovic" },
   { id: 3, name: "Ivan Ivanovic" },
 ];
+//PROBNI USERI. KASNIJE CE SE DOHVATITI IZ BAZE
 
 const Chat = () => {
   const [selectedUser, setSelectedUser] = useState(null);
@@ -29,8 +30,23 @@ const Chat = () => {
     setNewMessage("");
   };
 
+  const navigate = useNavigate();
+    const handleBackClick = () => {
+        navigate(-1); // -1 vraća na prethodnu stranicu
+    };
+
   return (
+    <div>
+
+    
+    <div>
+      <button onClick={handleBackClick} className="back-btn-chat">
+              <i className="la la-arrow-left ikonicaback"></i>
+            </button>
+    </div>
     <div className="chat-container">
+
+      
       {/* Leva strana - korisnici za cetovanje */}
       <div className="chat-sidebar">
         <h2>Inbox</h2>
@@ -72,6 +88,7 @@ const Chat = () => {
           <div className="no-chat">Izaberi korisnika da započneš razgovor</div>
         )}
       </div>
+    </div>
     </div>
   );
 };

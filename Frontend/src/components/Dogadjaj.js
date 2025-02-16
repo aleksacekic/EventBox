@@ -298,7 +298,7 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
         console.log("");
       })
       .then(data => {
-        console.log(data);
+        //console.log(data);
         if (data.kraj === undefined) {
           if (brojPosiljke === 1)
           setDogadjaji(data.dogadjaji.map(dogadjaj => ({ ...dogadjaj, formattedDatum: moment(dogadjaj.datum_Objave).format("DD.MM.YYYY") })));
