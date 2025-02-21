@@ -42,6 +42,11 @@
   .chat-sidebar h2 {
 	font-size: 18px;
 	margin-bottom: 10px;
+	display: flex;
+	justify-content: center;
+	border-bottom: 1px solid #ddd;
+	padding-bottom: 10px;
+	font-weight: bold;
   }
   
   .chat-user {

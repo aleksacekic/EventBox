@@ -128,6 +128,7 @@ app.MapControllers();
 app.UseRouting();
 app.UseCors("CORS");
 app.MapHub<NotificationHub>("/notificationHub");
+app.MapHub<ChatHub>("/chatHub");
 
 
 app.Run();

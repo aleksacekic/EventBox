@@ -145,6 +145,28 @@ namespace EventBoxApi.Controllers
             }
         }
 
+        [EnableCors("CORS")]
+        [Route("VratiSveKorisnikeOsim/{id}")]
+        [HttpGet]
+        public async Task<ActionResult> VratiSveKorisnike(int id) 
+        {
+            try
+            {
+                //dohvata sve korisnike iz baze
+                var sviKorisnici = await Context.Korisnici.ToListAsync();
+
+                //od svih korisnika izbacuje korisnika koji je trenutno ulogovan(preko ID-a)
+                var korisniciBezUlogovanog = sviKorisnici.Where(k => k.Id != id).ToList();
+
+                return Ok(korisniciBezUlogovanog);
+            }
+            catch (Exception e)
+            {
+                return BadRequest("Nije uspelo vraćanje korisnika: " + e.Message);
+            }
+        }
+
+
         [HttpPost]
         [EnableCors("CORS")]
         [Route("DodajSlikuKorisniku")]

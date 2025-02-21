@@ -23,7 +23,7 @@ function App() {
           {/* <Route path="/proba" element={<Proba />} /> */}
           {/* <Route path="/profilkorisnika/:id" element={<ProfilTudji />} /> */}
           <Route path="/profilkorisnika" element={<ProfilTudji />} />
-          <Route path="/proba" element={<NotifikacijaTest />} />
+          {/* <Route path="/proba" element={<NotifikacijaTest />} /> */}
         </Routes>
       </div>
     </Router>
