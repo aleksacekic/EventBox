@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import Cookies from 'js-cookie';
 
@@ -8,13 +8,13 @@ const Chat = () => {
   const [messages, setMessages] = useState({});
   const [newMessage, setNewMessage] = useState("");
   const [connection, setConnection] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [messageSenders, setMessageSenders] = useState([]);
   const [korisnik, setKorisnik] = useState(null);
-  const [users, setUsers] = useState([]); // Dodaj state za korisnike
+
   const navigate = useNavigate();
-
   const korisnik_Id = Cookies.get('userID');
-
-  async function fetchKorisnik(korisnik_Id) {
+    async function fetchKorisnik(korisnik_Id) {
     try {
       if (!korisnik_Id) return null;
       const response = await fetch(`http://localhost:5153/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
@@ -28,7 +28,8 @@ const Chat = () => {
     }
   }
 
-  async function fetchUsers(korisnik_Id) {
+  //-------TRENUTNO----------
+    async function fetchUsers(korisnik_Id) {
     try {
       const response = await fetch(`http://localhost:5153/Korisnik/VratiSveKorisnikeOsim/${korisnik_Id}`);
       if (!response.ok) {
@@ -42,9 +43,23 @@ const Chat = () => {
   }
 
   useEffect(() => {
-    fetchKorisnik(korisnik_Id).then(setKorisnik);
-    fetchUsers(korisnik_Id); // Fetch korisnike prilikom učitavanja
-  }, []);
+        fetchKorisnik(korisnik_Id).then(setKorisnik);
+        fetchUsers(korisnik_Id); // Fetch korisnike prilikom učitavanja
+      }, []);
+    
+
+  // useEffect(() => {
+  //   const fetchUsers = async () => {
+  //     try {
+  //       const response = await fetch(`http://localhost:5153/Korisnik/VratiKorisnikeSaMogChata/${korisnik_Id}`);
+  //       if (!response.ok) throw new Error("Greška pri dohvatanju korisnika");
+  //       setUsers(await response.json());
+  //     } catch (error) {
+  //       console.error(error);
+  //     }
+  //   };
+  //   fetchUsers();
+  // }, []);
 
   useEffect(() => {
     const connect = async () => {
@@ -55,66 +70,92 @@ const Chat = () => {
       connection.on("ReceiveMessage", (senderId, message) => {
         setMessages(prev => ({
           ...prev,
-          [senderId]: [...(prev[senderId] || []), { text: message, sender: "their" }]
+          [senderId]: [...(prev[senderId] || []), { sadrzaj: message, sender: "their" }]
         }));
-        //console.log(`Primljena poruka od ${senderId}: ${message}`);
+
+        setMessageSenders(prev => prev.includes(senderId) ? prev : [senderId, ...prev]);
       });
 
       await connection.start();
       setConnection(connection);
     };
-
     connect();
-
-    return () => {
-      if (connection) {
-        connection.stop();
-      }
-    };
+    return () => connection && connection.stop();
   }, []);
 
-  const handleUserClick = (user) => {
-    setSelectedUser(user);
-    if (!messages[user.id]) {
-      setMessages((prev) => ({ ...prev, [user.id]: [] }));
+  const fetchMessages = async (userId) => {
+    try {
+      const response = await fetch(`http://localhost:5153/Poruka/VratiPoruke/${korisnik_Id}/${userId}`);
+      console.log(response);
+      if (!response.ok) throw new Error("Greška pri dohvatanju poruka");
+      
+      const messagesData = await response.json();
+      console.log(messagesData)
+      setMessages(prev => ({ ...prev, [userId]: messagesData })); // Upotrebite sačuvane podatke
+    } catch (error) {
+      console.error(error);
     }
   };
 
-  const handleSendMessage = async () => {
+  
+
+  const handleUserClick = (user) => {
+    setSelectedUser(user);
+    fetchMessages(user.id);
+    setMessageSenders(prev => prev.filter(id => id !== user.id));
+    fetch(`http://localhost:5153/Poruka/OznaciKaoProcitano/${korisnik_Id}/${user.id}`, { method: 'PUT' });
+  };
+
+  // const handleSendMessage = async () => {
+  //   if (!newMessage.trim() || !selectedUser || !connection) return;
+  //   setMessages(prev => ({
+  //     ...prev,
+  //     [selectedUser.id]: [...(prev[selectedUser.id] || []), { text: newMessage, sender: "me" }]
+  //   }));
+  //   await connection.invoke("SendMessage", korisnik_Id, selectedUser.id, newMessage);
+  //   setNewMessage("");
+  // };
+
+    const handleSendMessage = async () => {
     if (newMessage.trim() === "" || !selectedUser || !connection) return;
 
     //console.log(`Šaljem poruku korisniku ${selectedUser.id} od korisnika ${korisnik.id}`);
     setMessages((prev) => ({
       ...prev,
-      [selectedUser.id]: [...prev[selectedUser.id], { text: newMessage, sender: "me" }],
+      [selectedUser.id]: [...prev[selectedUser.id], { sadrzaj: newMessage, sender: "me" }],
     }));
 
     await connection.invoke("SendMessage", korisnik.id, selectedUser.id, newMessage);
+    const response = await fetch(`http://localhost:5153/Poruka/PosaljiPoruku/${selectedUser.id}/${korisnik_Id}/${newMessage}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ poruka: newMessage })
+    });
+    console.log(response);
     setNewMessage("");
   };
 
-  const handleBackClick = () => {
-    navigate(-1);
-  };
+  const sortedUsers = [
+    ...messageSenders.map(id => users.find(user => user.id === id)).filter(Boolean),
+    ...users.filter(user => !messageSenders.includes(user.id))
+  ];
 
-  //console.log(users);
+ 
+
   return (
     <div>
-      <div>
-        <button onClick={handleBackClick} className="back-btn-chat">
-          <i className="la la-arrow-left ikonicaback"></i>
-        </button>
-      </div>
+      <button onClick={() => navigate(-1)} className="back-btn-chat">Back</button>
       <div className="chat-container">
         <div className="chat-sidebar">
           <h2>Inbox</h2>
-          {users.map((user) => (
-            <div
-              key={user.id}
-              className={`chat-user ${selectedUser?.id === user.id ? "active" : ""}`}
-              onClick={() => handleUserClick(user)}
-            >
-              {user.ime}
+          {sortedUsers.map(user => (
+            <div key={user.id} className={`chat-user ${selectedUser?.id === user.id ? "active" : ""}`}
+              onClick={() => handleUserClick(user)}>
+              <span style={{ fontWeight: messageSenders.includes(user.id) ? 'bold' : 'normal' }}>
+                {user.ime} {messageSenders.includes(user.id) ? "[NOVA PORUKA]" : ""}
+              </span>
             </div>
           ))}
         </div>
@@ -124,19 +165,12 @@ const Chat = () => {
               <div className="chat-header">{selectedUser.ime}</div>
               <div className="chat-messages">
                 {messages[selectedUser.id]?.map((msg, index) => (
-                  <div key={index} className={`message ${msg.sender === "me" ? "my-message" : "their-message"}`}>
-                    {msg.text}
-                  </div>
+                  <div key={index} className={`message ${(msg.posiljaocId === korisnik.id || msg.sender === "me") ? "my-message" : "their-message"}`}>{msg.sadrzaj}</div>
                 ))}
               </div>
               <div className="chat-input">
-                <input
-                  type="text"
-                  placeholder="Napiši poruku..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                />
+                <input type="text" placeholder="Napiši poruku..." value={newMessage} onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()} />
                 <button onClick={handleSendMessage}>Pošalji</button>
               </div>
             </>
