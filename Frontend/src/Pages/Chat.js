@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,  useRef  } from "react";
 import { useNavigate } from 'react-router-dom';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import Cookies from 'js-cookie';
@@ -11,7 +11,21 @@ const Chat = () => {
   const [users, setUsers] = useState([]);
   const [messageSenders, setMessageSenders] = useState([]);
   const [korisnik, setKorisnik] = useState(null);
+  const [timeVisibility, setTimeVisibility] = useState({});
 
+
+
+  //ZA SKROL NA DNO
+  const messagesEndRef = useRef(null); 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom(); // Pozovi funkciju za skrolovanje
+  }, [messages[selectedUser?.id]]); // Kada se poruke promene  
+
+  //
   const navigate = useNavigate();
   const korisnik_Id = Cookies.get('userID');
     async function fetchKorisnik(korisnik_Id) {
@@ -70,7 +84,7 @@ const Chat = () => {
       connection.on("ReceiveMessage", (senderId, message) => {
         setMessages(prev => ({
           ...prev,
-          [senderId]: [...(prev[senderId] || []), { sadrzaj: message, sender: "their" }]
+          [senderId]: [...(prev[senderId] || []), { sadrzaj: message, sender: "their", vreme: new Date().toLocaleString() }]
         }));
 
         setMessageSenders(prev => prev.includes(senderId) ? prev : [senderId, ...prev]);
@@ -86,12 +100,12 @@ const Chat = () => {
   const fetchMessages = async (userId) => {
     try {
       const response = await fetch(`http://localhost:5153/Poruka/VratiPoruke/${korisnik_Id}/${userId}`);
-      console.log(response);
+      //console.log(response);
       if (!response.ok) throw new Error("Greška pri dohvatanju poruka");
       
       const messagesData = await response.json();
-      console.log(messagesData)
-      setMessages(prev => ({ ...prev, [userId]: messagesData })); // Upotrebite sačuvane podatke
+      //console.log(messagesData)
+      setMessages(prev => ({ ...prev, [userId]: messagesData }));
     } catch (error) {
       console.error(error);
     }
@@ -122,7 +136,7 @@ const Chat = () => {
     //console.log(`Šaljem poruku korisniku ${selectedUser.id} od korisnika ${korisnik.id}`);
     setMessages((prev) => ({
       ...prev,
-      [selectedUser.id]: [...prev[selectedUser.id], { sadrzaj: newMessage, sender: "me" }],
+      [selectedUser.id]: [...prev[selectedUser.id], { sadrzaj: newMessage, sender: "me", vreme: new Date().toLocaleString() }],
     }));
 
     await connection.invoke("SendMessage", korisnik.id, selectedUser.id, newMessage);
@@ -133,7 +147,7 @@ const Chat = () => {
       },
       body: JSON.stringify({ poruka: newMessage })
     });
-    console.log(response);
+    //console.log(response);
     setNewMessage("");
   };
 
@@ -143,10 +157,31 @@ const Chat = () => {
   ];
 
  
+  
+  const handleMessClick = (index) => {
+    setTimeVisibility(prev => ({
+      ...prev,
+      [index]: !prev[index] // Prebacuje vidljivost za poruku na tom indeksu
+    }));
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString + 'Z');
+    const options = {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    };
+    return date.toLocaleString('sr-RS', options).replace(',', '');
+  };
+ 
 
   return (
     <div>
-      <button onClick={() => navigate(-1)} className="back-btn-chat">Back</button>
+      <button onClick={() => navigate(-1)} className="back-btn-chat"><i className="la la-arrow-left ikonicaback"></i></button>
       <div className="chat-container">
         <div className="chat-sidebar">
           <h2>Inbox</h2>
@@ -165,11 +200,21 @@ const Chat = () => {
               <div className="chat-header">{selectedUser.ime}</div>
               <div className="chat-messages">
                 {messages[selectedUser.id]?.map((msg, index) => (
-                  <div key={index} className={`message ${(msg.posiljaocId === korisnik.id || msg.sender === "me") ? "my-message" : "their-message"}`}>{msg.sadrzaj}</div>
+                  <>
+                  <div key={index} onClick={() => handleMessClick(index)} className={`message ${(msg.posiljaocId === korisnik.id || msg.sender === "me") ? "my-message" : "their-message"}`}>{msg.sadrzaj}</div>
+                    <span  className="message-time">
+                    {timeVisibility[index] ? formatDate(msg.vreme) : ""}
+                  </span>
+                  </>
+                    
+                    
+                  
+                  
                 ))}
+                <div ref={messagesEndRef} />
               </div>
               <div className="chat-input">
-                <input type="text" placeholder="Napiši poruku..." value={newMessage} onChange={(e) => setNewMessage(e.target.value)}
+                <input type="text" placeholder="Napiši poruku..." value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onClick={() => handleUserClick(selectedUser)}
                   onKeyPress={(e) => e.key === "Enter" && handleSendMessage()} />
                 <button onClick={handleSendMessage}>Pošalji</button>
               </div>
@@ -184,3 +229,5 @@ const Chat = () => {
 };
 
 export default Chat;
+
+

@@ -18,23 +18,111 @@ namespace EventBoxApi.Controllers
 
         [HttpPost]
         [EnableCors("CORS")]
-        [Route("KreirajPoruku/{chat_id}/{pisac_poruke}/{teskt}")]
-        public async Task<ActionResult> KreirajPoruku(int chat_id, string pisac_poruke, string teskt)
+        [Route("PosaljiPoruku/{primaoc_id}/{posiljaoc_id}/{sadrzaj}")]
+        public async Task<IActionResult> PosaljiPoruku(int primaoc_id, int posiljaoc_id, string sadrzaj)
         {
             try
             {
-                Poruka p = new Poruka();
-                Chat c = await Context.Chatovi.FindAsync(chat_id);
-                p.Chat_Id = c;
-                p.Pisac_Poruke = pisac_poruke;
-                p.Tekst = teskt;
+                Poruka p = new Poruka
+                {
+                    PrimaocId = primaoc_id,
+                    JelProcitano = false,
+                    PosiljaocId = posiljaoc_id,
+                    Sadrzaj = sadrzaj,
+                    Vreme = DateTime.UtcNow
+                };
                 Context.Poruke.Add(p);
                 await Context.SaveChangesAsync();
                 return Ok("Uspesno kreirana poruka");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                return BadRequest("Nije uspesno vracena poruka "+ex.Message);
+                return BadRequest("Nije uspesno kreirana poruka " + ex.Message);
+            }
+        }
+
+        [HttpGet]
+        [EnableCors("CORS")]
+        [Route("VratiPoruke/{user1}/{user2}")]
+        public async Task<IActionResult> VratiPoruke(int user1, int user2)
+        {
+            try
+            {
+               
+                var poruke = await Context.Poruke
+                .Where(m => (m.PosiljaocId == user1 && m.PrimaocId == user2) ||
+                        (m.PosiljaocId == user2 && m.PrimaocId == user1))
+            .   OrderBy(m => m.Vreme)
+                .ToListAsync();
+                return Ok(poruke);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Nije uspesno vracen spisak poruka " + ex.Message);
+            }
+        }
+
+    
+
+        [HttpPut]
+        [EnableCors("CORS")]
+        [Route("OznaciKaoProcitano/{senderId}/{receiverId}")]
+        public async Task<IActionResult> OznaciKaoProcitano(int senderId, int receiverId)
+        {
+            try
+            {
+                var neprocitanePoruke = await Context.Poruke
+                    .Where(m => m.PosiljaocId == senderId && m.PrimaocId == receiverId && !m.JelProcitano)
+                    .ToListAsync();
+                foreach (var poruka in neprocitanePoruke)
+                {
+                    poruka.JelProcitano = true;
+                }
+                await Context.SaveChangesAsync();
+                return Ok("Poruke oznacene kao procitane");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Greska pri oznacavanju poruka kao procitane " + ex.Message);
+            }
+        }
+
+        //dohvatanje korisnika sa kojima je korisnik komunicirao
+        [HttpGet]
+        [EnableCors("CORS")]
+        [Route("VratiKorisnikeSaMogChata/{userId}")]
+        public async Task<IActionResult> VratiKorisnikeSaMogChata(int userId)
+        {
+            var users = await Context.Poruke
+                .Where(m => m.PosiljaocId == userId || m.PrimaocId == userId)
+                .Select(m => m.PosiljaocId == userId ? m.PrimaocId : m.PosiljaocId)
+                .Distinct()
+                .ToListAsync();
+            
+            return Ok(users);
+        }
+       
+
+
+        [HttpDelete]
+        [EnableCors("CORS")]
+        [Route("ObrisiPoruku/{poruka_id}")]
+        public async Task<IActionResult> ObrisiPoruku(int poruka_id)
+        {
+            try
+            {
+                var poruka = await Context.Poruke.FindAsync(poruka_id);
+                if (poruka == null)
+                {
+                    return NotFound("Poruka nije pronadjena");
+                }
+                Context.Poruke.Remove(poruka);
+                await Context.SaveChangesAsync();
+                return Ok("Poruka uspesno obrisana");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Greska pri brisanju poruke " + ex.Message);
             }
         }
 

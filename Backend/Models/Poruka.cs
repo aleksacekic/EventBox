@@ -8,17 +8,22 @@ namespace Models
     public class Poruka
     {
         [Key]
-        public int Id {get;set;}
+        public int Id { get; set; }
         
         [Required]
-        [JsonIgnore]
-        public virtual Chat Chat_Id {get;set;} 
-
+        public int PosiljaocId { get; set; }
+        
         [Required]
-        [JsonIgnore]
-        public string Pisac_Poruke {get;set;}
-
+        public int PrimaocId { get; set; }
+        
         [Required]
-        public string Tekst {get;set;}
+        [MaxLength(1000)]
+        public string Sadrzaj { get; set; }
+        
+        [Required]
+        public DateTime Vreme { get; set; } = DateTime.UtcNow;
+        
+        public bool JelProcitano { get; set; } = false;
     }
+
 }

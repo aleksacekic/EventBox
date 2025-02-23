@@ -12,7 +12,6 @@ namespace Models
         public DbSet<Notifikacija> Notifikacije {get; set;}
         public DbSet<Razlog> Razlozi {get; set;}
         public DbSet<Prijavljeni_dogadjaj> Prijavljeni_dogadjaji {get; set;}
-        public DbSet<Chat> Chatovi {get; set;}
         public DbSet<Poruka> Poruke {get; set;}
 
         public EventBoxContext(DbContextOptions options) : base(options)
