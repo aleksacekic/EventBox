@@ -741,24 +741,7 @@ function Profil() {
             </div>
           </div>
         </main >
-        <footer>
-          <div className="footy-sec mn no-margin">
-            <div className="container">
-              <ul>
-                <li><a href="#" >Help Center</a></li>
-                <li><a href="#" >Privacy Policy</a></li>
-                <li><a href="#" >Community Guidelines</a></li>
-                <li><a href="#" >Cookies Policy</a></li>
-                <li><a href="#" >Career</a></li>
-                <li><a href="#" >Forum</a></li>
-                <li><a href="#" >Language</a></li>
-                <li><a href="#" >Copyright Policy</a></li>
-              </ul>
-              <p><img src="images/copy-icon2.png" />Copyright 2023</p>
-              <img className="fl-rgt slikafooter" src="images/eb-logo-dugi2.png" />
-            </div>
-          </div>
-        </footer>{/*footer end*/}
+      
         {/*theme-layout end*/}
       </div >
     </div >

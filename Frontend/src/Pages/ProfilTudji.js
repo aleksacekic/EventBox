@@ -5,7 +5,6 @@ import Header from '../components/Header'
 function ProfilTudji() {
   return (
     <div className="wrapper">
-      <Header />
       <ProfilTudjiKomponenta />
     </div>
   )

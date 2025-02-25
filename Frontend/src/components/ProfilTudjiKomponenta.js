@@ -685,7 +685,7 @@ function ProfilTudjiKomponenta() {
             </div>
           </div>
         </main >
-        <footer>
+        {/* <footer>
           <div className="footy-sec mn no-margin">
             <div className="container">
               <ul>
@@ -702,7 +702,7 @@ function ProfilTudjiKomponenta() {
               <img className="fl-rgt slikafooter" src="images/eb-logo-dugi2.png" />
             </div>
           </div>
-        </footer>{/*footer end*/}
+        </footer>footer end */}
         {/*theme-layout end*/}
       </div >
     </div >

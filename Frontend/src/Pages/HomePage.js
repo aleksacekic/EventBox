@@ -6,11 +6,9 @@ import NapraviDogadjaj from '../components/NapraviDogadjaj'
 
 function HomePage() {
   return (
-    <div className="wrapper">
-      <Header />
+    <div className="wrapper">   
       <Main />
       <NapraviDogadjaj />
-      <Footer />
     </div>
   )
 }

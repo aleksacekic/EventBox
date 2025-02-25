@@ -14,6 +14,10 @@ const Chat = () => {
   const [timeVisibility, setTimeVisibility] = useState({});
 
 
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true); // Da li ima još poruka za učitavanje
+
 
   //ZA SKROL NA DNO
   const messagesEndRef = useRef(null); 
@@ -21,9 +25,9 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  useEffect(() => {
-    scrollToBottom(); // Pozovi funkciju za skrolovanje
-  }, [messages[selectedUser?.id]]); // Kada se poruke promene  
+  // useEffect(() => {
+  //   scrollToBottom(); // Pozovi funkciju za skrolovanje
+  // }, [messages[selectedUser?.id]]); // Kada se poruke promene  
 
   //
   const navigate = useNavigate();
@@ -65,7 +69,7 @@ const Chat = () => {
   // useEffect(() => {
   //   const fetchUsers = async () => {
   //     try {
-  //       const response = await fetch(`http://localhost:5153/Korisnik/VratiKorisnikeSaMogChata/${korisnik_Id}`);
+  //       const response = await fetch(http://localhost:5153/Korisnik/VratiKorisnikeSaMogChata/${korisnik_Id});
   //       if (!response.ok) throw new Error("Greška pri dohvatanju korisnika");
   //       setUsers(await response.json());
   //     } catch (error) {
@@ -97,43 +101,67 @@ const Chat = () => {
     return () => connection && connection.stop();
   }, []);
 
-  const fetchMessages = async (userId) => {
+  const fetchMessages = async (userId, pageNumber = 0) => {
+    if (loading || !hasMore) return; // Ako već učitavamo ili nema više poruka, izađi
+    setLoading(true);
+    
     try {
-      const response = await fetch(`http://localhost:5153/Poruka/VratiPoruke/${korisnik_Id}/${userId}`);
-      //console.log(response);
+      const response = await fetch(`http://localhost:5153/Poruka/VratiPoruke/${korisnik_Id}/${userId}?page=${pageNumber}&size=20`);
       if (!response.ok) throw new Error("Greška pri dohvatanju poruka");
-      
+    
       const messagesData = await response.json();
-      //console.log(messagesData)
-      setMessages(prev => ({ ...prev, [userId]: messagesData }));
+  
+      // Sačuvajte trenutnu poziciju skrola
+      const chatDiv = chatMessagesRef.current;
+      const previousScrollHeight = chatDiv.scrollHeight;
+  
+      setMessages(prev => ({
+        ...prev,
+        [userId]: pageNumber === 0 ? messagesData : [...messagesData, ...prev[userId]], // Dodaj stare poruke na početak
+      }));
+  
+      setHasMore(messagesData.length === 20); // Ako je stiglo manje od 20 poruka, nema više za učitavanje
+      setPage(pageNumber);
+  
+      // Proverite da li je skrol blizu vrha pre nego što se ponovo pomerite na dno
+      if (chatDiv.scrollTop === 0) {
+        chatDiv.scrollTop = chatDiv.scrollHeight - previousScrollHeight; // Postavi skrol na novu poziciju
+      }
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
-
   
+
+ 
 
   const handleUserClick = (user) => {
     setSelectedUser(user);
-    fetchMessages(user.id);
+    setMessages(prev => ({ ...prev, [user.id]: [] })); // Resetuj stare poruke
+    setPage(0);
+    setHasMore(true);
+    //fetchMessages(user.id, 0);
+    //setTimeout(scrollToBottom, 100);
     setMessageSenders(prev => prev.filter(id => id !== user.id));
     fetch(`http://localhost:5153/Poruka/OznaciKaoProcitano/${korisnik_Id}/${user.id}`, { method: 'PUT' });
   };
 
-  // const handleSendMessage = async () => {
-  //   if (!newMessage.trim() || !selectedUser || !connection) return;
-  //   setMessages(prev => ({
-  //     ...prev,
-  //     [selectedUser.id]: [...(prev[selectedUser.id] || []), { text: newMessage, sender: "me" }]
-  //   }));
-  //   await connection.invoke("SendMessage", korisnik_Id, selectedUser.id, newMessage);
-  //   setNewMessage("");
-  // };
+  useEffect(() => {
+    if (selectedUser) {
+      fetchMessages(selectedUser.id, 0);
+    }
+  }, [selectedUser]);
+  
+  
+
+
 
     const handleSendMessage = async () => {
     if (newMessage.trim() === "" || !selectedUser || !connection) return;
 
-    //console.log(`Šaljem poruku korisniku ${selectedUser.id} od korisnika ${korisnik.id}`);
+    //console.log(Šaljem poruku korisniku ${selectedUser.id} od korisnika ${korisnik.id});
     setMessages((prev) => ({
       ...prev,
       [selectedUser.id]: [...prev[selectedUser.id], { sadrzaj: newMessage, sender: "me", vreme: new Date().toLocaleString() }],
@@ -177,7 +205,28 @@ const Chat = () => {
     };
     return date.toLocaleString('sr-RS', options).replace(',', '');
   };
+
+  //----------------------------ZA SKROL ----------------------------
+  const chatMessagesRef = useRef(null);
+
+// Uvezi useEffect da se upravlja pozicijom skrola
+useEffect(() => {
+  const chatDiv = chatMessagesRef.current;
+  if (!chatDiv) return;
+
+  const handleScroll = () => {
+    if (!loading && hasMore && chatDiv.scrollTop === 0) {
+      fetchMessages(selectedUser.id, page + 1);
+    }
+  };
+
+  chatDiv.addEventListener("scroll", handleScroll);
+  
+  return () => chatDiv.removeEventListener("scroll", handleScroll);
+}, [loading, hasMore, selectedUser]);
+//-----------------------------------------------------------------
  
+
 
   return (
     <div>
@@ -198,7 +247,10 @@ const Chat = () => {
           {selectedUser ? (
             <>
               <div className="chat-header">{selectedUser.ime}</div>
-              <div className="chat-messages">
+             
+
+              <div className="chat-messages" ref={chatMessagesRef}>
+                {loading && <div className="loading">Učitavanje poruka...</div>}
                 {messages[selectedUser.id]?.map((msg, index) => (
                   <>
                   <div key={index} onClick={() => handleMessClick(index)} className={`message ${(msg.posiljaocId === korisnik.id || msg.sender === "me") ? "my-message" : "their-message"}`}>{msg.sadrzaj}</div>
@@ -206,10 +258,6 @@ const Chat = () => {
                     {timeVisibility[index] ? formatDate(msg.vreme) : ""}
                   </span>
                   </>
-                    
-                    
-                  
-                  
                 ))}
                 <div ref={messagesEndRef} />
               </div>
@@ -229,5 +277,3 @@ const Chat = () => {
 };
 
 export default Chat;
-
-

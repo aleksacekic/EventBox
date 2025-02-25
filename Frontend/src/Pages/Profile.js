@@ -5,7 +5,6 @@ import Profil from '../components/Profil'
 function Profile() {
   return (
     <div className="wrapper">
-      <Header />
       <Profil />
     </div>
   )
