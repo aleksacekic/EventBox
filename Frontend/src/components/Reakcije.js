@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import Cookies from 'js-cookie'
+import React, { useState, useEffect } from "react";
+import Cookies from "js-cookie";
 
 function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
   const [zainteresovanActive, setZainteresovanActive] = useState(false);
   const [mozdaActive, setMozdaActive] = useState(false);
-  const [nisamZainteresovanActive, setNisamZainteresovanActive] = useState(false);
+  const [nisamZainteresovanActive, setNisamZainteresovanActive] =
+    useState(false);
   const [aktivneReakcije, setAktivneReakcije] = useState({});
 
   useEffect(() => {
@@ -12,15 +13,15 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
       try {
         //console.log(IDucitanidogadjaji);
         //const dogadjajiIds = [39, 40, 43]; // Primer niza ID-jeva događaja
-        const idKorisnika = Cookies.get('userID'); // ID korisnika
+        const idKorisnika = Cookies.get("userID"); // ID korisnika
 
-        const queryString = IDucitanidogadjaji.join('%2C');
+        const queryString = IDucitanidogadjaji.join("%2C");
         const url = `http://localhost:5153/Reakcija/VratiReakcije/${idKorisnika}/${queryString}`;
 
         const response = await fetch(url, {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
 
@@ -34,14 +35,18 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
           reakcije.forEach((reakcija) => {
             const { dogadjaj_ID, tip } = reakcija;
             if (!activeReakcije[dogadjaj_ID]) {
-              activeReakcije[dogadjaj_ID] = { zainteresovan: false, mozda: false, nezainteresovan: false };
+              activeReakcije[dogadjaj_ID] = {
+                zainteresovan: false,
+                mozda: false,
+                nezainteresovan: false,
+              };
             }
 
-            if (tip === 'Zainteresovan') {
+            if (tip === "Zainteresovan") {
               activeReakcije[dogadjaj_ID].zainteresovan = true;
-            } else if (tip === 'Mozda') {
+            } else if (tip === "Mozda") {
               activeReakcije[dogadjaj_ID].mozda = true;
-            } else if (tip === 'Nezainteresovan') {
+            } else if (tip === "Nezainteresovan") {
               activeReakcije[dogadjaj_ID].nezainteresovan = true;
             }
           });
@@ -51,7 +56,8 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
 
           // Provera za trenutni događaj_Id i ažuriranje stanja dugmića
           if (activeReakcije[dogadjaj_Id]) {
-            const { zainteresovan, mozda, nezainteresovan } = activeReakcije[dogadjaj_Id];
+            const { zainteresovan, mozda, nezainteresovan } =
+              activeReakcije[dogadjaj_Id];
             setZainteresovanActive(zainteresovan);
             setMozdaActive(mozda);
             setNisamZainteresovanActive(nezainteresovan);
@@ -62,35 +68,34 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
             setNisamZainteresovanActive(false);
           }
         } else {
-          console.log('Greška prilikom dohvatanja reakcija.');
+          console.log("Greška prilikom dohvatanja reakcija.");
         }
       } catch (error) {
-        console.log('Greška prilikom dohvatanja reakcija:', error);
+        console.log("Greška prilikom dohvatanja reakcija:", error);
       }
     };
 
     fetchData();
   }, [dogadjaj_Id]);
 
-
   const handleReactionClick = async (tip) => {
     try {
-      const korisnik_Id = Cookies.get('userID'); // ID korisnika
+      const korisnik_Id = Cookies.get("userID"); // ID korisnika
       const dogadjaj_id = dogadjaj_Id; // ID događaja
 
       // Provera da li postoji prethodno označena reakcija
       if (aktivneReakcije[dogadjaj_id]) {
-        const prethodnaReakcija = Object.keys(aktivneReakcije[dogadjaj_id]).find(
-          (reakcija) => aktivneReakcije[dogadjaj_id][reakcija]
-        );
+        const prethodnaReakcija = Object.keys(
+          aktivneReakcije[dogadjaj_id]
+        ).find((reakcija) => aktivneReakcije[dogadjaj_id][reakcija]);
 
         // Ako postoji prethodna reakcija, koristi PUT metodu
         const url = `http://localhost:5153/Reakcija/PromeniReakciju/${prethodnaReakcija}/${tip}/${korisnik_Id}/${dogadjaj_id}`;
 
         const response = await fetch(url, {
-          method: 'PUT',
+          method: "PUT",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
 
@@ -102,30 +107,30 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
           setAktivneReakcije(updatedAktivneReakcije);
 
           // Ažuriranje aktivnog dugmeta
-          if (tip === 'Zainteresovan') {
+          if (tip === "Zainteresovan") {
             setZainteresovanActive(true);
             setMozdaActive(false);
             setNisamZainteresovanActive(false);
-          } else if (tip === 'Mozda') {
+          } else if (tip === "Mozda") {
             setZainteresovanActive(false);
             setMozdaActive(true);
             setNisamZainteresovanActive(false);
-          } else if (tip === 'Nezainteresovan') {
+          } else if (tip === "Nezainteresovan") {
             setZainteresovanActive(false);
             setMozdaActive(false);
             setNisamZainteresovanActive(true);
           }
         } else {
-          console.log('Greška prilikom promene reakcije.');
+          console.log("Greška prilikom promene reakcije.");
         }
       } else {
         // Ako ne postoji prethodno označena reakcija, koristi POST metodu
         const url = `http://localhost:5153/Reakcija/PostaviReakciju/${tip}/${korisnik_Id}/${dogadjaj_id}`;
 
         const response = await fetch(url, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
 
@@ -138,62 +143,69 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
           setAktivneReakcije(updatedAktivneReakcije);
 
           // Ažuriranje aktivnog dugmeta
-          if (tip === 'Zainteresovan') {
+          if (tip === "Zainteresovan") {
             setZainteresovanActive(true);
             setMozdaActive(false);
             setNisamZainteresovanActive(false);
-          } else if (tip === 'Mozda') {
+          } else if (tip === "Mozda") {
             setZainteresovanActive(false);
             setMozdaActive(true);
             setNisamZainteresovanActive(false);
-          } else if (tip === 'Nezainteresovan') {
+          } else if (tip === "Nezainteresovan") {
             setZainteresovanActive(false);
             setMozdaActive(false);
             setNisamZainteresovanActive(true);
           }
         } else {
-          console.log('Greška prilikom postavljanja reakcije.');
+          console.log("Greška prilikom postavljanja reakcije.");
         }
       }
     } catch (error) {
-      console.log('Greška prilikom promene reakcije:', error);
+      console.log("Greška prilikom promene reakcije:", error);
     }
   };
 
-
-
-
-
   const handleZainteresovanClick = () => {
-    handleReactionClick('Zainteresovan');
+    handleReactionClick("Zainteresovan");
   };
 
   const handleMozdaClick = () => {
-    handleReactionClick('Mozda');
+    handleReactionClick("Mozda");
   };
 
   const handleNisamZainteresovanClick = () => {
-    handleReactionClick('Nezainteresovan');
+    handleReactionClick("Nezainteresovan");
   };
 
   return (
     <div>
       <div className="divreakcije">
         <button
-          className={`zainteresovan ${zainteresovanActive ? 'active' : ''}`}
-          onClick={(e) => { e.stopPropagation(); handleZainteresovanClick(); }}
+          className={`zainteresovan ${zainteresovanActive ? "active" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleZainteresovanClick();
+          }}
         >
           Zainteresovan sam
         </button>
         <button
-          className={`mozda ${mozdaActive ? 'active' : ''}`}
-          onClick={(e) => { e.stopPropagation(); handleMozdaClick(); }}
+          className={`mozda ${mozdaActive ? "active" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleMozdaClick();
+          }}
         >
           Mozda
         </button>
         <button
-          className={`nisamzainteresovan ${nisamZainteresovanActive ? 'active' : ''}`}
-          onClick={(e) => { e.stopPropagation(); handleNisamZainteresovanClick(); }}
+          className={`nisamzainteresovan ${
+            nisamZainteresovanActive ? "active" : ""
+          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleNisamZainteresovanClick();
+          }}
         >
           Nisam zainteresovan
         </button>
@@ -203,4 +215,3 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
 }
 
 export default Reakcije;
-

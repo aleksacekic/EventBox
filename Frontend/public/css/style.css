@@ -7,6 +7,9 @@
 /* ================================================================================== 
 										Reset Css
 ===================================================================================== */
+
+
+
  header{ /*JESTE RESPONZIVNO DO KRAJA ! ali sredi margine ! ! */
 	position: fixed;
 	top:0;
@@ -16,6 +19,8 @@
 	z-index:100;
 	/* padding-bottom:4px; */
 }
+
+
 
 /* CHAT */
 .chat-container {

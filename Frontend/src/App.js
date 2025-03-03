@@ -15,7 +15,6 @@ function App() {
   return (
     <Router>
       <div className="App">
-        <Header></Header>
         <Routes>  
           <Route path="/profil" element={<Profile />} />
           <Route path="/pocetna" element={<HomePage />} />
@@ -28,7 +27,6 @@ function App() {
           <Route path="/profilkorisnika" element={<ProfilTudji />} />
           {/* <Route path="/proba" element={<NotifikacijaTest />} /> */}
         </Routes>
-        <Footer></Footer>
       </div>
     </Router>
   );
