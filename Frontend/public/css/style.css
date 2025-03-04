@@ -20,6 +20,39 @@
 	/* padding-bottom:4px; */
 }
 
+/* IKONICA ZA PORUKE SA BROJEM NEPROCITANIH PORUKA */
+
+/* .chat-icon {
+	position: relative;
+	display: inline-block;
+  }
+  
+  .chat-icon span {
+	position: relative;
+	display: inline-block;
+  } */
+  
+  /* .chat-icon:hover {
+	cursor: pointer;
+	background-color: #1da1f2;
+  } */
+
+  .notification-badge {
+	position: absolute;
+	top: 2px; /* Pomeraj gore */
+	right: 2px; /* Pomeraj udesno */
+	background-color: red;
+	color: white;
+	font-size: 12px;
+	font-weight: bold;
+	width: 18px;
+	height: 18px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 4px; /* Četvrtasti oblik */
+  }
+  
 
 
 /* CHAT */

@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import moment from 'moment';
-import Cookies from 'js-cookie'
+import React, { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import moment from "moment";
+import Cookies from "js-cookie";
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
 function Header() {
-  
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [korisnik, setKorisnik] = useState(null);
   const [mojdatum, setmojdatum] = useState();
-
   const [isActive, setIsActive] = useState(false);
+  const [neprocitanePoruke, setNeprocitanePoruke] = useState(0);
 
   const navigate = useNavigate();
 
@@ -19,24 +18,16 @@ function Header() {
     setIsActive(!isActive);
   };
 
-
-
-  const prosledi = (id) =>{
+  const prosledi = (id) => {
     const path = window.location.pathname;
     console.log(path);
     Cookies.set("tudjiID", id);
-    if(path==="/profilkorisnika")
-    {
+    if (path === "/profilkorisnika") {
       window.location.reload();
+    } else {
+      navigate("/profilkorisnika");
     }
-    else{
-      navigate('/profilkorisnika');
-    }
-    
-
-    
-  }
-
+  };
 
   const handleMenuToggle = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -45,35 +36,33 @@ function Header() {
   const handleMenuClickOutside = () => {
     setIsMenuOpen(false);
   };
-  
-  
 
   const [searchResults, setSearchResults] = useState([]);
-  const [searchValue, setSearchValue] = useState('');
+  const [searchValue, setSearchValue] = useState("");
   const searchRef = useRef();
 
   function prikaziFormu() {
-    var forma = document.querySelector('.notifikacije-forma');
-    forma.style.display = 'flex';
+    var forma = document.querySelector(".notifikacije-forma");
+    forma.style.display = "flex";
   }
-
-  
 
   async function handleSearchSubmit(e) {
     e.preventDefault();
 
     try {
-      const response = await fetch(`http://localhost:5153/Korisnik/VratiKorisnikeSearch/${searchValue}`);
+      const response = await fetch(
+        `http://localhost:5153/Korisnik/VratiKorisnikeSearch/${searchValue}`
+      );
       const data = await response.json();
       console.log(response);
       console.log(data);
-      if (data.kraj === 'KRAJ') {
+      if (data.kraj === "KRAJ") {
         setSearchResults([]);
       } else {
         setSearchResults(data);
       }
     } catch (error) {
-      console.error('Greška prilikom pretrage:', error);
+      console.error("Greška prilikom pretrage:", error);
     }
   }
 
@@ -84,30 +73,32 @@ function Header() {
   }
 
   useEffect(() => {
-    document.addEventListener('click', handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
 
     return () => {
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
     };
   }, []);
 
   useEffect(() => {
     async function searchUsers() {
-      if (searchValue === '') {
+      if (searchValue === "") {
         setSearchResults([]);
         return;
       }
 
       try {
-        const response = await fetch(`http://localhost:5153/Korisnik/VratiKorisnikeSearch/${searchValue}`);
+        const response = await fetch(
+          `http://localhost:5153/Korisnik/VratiKorisnikeSearch/${searchValue}`
+        );
         const data = await response.json();
-        if (data.kraj === 'KRAJ') {
+        if (data.kraj === "KRAJ") {
           setSearchResults([]);
         } else {
           setSearchResults(data);
         }
       } catch (error) {
-        console.error('Greška prilikom pretrage:', error);
+        console.error("Greška prilikom pretrage:", error);
       }
     }
 
@@ -119,9 +110,9 @@ function Header() {
   }, []);
 
   const formatirajDatum = (datum) => {
-    return moment(datum).format('DD.MM.YYYY');
+    return moment(datum).format("DD.MM.YYYY");
   };
-  
+
   const ucitajKorisnika = () => {
     const korisnik_Id = Cookies.get("userID");
     const url = `http://localhost:5153/Korisnik/VratiKorisnika_ID/${korisnik_Id}`;
@@ -139,9 +130,34 @@ function Header() {
         console.log(error);
       });
   };
-  
 
+  useEffect(() => {
+    const korisnik_Id = Cookies.get("userID"); // jel mi treba ovo ponovo? sta je sigurnije
+    if (!korisnik_Id) return;
 
+    async function fetchNeprocitanePoruke() {
+      try {
+        const response = await fetch(
+          `http://localhost:5153/Poruka/KolikoNeprocitanihPoruka/${korisnik_Id}`
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP greska! Status: ${response.status}`);
+        }
+
+        const broj = await response.json();
+        //console.log(broj);
+        setNeprocitanePoruke(broj);
+      } catch (error) {
+        console.error("Greska prilikom dohvatanja neprocitanih poruka:", error);
+      }
+    }
+
+    fetchNeprocitanePoruke();
+    const interval = setInterval(fetchNeprocitanePoruke, 3000); //proverava na svake 3 sekunde
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div>
@@ -149,8 +165,11 @@ function Header() {
         <div className="container">
           <div className="header-data">
             <div className="logo">
-            <Link to="/pocetna"><a href="index.html"><img src="images/logosajt(4).ico" /></a></Link>
-              
+              <Link to="/pocetna">
+                <a href="index.html">
+                  <img src="images/logosajt(4).ico" />
+                </a>
+              </Link>
             </div>
             <div className="search-bar" ref={searchRef}>
               <form onSubmit={handleSearchSubmit}>
@@ -162,55 +181,104 @@ function Header() {
                   onChange={(e) => setSearchValue(e.target.value)}
                   autoComplete="off"
                 />
-                <button type="submit"><i className="la la-search" /></button>
+                <button type="submit">
+                  <i className="la la-search" />
+                </button>
                 {/* Prikaz rezultata pretrage */}
                 {searchResults.length > 0 && (
                   <div className="search-results">
-                  <ul className="search-results-list">
-                    {searchResults.map((result) => (
-                      <li key={result.id} className="search-result-item">
-                        <div className='search-podaci' onClick={() => {prosledi(result.id)}}>
-                            <span className='prvispansearch'>@{result.korisnicko_Ime}</span>
-                            <span>{result.ime} {result.prezime}</span> 
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                    <ul className="search-results-list">
+                      {searchResults.map((result) => (
+                        <li key={result.id} className="search-result-item">
+                          <div
+                            className="search-podaci"
+                            onClick={() => {
+                              prosledi(result.id);
+                            }}
+                          >
+                            <span className="prvispansearch">
+                              @{result.korisnicko_Ime}
+                            </span>
+                            <span>
+                              {result.ime} {result.prezime}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </form>
             </div>
-            <nav className={isMenuOpen ? 'active' : ''} onClick={handleMenuClickOutside}>
-              <h3 className="odeljcihamburgermenu" style={{ display: 'none' }}>Odeljci</h3>
+            <nav
+              className={isMenuOpen ? "active" : ""}
+              onClick={handleMenuClickOutside}
+            >
+              <h3 className="odeljcihamburgermenu" style={{ display: "none" }}>
+                Odeljci
+              </h3>
               <ul>
                 <li>
-                  <a style={{ display: 'block' }}>
-                    <span><img src="images/icon1.png" /></span>
+                  <a style={{ display: "block" }}>
+                    <span>
+                      <img src="images/icon1.png" />
+                    </span>
                     <Link to="/pocetna">Pocetna</Link>
                   </a>
                 </li>
                 <li>
                   <a>
-                    <span><img src="images/icon4.png" /></span>
+                    <span>
+                      <img src="images/icon4.png" />
+                    </span>
                     <Link to="/profil">Profil</Link>
                   </a>
                 </li>
-                <li>
+                {/* <li class="chat-icon">
                   <a>
-                    <span><img src="images/icon6.png" /></span>
+                    <span>
+                      <img src="images/icon6.png" />
+
+                      <div className="notification-badge">
+                        {neprocitanePoruke}
+                      </div>
+                    </span>
                     <Link to="/chat">Poruke</Link>
                   </a>
+                </li> */}
+                <li className="chat-icon">
+                  <Link to="/chat" className="chat-link">
+                    <span className="chat-icon-container">
+                      <img src="images/icon6.png" alt="Poruke" />
+                      {neprocitanePoruke > 0 && (
+                        <div className="notification-badge">
+                          {neprocitanePoruke}
+                        </div>
+                      )}
+                    </span>
+                    Poruke
+                  </Link>
                 </li>
+
                 <li>
-                  <a href="#" className="not-box-open notifikacije-u-hederu" onClick={prikaziFormu} style={{ display: 'none' }}>
-                    <span><img src="images/icon7.png" /></span>
+                  <a
+                    href="#"
+                    className="not-box-open notifikacije-u-hederu"
+                    onClick={prikaziFormu}
+                    style={{ display: "none" }}
+                  >
+                    <span>
+                      <img src="images/icon7.png" />
+                    </span>
                     Notifikacije
                   </a>
                 </li>
               </ul>
             </nav>
             <div className="menu-btn">
-            <a href="#" onClick={handleMenuToggle}><i className="fa fa-bars" /></a>
+              <a href="#" onClick={handleMenuToggle}>
+                <i className="fa fa-bars" />
+              </a>
             </div>
             <div className="user-account">
               {korisnik ? (
@@ -218,10 +286,17 @@ function Header() {
                   <div className="user-info">
                     <img
                       className="profilnaslikaheader"
-                      src={korisnik.korisnikImage ? `http://localhost:5153/resources/${korisnik.korisnikImage}` : "http://via.placeholder.com/50x50"}
+                      src={
+                        korisnik.korisnikImage
+                          ? `http://localhost:5153/resources/${korisnik.korisnikImage}`
+                          : "http://via.placeholder.com/50x50"
+                      }
                     />
                     <a href="#">{korisnik.ime}</a>
-                    <i className={`la la-sort-down ${isActive ? 'active' : ''}`} onClick={toggleActive} />
+                    <i
+                      className={`la la-sort-down ${isActive ? "active" : ""}`}
+                      onClick={toggleActive}
+                    />
                   </div>
                   {isActive && (
                     <div className="user-account-settingss active">
@@ -231,7 +306,7 @@ function Header() {
                       </ul> */}
                       <h3 className="tc">
                         <Link to="/">
-                          <a className='odjavise'>Odjavi se</a>
+                          <a className="odjavise">Odjavi se</a>
                         </Link>
                       </h3>
                     </div>
@@ -244,8 +319,6 @@ function Header() {
           </div>
         </div>
       </header>
-
-
     </div>
   );
 }

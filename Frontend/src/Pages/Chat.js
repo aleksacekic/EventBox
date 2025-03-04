@@ -171,6 +171,13 @@ const Chat = () => {
     }, 100);
   };
 
+  const handleProcitaj = (user) => {
+    fetch(
+      `http://localhost:5153/Poruka/OznaciKaoProcitano/${korisnik_Id}/${user.id}`,
+      { method: "PUT" }
+    );
+  };
+
   useEffect(() => {
     if (selectedUser) {
       fetchMessages(selectedUser.id, 0);
@@ -321,13 +328,16 @@ const Chat = () => {
 
                 <div ref={messagesEndRef} />
               </div>
-              <div className="chat-input">
+              <div
+                className="chat-input"
+                onClick={() => handleProcitaj(selectedUser)}
+              >
                 <input
                   type="text"
                   placeholder="Napiši poruku..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  //  onClick={() => handleUserClick(selectedUser)}
+                  onClick={() => handleProcitaj(selectedUser)}
                   onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                 />
                 <button onClick={handleSendMessage}>Pošalji</button>

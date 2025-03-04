@@ -8,7 +8,7 @@ namespace EventBoxApi.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class PorukaController : ControllerBase 
+    public class PorukaController : ControllerBase
     {
         public EventBoxContext Context;
         public PorukaController(EventBoxContext context)
@@ -48,7 +48,7 @@ namespace EventBoxApi.Controllers
         // {
         //     try
         //     {
-               
+
         //         var poruke = await Context.Poruke
         //         .Where(m => (m.PosiljaocId == user1 && m.PrimaocId == user2) ||
         //                 (m.PosiljaocId == user2 && m.PrimaocId == user1))
@@ -63,33 +63,33 @@ namespace EventBoxApi.Controllers
         // }
 
         [HttpGet]
-[EnableCors("CORS")]
-[Route("VratiPoruke/{user1}/{user2}")]
-public async Task<IActionResult> VratiPoruke(int user1, int user2, int page = 0, int size = 20)
-{
-    try
-    {
-        if (page < 0 || size <= 0)
-            return BadRequest("Neispravni parametri paginacije.");
+        [EnableCors("CORS")]
+        [Route("VratiPoruke/{user1}/{user2}")]
+        public async Task<IActionResult> VratiPoruke(int user1, int user2, int page = 0, int size = 20)
+        {
+            try
+            {
+                if (page < 0 || size <= 0)
+                    return BadRequest("Neispravni parametri paginacije.");
 
-        var poruke = await Context.Poruke
-            .Where(m => (m.PosiljaocId == user1 && m.PrimaocId == user2) ||
-                        (m.PosiljaocId == user2 && m.PrimaocId == user1))
-            .OrderByDescending(m => m.Vreme) // Najnovije poruke prve
-            .Skip(page * size)  // Preskoči prethodne stranice
-            .Take(size)         // Uzmi sledećih `size` poruka
-            .ToListAsync();
+                var poruke = await Context.Poruke
+                    .Where(m => (m.PosiljaocId == user1 && m.PrimaocId == user2) ||
+                                (m.PosiljaocId == user2 && m.PrimaocId == user1))
+                    .OrderByDescending(m => m.Vreme) // Najnovije poruke prve
+                    .Skip(page * size)  // Preskoči prethodne stranice
+                    .Take(size)         // Uzmi sledećih `size` poruka
+                    .ToListAsync();
 
-        return Ok(poruke);
-    }
-    catch (Exception ex)
-    {
-        return BadRequest("Greška pri vraćanju poruka: " + ex.Message);
-    }
-}
+                return Ok(poruke);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Greška pri vraćanju poruka: " + ex.Message);
+            }
+        }
 
 
-    
+
 
         [HttpPut]
         [EnableCors("CORS")]
@@ -114,6 +114,27 @@ public async Task<IActionResult> VratiPoruke(int user1, int user2, int page = 0,
             }
         }
 
+        [HttpGet]
+        [EnableCors("CORS")]
+        [Route("KolikoNeprocitanihPoruka/{userId}")]
+        public async Task<IActionResult> KolikoNeprocitanihPoruka(int userId)
+        {
+            try
+            {
+                var brojPoruka = await Context.Poruke
+                 .Where(m => m.PrimaocId == userId && !m.JelProcitano)
+                 .CountAsync();
+
+                return Ok(brojPoruka);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Greška pri vraćanju poruka: " + ex.Message);
+            }
+
+        }
+
+
         //dohvatanje korisnika sa kojima je korisnik komunicirao
         [HttpGet]
         [EnableCors("CORS")]
@@ -125,10 +146,10 @@ public async Task<IActionResult> VratiPoruke(int user1, int user2, int page = 0,
                 .Select(m => m.PosiljaocId == userId ? m.PrimaocId : m.PosiljaocId)
                 .Distinct()
                 .ToListAsync();
-            
+
             return Ok(users);
         }
-       
+
 
 
         [HttpDelete]
@@ -153,6 +174,6 @@ public async Task<IActionResult> VratiPoruke(int user1, int user2, int page = 0,
             }
         }
 
-        
+
     }
 }
