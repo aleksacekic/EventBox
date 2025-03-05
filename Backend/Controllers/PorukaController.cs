@@ -106,6 +106,7 @@ namespace EventBoxApi.Controllers
                     poruka.JelProcitano = true;
                 }
                 await Context.SaveChangesAsync();
+
                 return Ok("Poruke oznacene kao procitane");
             }
             catch (Exception ex)

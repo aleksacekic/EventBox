@@ -49,19 +49,53 @@ const Chat = () => {
     }
   }
 
-  //-------TRENUTNO----------
-  async function fetchUsers(korisnik_Id) {
+  // async function fetchUsers(korisnik_Id) {
+  //   try {
+  //     const response = await fetch(
+  //       `http://localhost:5153/Korisnik/VratiSveKorisnikeOsim/${korisnik_Id}`
+  //     );
+  //     if (!response.ok) {
+  //       throw new Error(
+  //         `Greska pri dohvatanju korisnika: ${response.statusText}`
+  //       );
+  //     }
+  //     const data = await response.json();
+  //     console.log(data);
+  //     setUsers(data); // Postavi korisnike u state
+  //   } catch (error) {
+  //     console.error("Greska pri dohvatanju korisnika:", error);
+  //   }
+  // }
+
+  async function fetchChatUsers(korisnik_Id) {
     try {
+      // 1. dohvati ID-jeve korisnika sa kojima je kuminicirano
       const response = await fetch(
-        `http://localhost:5153/Korisnik/VratiSveKorisnikeOsim/${korisnik_Id}`
+        `http://localhost:5153/Poruka/VratiKorisnikeSaMogChata/${korisnik_Id}`
       );
       if (!response.ok) {
         throw new Error(
-          `Greska pri dohvatanju korisnika: ${response.statusText}`
+          `Greska pri dohvatanju ID-jeva korisnika: ${response.statusText}`
         );
       }
-      const data = await response.json();
-      setUsers(data); // Postavi korisnike u state
+      const userIds = await response.json();
+      // console.log(
+      //   "ID-jevi korisnika sa kojima je korisnik komunicirao:",
+      //   userIds
+      // );
+
+      if (userIds.length === 0) {
+        setUsers([]); // ako nema korisnika, postavi prazan niz, zavrsi funkciju
+        return;
+      }
+
+      // 2. fetchKorisnik za svaki od IDjeva, i cekaj da se zavrse!
+      const userPromises = userIds.map((id) => fetchKorisnik(id));
+      const usersData = await Promise.all(userPromises);
+
+      // 3. filtracija null vrednosti ako neki poziv nije uspeo (u debagovanju preporuceno!)
+      setUsers(usersData.filter((user) => user !== null));
+      //console.log(usersData);
     } catch (error) {
       console.error("Greska pri dohvatanju korisnika:", error);
     }
@@ -69,7 +103,8 @@ const Chat = () => {
 
   useEffect(() => {
     fetchKorisnik(korisnik_Id).then(setKorisnik);
-    fetchUsers(korisnik_Id); // Fetch korisnike prilikom učitavanja
+    fetchChatUsers(korisnik_Id);
+    //fetchUsers(korisnik_Id);
   }, []);
 
   // useEffect(() => {
@@ -159,7 +194,7 @@ const Chat = () => {
     setHasMore(true);
     setMessageSenders((prev) => prev.filter((id) => id !== user.id));
     fetch(
-      `http://localhost:5153/Poruka/OznaciKaoProcitano/${korisnik_Id}/${user.id}`,
+      `http://localhost:5153/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`,
       { method: "PUT" }
     );
 
@@ -173,7 +208,7 @@ const Chat = () => {
 
   const handleProcitaj = (user) => {
     fetch(
-      `http://localhost:5153/Poruka/OznaciKaoProcitano/${korisnik_Id}/${user.id}`,
+      `http://localhost:5153/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`,
       { method: "PUT" }
     );
   };
