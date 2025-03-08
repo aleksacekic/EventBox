@@ -14,6 +14,8 @@ const Chat = () => {
   const [messageSenders, setMessageSenders] = useState([]); //korisnici koji su poslali novu poruku
   const [korisnik, setKorisnik] = useState(null); //trenutno ulogovani korisnik
   const [timeVisibility, setTimeVisibility] = useState({}); //vreme poruke
+  const [showSearch, setShowSearch] = useState(false); //bool za prikaz pretrage korisnika za novu poruku
+  const [sviKorisnici, setSviKorisnici] = useState([]); //svi korisnici
 
   const [page, setPage] = useState(0); //trenutna strana-ovo je za paginaciju
   const [loading, setLoading] = useState(false); //dal se poruke ucitavaju
@@ -49,23 +51,23 @@ const Chat = () => {
     }
   }
 
-  // async function fetchUsers(korisnik_Id) {
-  //   try {
-  //     const response = await fetch(
-  //       `http://localhost:5153/Korisnik/VratiSveKorisnikeOsim/${korisnik_Id}`
-  //     );
-  //     if (!response.ok) {
-  //       throw new Error(
-  //         `Greska pri dohvatanju korisnika: ${response.statusText}`
-  //       );
-  //     }
-  //     const data = await response.json();
-  //     console.log(data);
-  //     setUsers(data); // Postavi korisnike u state
-  //   } catch (error) {
-  //     console.error("Greska pri dohvatanju korisnika:", error);
-  //   }
-  // }
+  async function fetchUsers(korisnik_Id) {
+    try {
+      const response = await fetch(
+        `http://localhost:5153/Korisnik/VratiSveKorisnikeOsim/${korisnik_Id}`
+      );
+      if (!response.ok) {
+        throw new Error(
+          `Greska pri dohvatanju korisnika: ${response.statusText}`
+        );
+      }
+      const data = await response.json();
+      console.log(data);
+      setSviKorisnici(data); // Postavi korisnike u state
+    } catch (error) {
+      console.error("Greska pri dohvatanju korisnika:", error);
+    }
+  }
 
   async function fetchChatUsers(korisnik_Id) {
     try {
@@ -104,7 +106,7 @@ const Chat = () => {
   useEffect(() => {
     fetchKorisnik(korisnik_Id).then(setKorisnik);
     fetchChatUsers(korisnik_Id);
-    //fetchUsers(korisnik_Id);
+    fetchUsers(korisnik_Id);
   }, []);
 
   // useEffect(() => {
@@ -303,6 +305,83 @@ const Chat = () => {
   }, [loading, hasMore, selectedUser]);
   //-----------------------------------------------------------------
 
+  const toggleSearch = () => {
+    setShowSearch((prev) => !prev);
+  };
+
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchValue, setSearchValue] = useState("");
+  const searchRef = useRef();
+
+  async function handleSearchSubmit(e) {
+    e.preventDefault();
+
+    try {
+      const response = await fetch(
+        `http://localhost:5153/Korisnik/VratiKorisnikeSearch/${searchValue}`
+      );
+      const data = await response.json();
+      console.log(response);
+      console.log(data);
+      if (data.kraj === "KRAJ") {
+        setSearchResults([]);
+      } else {
+        setSearchResults(data);
+      }
+    } catch (error) {
+      console.error("Greška prilikom pretrage:", error);
+    }
+  }
+
+  function handleClickOutside(event) {
+    if (searchRef.current && !searchRef.current.contains(event.target)) {
+      setSearchResults([]);
+    }
+  }
+
+  useEffect(() => {
+    document.addEventListener("click", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    async function searchUsers() {
+      if (searchValue === "") {
+        setSearchResults([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `http://localhost:5153/Korisnik/VratiKorisnikeSearch/${searchValue}`
+        );
+        const data = await response.json();
+        if (data.kraj === "KRAJ") {
+          setSearchResults([]);
+        } else {
+          setSearchResults(data);
+        }
+      } catch (error) {
+        console.error("Greška prilikom pretrage:", error);
+      }
+    }
+
+    searchUsers();
+  }, [searchValue]);
+
+  const otvoriChat = (id) => {
+    console.log(sviKorisnici);
+    setSelectedUser(sviKorisnici.find((user) => user.id === id));
+    console.log(selectedUser);
+    setPage(0);
+    fetchMessages(id, 0);
+    setSearchResults([]);
+    //setShowChat(true);
+  };
+
   return (
     <div>
       <Header></Header>
@@ -311,7 +390,55 @@ const Chat = () => {
       </button>
       <div className="chat-container">
         <div className="chat-sidebar">
-          <h2>Inbox</h2>
+          <div className="chat-upper">
+            <h2>Inbox</h2>
+            <button onClick={toggleSearch} className="plus-btn">
+              <i className="la la-plus"></i>
+            </button>
+          </div>
+          {showSearch && (
+            <div className="search-container" ref={searchRef}>
+              <form onSubmit={handleSearchSubmit}>
+                <input
+                  className="search-input"
+                  type="text"
+                  name="search"
+                  placeholder="Pretrazi korisnike..."
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  autoComplete="off"
+                />
+                <button type="submit">
+                  <i className="la la-search" />
+                </button>
+                {/* Prikaz rezultata pretrage */}
+                {searchResults.length > 0 && (
+                  <div className="search-results">
+                    <ul className="search-results-list">
+                      {searchResults.map((result) => (
+                        <li key={result.id} className="search-result-item">
+                          <div
+                            className="search-podaci"
+                            onClick={() => {
+                              otvoriChat(result.id);
+                            }}
+                          >
+                            <span className="prvispansearch">
+                              @{result.korisnicko_Ime}
+                            </span>
+                            <span>
+                              {result.ime} {result.prezime}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </form>
+            </div>
+          )}
+
           {sortedUsers.map((user) => (
             <div
               key={user.id}
