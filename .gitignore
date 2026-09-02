@@ -1,0 +1,20 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+
+# User-specific / IDE
+.vs/
+*.user
+.vscode/*
+!.vscode/extensions.json
+
+# Local config with connection strings / secrets
+appsettings.Development.json
+
+# OS junk
+.DS_Store
+Thumbs.db
+*.onetoc2
+
+# Node (frontend has its own .gitignore too)
+node_modules/

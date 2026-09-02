@@ -69,3 +69,17 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
 "# swe-projekat" 
+
+## Pokretanje (posle Faze 0 refactora)
+
+```bash
+npm install --legacy-peer-deps   # prvi put
+npm run dev                     # http://localhost:3000
+```
+
+Backend mora da radi na `http://localhost:5153` (HTTP profil). Adresa se menja u `.env` (`VITE_API_URL`).
+
+- `npm run dev` – dev server (Vite)
+- `npm run build` – produkcioni build u `dist/`
+- `npm run preview` – lokalni pregled build-a
+- `npm run lint` – ESLint
