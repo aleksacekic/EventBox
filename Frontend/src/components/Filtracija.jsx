@@ -1,4 +1,4 @@
-import { API_BASE } from '../api';
+import { api } from '../api';
 import React from 'react'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
@@ -34,12 +34,7 @@ const [filtriraniDogadjaji, setFiltriraniDogadjaji] = useState([]);
     const pretraziDogadjaje = async (e) => {
       try {
         const formattedDate = format(date, 'yyyy-MM-dd');
-        const url = `${API_BASE}/Dogadjaj/VratiDogadjajePoDatumu/${formattedDate}/${brojPosiljke}/${ukupnoElemenata}`;
-  
-        const response = await fetch(url);
-        //console.log(response);
-        const data = await response.json();
-       // console.log(data);
+        const data = await api.get(`/Dogadjaj/VratiDogadjajePoDatumu/${formattedDate}/${brojPosiljke}/${ukupnoElemenata}`);
         setFiltriraniDogadjaji(data.dogadjaji);
       } catch (error) {
         console.error(error);

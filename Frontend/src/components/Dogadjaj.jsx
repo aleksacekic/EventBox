@@ -1,4 +1,4 @@
-import { API_BASE } from '../api';
+import { api, API_BASE } from '../api';
 import React from 'react'
 import { useState, useEffect } from 'react';
 import HideShowMapa from './Hide&ShowMapa';
@@ -193,78 +193,52 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
   }, [brojPosiljkeNaziv])
 
 
-  const fetchDogadjaji = () => {
-    console.log(brojPosiljke);
-    console.log(ukupnoElemenata);
-    const url = `${API_BASE}/Dogadjaj/VratiDogadjajeZaHomePage/${brojPosiljke}/${ukupnoElemenata}`;
-    fetch(url, {
-      method: 'GET',
-      credentials: 'include',
-    })
-      .then(res => {
-        if (res.status === 401){
-          navigate('/')
-        }
-        else{
-          return res.json();
-        }
-        
-      })
-      .catch(error =>{
-        console.log("");
-      })
-      .then(data => {
-        //console.log(data);
-        if (data.kraj === undefined) {
-          if (brojPosiljke === 1)
-          setDogadjaji(data.dogadjaji.map(dogadjaj => ({ ...dogadjaj, formattedDatum: moment(dogadjaj.datum_Objave).format("DD.MM.YYYY") })));
-          else
-          setDogadjaji(prevDogadjaji => [...prevDogadjaji, ...data.dogadjaji.map(dogadjaj => ({ ...dogadjaj, formattedDatum: moment(dogadjaj.datum_Objave).format("DD.MM.YYYY") }))]);
-
-
-          setUkupnoElemenata(data.ukupno_elemenata);
-          // sada dodato za potrebe Reakcije.js
-          const dogadjajIds = data.dogadjaji.map(dogadjaj => dogadjaj.id);
-          setIDucitanidogadjaji(prevIds => [...prevIds, ...dogadjajIds]);
-        }
+  const fetchDogadjaji = async () => {
+    try {
+      // 401 -> api klijent sam vraca na /login
+      const data = await api.get(
+        `/Dogadjaj/VratiDogadjajeZaHomePage/${brojPosiljke}/${ukupnoElemenata}`,
+        { credentials: 'include' }
+      );
+      if (data.kraj === undefined) {
+        const mapirani = data.dogadjaji.map(d => ({
+          ...d,
+          formattedDatum: moment(d.datum_Objave).format("DD.MM.YYYY"),
+        }));
+        setDogadjaji(prev => (brojPosiljke === 1 ? mapirani : [...prev, ...mapirani]));
+        setUkupnoElemenata(data.ukupno_elemenata);
+        setIDucitanidogadjaji(prevIds => [...prevIds, ...data.dogadjaji.map(d => d.id)]);
       }
-      ).catch(error =>{
-        console.log("");
-      })
+    } catch (error) {
+      console.log("fetchDogadjaji:", error);
+    }
     setTrenutno(0);
-    //console.log("Izlazim iz ClassicFetch");
   };
 
 
 
 
-  const fetchDogPoDatum = (prosledjenDatum) => {
-    //console.log("Usao sam u DatumFetch");
-    if (primljenDatum.getTime() !== (new Date("2000-01-01")).getTime()) {
+  const fetchDogPoDatum = async (prosledjenDatum) => {
+    if (primljenDatum.getTime() === (new Date("2000-01-01")).getTime()) return;
+    try {
       const formattedDate = format(prosledjenDatum, 'yyyy-MM-dd');
-      const url = `${API_BASE}/Dogadjaj/VratiDogadjajePoDatumu/${formattedDate}/${brojPosiljkeDatum}/${ukupnoElemenataDatum}`;
-      fetch(url, {
-        method: 'GET',
-        credentials: 'include',
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.kraj === undefined) {
-          if (brojPosiljkeDatum === 1)
-          setDogadjaji(data.dogadjaji.map(dogadjaj => ({ ...dogadjaj, formattedDatum: moment(dogadjaj.datum_Objave).format("DD.MM.YYYY") })));
-          else
-          setDogadjaji(prevDogadjaji => [...prevDogadjaji, ...data.dogadjaji.map(dogadjaj => ({ ...dogadjaj, formattedDatum: moment(dogadjaj.datum_Objave).format("DD.MM.YYYY") }))]);
-
-          setUkupnoElemenataDatum(data.ukupno_elemenata);
-
-          const dogadjajIds = data.dogadjaji.map(dogadjaj => dogadjaj.id);
-          setIDucitanidogadjaji(prevIds => [...prevIds, ...dogadjajIds]);
-          }
-        });
-      setTrenutno(1);
-
+      const data = await api.get(
+        `/Dogadjaj/VratiDogadjajePoDatumu/${formattedDate}/${brojPosiljkeDatum}/${ukupnoElemenataDatum}`,
+        { credentials: 'include' }
+      );
+      if (data.kraj === undefined) {
+        const mapirani = data.dogadjaji.map(d => ({
+          ...d,
+          formattedDatum: moment(d.datum_Objave).format("DD.MM.YYYY"),
+        }));
+        setDogadjaji(prev => (brojPosiljkeDatum === 1 ? mapirani : [...prev, ...mapirani]));
+        setUkupnoElemenataDatum(data.ukupno_elemenata);
+        setIDucitanidogadjaji(prevIds => [...prevIds, ...data.dogadjaji.map(d => d.id)]);
+      }
+    } catch (error) {
+      console.log("fetchDogPoDatum:", error);
     }
-    //console.log("Izlazim iz DatumFetch");
+    setTrenutno(1);
   }
 
   const fetchDogPoNaziv = async (prosledjenNaziv) =>
@@ -272,32 +246,20 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
       //console.log("SACE UDJE U FETCH DOG PO NAZIV");
       //console.log(primljenNaziv); // OVDE DEFAULT?
       //console.log(prosledjenNaziv);
-      if(primljenNaziv !== "default")
-      { 
-        console.log("USO!!!!!");
-        console.log("Usao sam u NazivFetch:" +"Posiljka: " +brojPosiljkeNaziv +"  ukupno: "+ ukupnoElemenataNaziv);
-        const url = `${API_BASE}/Dogadjaj/VratiDogadjajePoNazivu/${prosledjenNaziv}/${brojPosiljkeNaziv}/${ukupnoElemenataNaziv}`;
-        await fetch(url, {
-          method: 'GET',
-          credentials: 'include',
-        })
-        .then(res => res.json())
-        .then(data => {
-          console.log("SACE DATA:");
-          console.log(data);
-          if(data.kraj === undefined)
-          {
-            if (brojPosiljkeNaziv === 1)
-              setDogadjaji(data.dogadjaji);
-            else 
-              setDogadjaji(prevDogadjaji => [...prevDogadjaji, ...data.dogadjaji]);
-
-            setUkupnoElemenataNaziv(data.ukupno_elemenata);
-          }
-        });
-        setTrenutno(2);
-        console.log("Izlazim iz NazivFetch");
+      if (primljenNaziv === "default") return;
+      try {
+        const data = await api.get(
+          `/Dogadjaj/VratiDogadjajePoNazivu/${prosledjenNaziv}/${brojPosiljkeNaziv}/${ukupnoElemenataNaziv}`,
+          { credentials: 'include' }
+        );
+        if (data.kraj === undefined) {
+          setDogadjaji(prev => (brojPosiljkeNaziv === 1 ? data.dogadjaji : [...prev, ...data.dogadjaji]));
+          setUkupnoElemenataNaziv(data.ukupno_elemenata);
+        }
+      } catch (error) {
+        console.log("fetchDogPoNaziv:", error);
       }
+      setTrenutno(2);
     }
 
   // ZA KOMENTARE
@@ -312,21 +274,14 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
   }
 
   // BRISANJE OBJAVE
-  const obrisiObjavu = (id,index) => {
-    const url = `${API_BASE}/Dogadjaj/IzbrisiDogadjaj/${id}`;
-    fetch(url, {
-      method: 'DELETE',
-    })
-      .then(response => {
-        if (response.ok) {
-          // sad se azurira stanje dogadjaja tako da se ukloni izbrisn dogadjaj
-          setDogadjaji(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
-        }
-      })
-      .catch(error => {
-        console.log('Doslo je do greske prilikom brisanja objave:', error);
-      });
-      setActiveIndex(null);
+  const obrisiObjavu = async (id, index) => {
+    try {
+      await api.del(`/Dogadjaj/IzbrisiDogadjaj/${id}`);
+      setDogadjaji(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
+    } catch (error) {
+      console.log('Doslo je do greske prilikom brisanja objave:', error);
+    }
+    setActiveIndex(null);
   };
 
   const toggleOptions = (index) => {
@@ -358,54 +313,24 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
       return;
     }
 
-    const apiUrl = `${API_BASE}/Pr_dog/PrijaviDogadjaj/${id}`;
-    let razlogUrl = `${API_BASE}/Razlog/KreirajRazlog/${id}/${selectedOption}/${opis}`;
+    let razlogPath = `/Razlog/KreirajRazlog/${id}/${selectedOption}/${opis}`;
     if (selectedOption === "ostalo" && opis === "") {
-      razlogUrl += "bezOpisa";
+      razlogPath += "bezOpisa";
     }
-
     if (selectedOption !== "ostalo") {
-      razlogUrl += "nema"; // da stavi nema na opis ako je bilo sta drugo selektovano osim OSTALO
+      razlogPath += "nema"; // "nema" na opis ako je selektovano bilo sta osim OSTALO
     }
-    
 
     try {
-      const response1 = await fetch(apiUrl, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      console.log(response1);
-
-      if(response1.ok){
-        console.log("sve okej brt")
-      }
-      if (!response1.ok) {
-        console.log('Greska prilikom slanja prijave objave.');
-      }
-      if(response1.status === 401)
-      {
-        navigate('/')
-      }
-
-      
-        const response2 = await fetch(razlogUrl, {
-          method: 'POST',
-        });
-        console.log(response2);
-        if (!response2.ok) {
-          
-          console.log('Greška prilikom slanja razloga prijave.');
-        }
-      
+      // 401 -> api klijent sam vraca na /login
+      await api.post(`/Pr_dog/PrijaviDogadjaj/${id}`, undefined, { credentials: 'include' });
+      await api.post(razlogPath);
 
       // Resetuj polja nakon uspešnog slanja
       setSelectedOption('');
       setOpis('');
-      //alert('Objava je uspesno prijavljena.');
-
     } catch (error) {
       console.error(error);
-      //alert('Doslo je do greske prilikom prijave objave.');
     }
   };
 
@@ -433,10 +358,7 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
     const ucitajKorisnika = async () => {
       try {
         setUcitavaSe(true); // Počinjemo učitavanje
-        const response = await fetch(`${API_BASE}/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
-        if (!response.ok) throw new Error("Greška pri učitavanju korisnika");
-  
-        const data = await response.json();
+        const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
         data.datumrodjenja = formatirajDatum(data.datum_rodjenja);
         setKorisnik(data);
       } catch (error) {

@@ -21,9 +21,12 @@ export default [
     plugins: { react, 'react-hooks': reactHooks },
     rules: {
       ...react.configs.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
       'react/react-in-jsx-scope': 'off', // React 17+ JSX transform
       'react/prop-types': 'off',
+      // Namerno NE ukljucujemo ceo reactHooks "recommended" set - to je novi
+      // React Compiler skup pravila (immutability/purity/static-components...)
+      // koji na zatecenom kodu daje stotine gresaka. Drzimo dva klasicna:
+      'react-hooks/rules-of-hooks': 'error', // hvata prave bugove
       'react-hooks/exhaustive-deps': 'warn',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     },

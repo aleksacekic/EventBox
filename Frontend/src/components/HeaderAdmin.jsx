@@ -1,4 +1,4 @@
-import { API_BASE } from '../api';
+import { api } from '../api';
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import moment from 'moment';
@@ -42,10 +42,7 @@ function HeaderAdmin() {
     e.preventDefault();
 
     try {
-      const response = await fetch(`${API_BASE}/Korisnik/VratiKorisnikeSearch/${searchValue}`);
-      const data = await response.json();
-      console.log(response);
-      console.log(data);
+      const data = await api.get(`/Korisnik/VratiKorisnikeSearch/${searchValue}`);
       if (data.kraj === 'KRAJ') {
         setSearchResults([]);
       } else {
@@ -78,8 +75,7 @@ function HeaderAdmin() {
       }
 
       try {
-        const response = await fetch(`${API_BASE}/Korisnik/VratiKorisnikeSearch/${searchValue}`);
-        const data = await response.json();
+        const data = await api.get(`/Korisnik/VratiKorisnikeSearch/${searchValue}`);
         if (data.kraj === 'KRAJ') {
           setSearchResults([]);
         } else {

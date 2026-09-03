@@ -1,34 +1,24 @@
-import { API_BASE } from '../api';
+import { api, API_BASE } from '../api';
 import React from 'react'
 import lightBlueImage from '../lightblue.jpg';
 import HideShowMapa from './Hide&ShowMapa';
 import { useEffect, useState } from 'react';
 import moment from 'moment';
 import Cookies from 'js-cookie'
-import { useNavigate } from 'react-router-dom';
 
 function ProfilTudjiKomponenta() {
- 
 
-  const navigate = useNavigate();
-  
-
-  const ucitajKorisnika = () => {
-    const korisnik_Id = Cookies.get('tudjiID');
-    const url = `${API_BASE}/Korisnik/VratiKorisnika_ID/${korisnik_Id}`;
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        //console.log(data.datum_rodjenja);
-        const formatiranDatum = formatirajDatum(data.datum_rodjenja);
-        data.datumrodjenja = formatiranDatum;
-        console.log(formatiranDatum);
-        setKorisnik(data);
-        setmojdatum(formatiranDatum);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+  const ucitajKorisnika = async () => {
+    try {
+      const korisnik_Id = Cookies.get('tudjiID');
+      const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
+      const formatiranDatum = formatirajDatum(data.datum_rodjenja);
+      data.datumrodjenja = formatiranDatum;
+      setKorisnik(data);
+      setmojdatum(formatiranDatum);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
 
@@ -83,69 +73,36 @@ function ProfilTudjiKomponenta() {
     setBrojPosiljke(prevBrojPosiljke => prevBrojPosiljke + 1);
   }
 
-  const ucitajDogadjaje = () => {
-    //console.log("Usao sam u ClassicFetch");
-    const korisnik_Id = Cookies.get('tudjiID');
-    const url = `${API_BASE}/Korisnik/VratiDogadjajeKorisnika/${korisnik_Id}/${brojPosiljke}/${ukupnoElemenata}`;
-    fetch(url,
-      {
-        method: 'GET',
-        credentials: 'include',
-      })
-      .then(res => {
-        if (res.status === 401){
-          navigate('/')
-        }
-        else{
-          return res.json();
-        }
-      }).catch(error =>{
-        console.log("");
-      })
-      .then(data => {
-        console.log(data);
-        if (data.kraj === undefined) {
-          if (brojPosiljke === 1)
-          setDogadjaji(data.dogadjaji.map(dogadjaj => ({ ...dogadjaj, formattedDatum: moment(dogadjaj.datum_Objave).format("DD.MM.YYYY") })));
-          else
-          setDogadjaji(prevDogadjaji => [...prevDogadjaji, ...data.dogadjaji.map(dogadjaj => ({ ...dogadjaj, formattedDatum: moment(dogadjaj.datum_Objave).format("DD.MM.YYYY") }))]);
-
-
-          setUkupnoElemenata(data.ukupno_elemenata);
-          
-        }
-        else{
-          console.log("Nisam uso u data fajl")    
-        }
-      }).catch(error =>{
-        console.log("");
-      })
-
-    //console.log("Izlazim iz ClassicFetch");
+  const ucitajDogadjaje = async () => {
+    try {
+      const korisnik_Id = Cookies.get('tudjiID');
+      // 401 -> api klijent sam vraca na /login
+      const data = await api.get(
+        `/Korisnik/VratiDogadjajeKorisnika/${korisnik_Id}/${brojPosiljke}/${ukupnoElemenata}`,
+        { credentials: 'include' }
+      );
+      if (data.kraj === undefined) {
+        const mapirani = data.dogadjaji.map(d => ({
+          ...d,
+          formattedDatum: moment(d.datum_Objave).format("DD.MM.YYYY"),
+        }));
+        setDogadjaji(prev => (brojPosiljke === 1 ? mapirani : [...prev, ...mapirani]));
+        setUkupnoElemenata(data.ukupno_elemenata);
+      }
+    } catch (error) {
+      console.log("ucitajDogadjaje:", error);
+    }
   };
   
   // BRISANJE SLIKE KORISNIKU
-  const handleDeleteImage = () => {
-    const korisnik_Id = Cookies.get('tudjiID');
-    const url = `${API_BASE}/Korisnik/IzbrisiSlikuKorisnika/${korisnik_Id}`;
-  
-    fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then(response => {
-        if (response.ok) {
-          console.log(response);
-          window.location.reload(); 
-        } else {
-          console.log("GRESKA PRILIKOM BRISANJA SLIKE");
-        }
-      })
-      .catch(error => {
-
-      });
+  const handleDeleteImage = async () => {
+    try {
+      const korisnik_Id = Cookies.get('tudjiID');
+      await api.del(`/Korisnik/IzbrisiSlikuKorisnika/${korisnik_Id}`);
+      window.location.reload();
+    } catch (error) {
+      console.log("GRESKA PRILIKOM BRISANJA SLIKE", error);
+    }
   };
   
 
@@ -205,21 +162,14 @@ function ProfilTudjiKomponenta() {
   };
 
   // BRISANJE OBJAVE
-  const obrisiObjavu = (id,index) => {
-    const url = `${API_BASE}/Dogadjaj/IzbrisiDogadjaj/${id}`;
-    fetch(url, {
-      method: 'DELETE',
-    })
-      .then(response => {
-        if (response.ok) {
-          // sad se azurira stanje dogadjaja tako da se ukloni izbrisn dogadjaj
-          setDogadjaji(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
-        }
-      })
-      .catch(error => {
-        console.log('Doslo je do greske prilikom brisanja objave:', error);
-      });
-      setActiveIndex(null);
+  const obrisiObjavu = async (id, index) => {
+    try {
+      await api.del(`/Dogadjaj/IzbrisiDogadjaj/${id}`);
+      setDogadjaji(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
+    } catch (error) {
+      console.log('Doslo je do greske prilikom brisanja objave:', error);
+    }
+    setActiveIndex(null);
   };
   
   const tekstHoroskopskogZnaka = {

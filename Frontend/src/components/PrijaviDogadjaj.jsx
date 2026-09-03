@@ -1,4 +1,4 @@
-import { API_BASE } from '../api';
+import { api, API_BASE } from '../api';
 import React from 'react'
 import { useState,useEffect } from 'react';
 import HideShowMapa from './Hide&ShowMapa';
@@ -30,7 +30,7 @@ function Pr_Dog() {
   const BlokirajFunc = async (ID) => {
 
     //stize mi id kreatora
-    await fetch(`${API_BASE}/Korisnik/BlokirajKorisnika/${ID}`,{method: `PUT`});
+    await api.put(`/Korisnik/BlokirajKorisnika/${ID}`);
     alert("Kreator dogadjaja je uspesno blokiran");
 
   }
@@ -39,9 +39,9 @@ function Pr_Dog() {
 
   const ObrisiFunc = async (ID_PR, ID_DOG) => {
 
-      await fetch(`${API_BASE}/Razlog/IzbrisiRazlogeDogadjaja/${ID_DOG}`,{method: `DELETE`,});
-      await fetch(`${API_BASE}/Pr_dog/IzbrisiPrijavljeniDogadjaj/${ID_PR}`, {method: `DELETE`,});
-      await fetch(`${API_BASE}/Dogadjaj/IzbrisiDogadjaj/${ID_DOG}`, {method: `DELETE`,});
+      await api.del(`/Razlog/IzbrisiRazlogeDogadjaja/${ID_DOG}`);
+      await api.del(`/Pr_dog/IzbrisiPrijavljeniDogadjaj/${ID_PR}`);
+      await api.del(`/Dogadjaj/IzbrisiDogadjaj/${ID_DOG}`);
       setDogadjaji(prevDogadjaji => prevDogadjaji.filter(d => d.id !== ID_PR))
       alert("Dogadjaj je izbacen iz polja ");
     
@@ -49,8 +49,8 @@ function Pr_Dog() {
 
   const IgnorisiFunc = async (ID_PR, ID_DOG) => {
 
-      await fetch(`${API_BASE}/Razlog/IzbrisiRazlogeDogadjaja/${ID_DOG}`,{method: `DELETE`,});
-      await fetch(`${API_BASE}/Pr_dog/IzbrisiPrijavljeniDogadjaj/${ID_PR}`, {method: `DELETE`,});
+      await api.del(`/Razlog/IzbrisiRazlogeDogadjaja/${ID_DOG}`);
+      await api.del(`/Pr_dog/IzbrisiPrijavljeniDogadjaj/${ID_PR}`);
       setDogadjaji(prevDogadjaji => prevDogadjaji.filter(d => d.id !== ID_PR))
       alert("Dogadjaj je izbacen iz polja ");
   }
@@ -73,24 +73,19 @@ function Pr_Dog() {
 
      
 
-    const fetchDogadjaji = () => {
-        const url = `${API_BASE}/Pr_dog/VratiPrijavljene_dog/${brojPosiljke}/${ukupnoElemenata}`;
-        fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          if(data.kraj === undefined)
-          {
-            console.log(data);
-            if (brojPosiljke === 1)
-              setDogadjaji(data.dogadjaji);
-            else 
-              setDogadjaji(prevDogadjaji => [...prevDogadjaji, ...data.dogadjaji]);
-            
-            setUkupnoElemenata(data.ukupno_elemenata);
-          }
-        })
-      console.log("Izlazim iz ClassicFetch");  
-      console.log(dogadjaji);
+    const fetchDogadjaji = async () => {
+      try {
+        const data = await api.get(`/Pr_dog/VratiPrijavljene_dog/${brojPosiljke}/${ukupnoElemenata}`);
+        if (data.kraj === undefined) {
+          if (brojPosiljke === 1)
+            setDogadjaji(data.dogadjaji);
+          else
+            setDogadjaji(prevDogadjaji => [...prevDogadjaji, ...data.dogadjaji]);
+          setUkupnoElemenata(data.ukupno_elemenata);
+        }
+      } catch (error) {
+        console.error("fetchDogadjaji (prijave):", error);
+      }
     };
   
     return (

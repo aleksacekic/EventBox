@@ -1,4 +1,4 @@
-import { API_BASE } from '../api';
+import { api, API_BASE } from '../api';
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { HubConnectionBuilder } from "@microsoft/signalr";
@@ -37,15 +37,7 @@ const Chat = () => {
   async function fetchKorisnik(korisnik_Id) {
     try {
       if (!korisnik_Id) return null;
-      const response = await fetch(
-        `${API_BASE}/Korisnik/VratiKorisnika_ID/${korisnik_Id}`
-      );
-      if (!response.ok) {
-        throw new Error(
-          `Greska pri dohvatanju korisnika: ${response.statusText}`
-        );
-      }
-      return await response.json();
+      return await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
     } catch (error) {
       console.error("Greska pri dohvatanju podataka o korisniku:", error);
       return null;
@@ -54,16 +46,7 @@ const Chat = () => {
 
   async function fetchUsers(korisnik_Id) {
     try {
-      const response = await fetch(
-        `${API_BASE}/Korisnik/VratiSveKorisnikeOsim/${korisnik_Id}`
-      );
-      if (!response.ok) {
-        throw new Error(
-          `Greska pri dohvatanju korisnika: ${response.statusText}`
-        );
-      }
-      const data = await response.json();
-      console.log(data);
+      const data = await api.get(`/Korisnik/VratiSveKorisnikeOsim/${korisnik_Id}`);
       setSviKorisnici(data); // Postavi korisnike u state
     } catch (error) {
       console.error("Greska pri dohvatanju korisnika:", error);
@@ -73,15 +56,7 @@ const Chat = () => {
   async function fetchChatUsers(korisnik_Id) {
     try {
       // 1. dohvati ID-jeve korisnika sa kojima je kuminicirano
-      const response = await fetch(
-        `${API_BASE}/Poruka/VratiKorisnikeSaMogChata/${korisnik_Id}`
-      );
-      if (!response.ok) {
-        throw new Error(
-          `Greska pri dohvatanju ID-jeva korisnika: ${response.statusText}`
-        );
-      }
-      const userIds = await response.json();
+      const userIds = await api.get(`/Poruka/VratiKorisnikeSaMogChata/${korisnik_Id}`);
       // console.log(
       //   "ID-jevi korisnika sa kojima je korisnik komunicirao:",
       //   userIds
@@ -163,12 +138,9 @@ const Chat = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${API_BASE}/Poruka/VratiPoruke/${korisnik_Id}/${userId}?page=${pageNumber}&size=20`
+      const messagesData = await api.get(
+        `/Poruka/VratiPoruke/${korisnik_Id}/${userId}?page=${pageNumber}&size=20`
       );
-      if (!response.ok) throw new Error("Greška pri dohvatanju poruka");
-
-      const messagesData = await response.json();
       const chatDiv = chatMessagesRef.current;
 
       if (chatDiv) {
@@ -196,10 +168,7 @@ const Chat = () => {
     setPage(0);
     setHasMore(true);
     setMessageSenders((prev) => prev.filter((id) => id !== user.id));
-    fetch(
-      `${API_BASE}/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`,
-      { method: "PUT" }
-    );
+    api.put(`/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`);
 
     setTimeout(() => {
       const chatDiv = chatMessagesRef.current;
@@ -210,10 +179,7 @@ const Chat = () => {
   };
 
   const handleProcitaj = (user) => {
-    fetch(
-      `${API_BASE}/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`,
-      { method: "PUT" }
-    );
+    api.put(`/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`);
   };
 
   useEffect(() => {
@@ -244,17 +210,10 @@ const Chat = () => {
       selectedUser.id,
       newMessage
     );
-    const response = await fetch(
-      `${API_BASE}/Poruka/PosaljiPoruku/${selectedUser.id}/${korisnik_Id}/${newMessage}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ poruka: newMessage }),
-      }
+    await api.post(
+      `/Poruka/PosaljiPoruku/${selectedUser.id}/${korisnik_Id}/${newMessage}`,
+      { poruka: newMessage }
     );
-    //console.log(response);
     setNewMessage("");
   };
 
@@ -318,12 +277,7 @@ const Chat = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch(
-        `${API_BASE}/Korisnik/VratiKorisnikeSearch/${searchValue}`
-      );
-      const data = await response.json();
-      console.log(response);
-      console.log(data);
+      const data = await api.get(`/Korisnik/VratiKorisnikeSearch/${searchValue}`);
       if (data.kraj === "KRAJ") {
         setSearchResults([]);
       } else {
@@ -356,10 +310,7 @@ const Chat = () => {
       }
 
       try {
-        const response = await fetch(
-          `${API_BASE}/Korisnik/VratiKorisnikeSearch/${searchValue}`
-        );
-        const data = await response.json();
+        const data = await api.get(`/Korisnik/VratiKorisnikeSearch/${searchValue}`);
         if (data.kraj === "KRAJ") {
           setSearchResults([]);
         } else {

@@ -1,4 +1,4 @@
-import { API_BASE } from '../api';
+import { api } from '../api';
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 
@@ -17,17 +17,9 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
         const idKorisnika = Cookies.get("userID"); // ID korisnika
 
         const queryString = IDucitanidogadjaji.join("%2C");
-        const url = `${API_BASE}/Reakcija/VratiReakcije/${idKorisnika}/${queryString}`;
+        const reakcije = await api.get(`/Reakcija/VratiReakcije/${idKorisnika}/${queryString}`);
 
-        const response = await fetch(url, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (response.ok) {
-          const reakcije = await response.json();
+        if (reakcije) {
           //console.log(reakcije);
           // Inicijalizacija objekta za praćenje aktivnih reakcija
           const activeReakcije = {};
@@ -68,8 +60,6 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
             setMozdaActive(false);
             setNisamZainteresovanActive(false);
           }
-        } else {
-          console.log("Greška prilikom dohvatanja reakcija.");
         }
       } catch (error) {
         console.log("Greška prilikom dohvatanja reakcija:", error);
@@ -78,6 +68,13 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
 
     fetchData();
   }, [dogadjaj_Id]);
+
+  // Postavi koje je dugme aktivno (samo jedno moze biti)
+  const postaviAktivnoDugme = (tip) => {
+    setZainteresovanActive(tip === "Zainteresovan");
+    setMozdaActive(tip === "Mozda");
+    setNisamZainteresovanActive(tip === "Nezainteresovan");
+  };
 
   const handleReactionClick = async (tip) => {
     try {
@@ -91,75 +88,22 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
         ).find((reakcija) => aktivneReakcije[dogadjaj_id][reakcija]);
 
         // Ako postoji prethodna reakcija, koristi PUT metodu
-        const url = `${API_BASE}/Reakcija/PromeniReakciju/${prethodnaReakcija}/${tip}/${korisnik_Id}/${dogadjaj_id}`;
+        await api.put(`/Reakcija/PromeniReakciju/${prethodnaReakcija}/${tip}/${korisnik_Id}/${dogadjaj_id}`);
 
-        const response = await fetch(url, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+        setAktivneReakcije({
+          ...aktivneReakcije,
+          [dogadjaj_id]: { [prethodnaReakcija]: false, [tip]: true },
         });
-
-        if (response.ok) {
-          const updatedAktivneReakcije = {
-            ...aktivneReakcije,
-            [dogadjaj_id]: { [prethodnaReakcija]: false, [tip]: true },
-          };
-          setAktivneReakcije(updatedAktivneReakcije);
-
-          // Ažuriranje aktivnog dugmeta
-          if (tip === "Zainteresovan") {
-            setZainteresovanActive(true);
-            setMozdaActive(false);
-            setNisamZainteresovanActive(false);
-          } else if (tip === "Mozda") {
-            setZainteresovanActive(false);
-            setMozdaActive(true);
-            setNisamZainteresovanActive(false);
-          } else if (tip === "Nezainteresovan") {
-            setZainteresovanActive(false);
-            setMozdaActive(false);
-            setNisamZainteresovanActive(true);
-          }
-        } else {
-          console.log("Greška prilikom promene reakcije.");
-        }
+        postaviAktivnoDugme(tip);
       } else {
         // Ako ne postoji prethodno označena reakcija, koristi POST metodu
-        const url = `${API_BASE}/Reakcija/PostaviReakciju/${tip}/${korisnik_Id}/${dogadjaj_id}`;
+        await api.post(`/Reakcija/PostaviReakciju/${tip}/${korisnik_Id}/${dogadjaj_id}`);
 
-        const response = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+        setAktivneReakcije({
+          ...aktivneReakcije,
+          [dogadjaj_id]: { [tip]: true },
         });
-
-        if (response.ok) {
-          // Ažuriranje stanja komponente
-          const updatedAktivneReakcije = {
-            ...aktivneReakcije,
-            [dogadjaj_id]: { [tip]: true },
-          };
-          setAktivneReakcije(updatedAktivneReakcije);
-
-          // Ažuriranje aktivnog dugmeta
-          if (tip === "Zainteresovan") {
-            setZainteresovanActive(true);
-            setMozdaActive(false);
-            setNisamZainteresovanActive(false);
-          } else if (tip === "Mozda") {
-            setZainteresovanActive(false);
-            setMozdaActive(true);
-            setNisamZainteresovanActive(false);
-          } else if (tip === "Nezainteresovan") {
-            setZainteresovanActive(false);
-            setMozdaActive(false);
-            setNisamZainteresovanActive(true);
-          }
-        } else {
-          console.log("Greška prilikom postavljanja reakcije.");
-        }
+        postaviAktivnoDugme(tip);
       }
     } catch (error) {
       console.log("Greška prilikom promene reakcije:", error);

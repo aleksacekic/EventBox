@@ -1,4 +1,4 @@
-import { API_BASE } from '../api';
+import { api, API_BASE } from '../api';
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import moment from "moment";
@@ -51,12 +51,7 @@ function Header() {
     e.preventDefault();
 
     try {
-      const response = await fetch(
-        `${API_BASE}/Korisnik/VratiKorisnikeSearch/${searchValue}`
-      );
-      const data = await response.json();
-      console.log(response);
-      console.log(data);
+      const data = await api.get(`/Korisnik/VratiKorisnikeSearch/${searchValue}`);
       if (data.kraj === "KRAJ") {
         setSearchResults([]);
       } else {
@@ -89,10 +84,7 @@ function Header() {
       }
 
       try {
-        const response = await fetch(
-          `${API_BASE}/Korisnik/VratiKorisnikeSearch/${searchValue}`
-        );
-        const data = await response.json();
+        const data = await api.get(`/Korisnik/VratiKorisnikeSearch/${searchValue}`);
         if (data.kraj === "KRAJ") {
           setSearchResults([]);
         } else {
@@ -114,22 +106,17 @@ function Header() {
     return moment(datum).format("DD.MM.YYYY");
   };
 
-  const ucitajKorisnika = () => {
-    const korisnik_Id = Cookies.get("userID");
-    const url = `${API_BASE}/Korisnik/VratiKorisnika_ID/${korisnik_Id}`;
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        //console.log(data.datum_rodjenja);
-        const formatiranDatum = formatirajDatum(data.datum_rodjenja);
-        data.datumrodjenja = formatiranDatum;
-        //console.log(formatiranDatum);
-        setKorisnik(data);
-        setmojdatum(formatiranDatum);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+  const ucitajKorisnika = async () => {
+    try {
+      const korisnik_Id = Cookies.get("userID");
+      const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
+      const formatiranDatum = formatirajDatum(data.datum_rodjenja);
+      data.datumrodjenja = formatiranDatum;
+      setKorisnik(data);
+      setmojdatum(formatiranDatum);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   useEffect(() => {
@@ -138,16 +125,7 @@ function Header() {
 
     async function fetchNeprocitanePoruke() {
       try {
-        const response = await fetch(
-          `${API_BASE}/Poruka/KolikoNeprocitanihPoruka/${korisnik_Id}`
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP greska! Status: ${response.status}`);
-        }
-
-        const broj = await response.json();
-        //console.log(broj);
+        const broj = await api.get(`/Poruka/KolikoNeprocitanihPoruka/${korisnik_Id}`);
         setNeprocitanePoruke(broj);
       } catch (error) {
         console.error("Greska prilikom dohvatanja neprocitanih poruka:", error);

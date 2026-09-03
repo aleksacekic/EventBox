@@ -1,4 +1,4 @@
-import { API_BASE } from '../api';
+import { api } from '../api';
 
 import { Link } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
@@ -24,7 +24,7 @@ function LoginRegistracijaKomponenta() {
   const navigate = useNavigate();
 
   
-  const handleSubmit1 = (e) => {
+  const handleSubmit1 = async (e) => {
     e.preventDefault();
     const poljaForme = e.target.elements;
     let isGreska = false;
@@ -48,60 +48,41 @@ function LoginRegistracijaKomponenta() {
     const password = poljaForme.password.value;
 
 
-    console.log("PRVA PROVERA");
-    fetch(`${API_BASE}/Korisnik/LogovanjeKorisnik/${username}/${password}`)
-        .then(res => {
-          if (res.status === 401){
-            navigate('/')
-          }
-          return res.json();
-        })
-        .then(data => {
-            if(data.nema !== undefined)
-            {
-              console.log(data);
-              probajAdmin();
-              console.log("NEMA PODACI ZA KORISNIKA")
-            }
-            else if(data.blokiran !== undefined)
-            {
-              alert("Vas nalog je blokiran");
-            }
-            else
-            {
-              console.log("ULOGOVANJE USPENSO")
-              Cookies.set(`token`, `${data.token}`, { path: '/' });
-              Cookies.set(`userID`, `${data.userID}`, { path: '/' }); 
-              navigate('/pocetna');
-            }
-        })
-
-        console.log("SLEDECE JE PROBA ADMINA")
-    const probajAdmin = () => {
-      fetch(`${API_BASE}/Administrator/LogovanjeAdministrator/${username}/${password}`,
-      {
-        method: 'GET',
-      })
-        .then(res => res.json())
-        .then(data => {
-          console.log("care");
-            if(data.nema !== undefined)
-            {
-              console.log("NEMA NI ADMIN BRT")
-              alert("Pogresan unos!");
-            }
-            else
-            {
-              navigate('/admin');
-            }
-        })
+    try {
+      const data = await api.get(`/Korisnik/LogovanjeKorisnik/${username}/${password}`);
+      if (data.nema !== undefined) {
+        // Nije obican korisnik -> probaj kao administrator
+        await probajAdmin(username, password);
+      } else if (data.blokiran !== undefined) {
+        alert("Vas nalog je blokiran");
+      } else {
+        Cookies.set('token', `${data.token}`, { path: '/' });
+        Cookies.set('userID', `${data.userID}`, { path: '/' });
+        navigate('/pocetna');
+      }
+    } catch (error) {
+      console.error('Greska pri prijavi:', error);
+      alert('Prijava nije uspela.');
     }
-    console.log("KRAJ OBA FETCHA")
-}; //ZAVRSAVA ES FUNCIJA SUBMIT!!!!!!!!!!!!!!!!
+  };
+
+  const probajAdmin = async (username, password) => {
+    try {
+      const data = await api.get(`/Administrator/LogovanjeAdministrator/${username}/${password}`);
+      if (data.nema !== undefined) {
+        alert("Pogresan unos!");
+      } else {
+        navigate('/admin');
+      }
+    } catch (error) {
+      console.error('Greska pri admin prijavi:', error);
+      alert("Pogresan unos!");
+    }
+  };
 // -----------------------------------------------------------------------------------------------
     
   
-  const handleSubmit2 = (e) => {
+  const handleSubmit2 = async (e) => {
     e.preventDefault();
     const poljaForme = e.target.elements;
     let isGreska = false;
@@ -129,32 +110,14 @@ function LoginRegistracijaKomponenta() {
     const lozinka = poljaForme.password.value;
     console.log("PREDFETCH")
     console.log(datumrodjenja)
-    const url = `${API_BASE}/Korisnik/DodajKorisnika/${ime}/${prezime}/${korisnickoime}/${lozinka}/${datumrodjenja}/${mail}`;
-    console.log(url);
-    fetch(url, {
-      method: 'POST',
-    })
-      .then(response => {
-        if (response.ok) {
-          console.log(response);
-          alert("Uspesno ste registrovani!");
-          window.location.reload();
-          return response;
-          
-        } else {
-          throw new Error('Došlo je do greške prilikom registracije.');
-        }
-      })
-      .then(data => {
-        console.log('Korisnik je uspešno registrovan:', data);
-        // Dodajte odgovarajuće postupanje nakon registracije
-      })
-      .catch(error => {
-        console.error('Greska:', error);
-        // Dodajte odgovarajuće postupanje u slučaju greške
-      });
-      console.log("POSTFETCH")
-
+    try {
+      await api.post(`/Korisnik/DodajKorisnika/${ime}/${prezime}/${korisnickoime}/${lozinka}/${datumrodjenja}/${mail}`);
+      alert("Uspesno ste registrovani!");
+      window.location.reload();
+    } catch (error) {
+      console.error('Greska:', error);
+      alert('Došlo je do greške prilikom registracije.');
+    }
   }; //ZAVRSAVA SE FUNCIJA SUBMIT2!!!!!!!!!!!!!!!!
 
   

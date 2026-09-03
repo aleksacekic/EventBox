@@ -1,4 +1,4 @@
-import { API_BASE } from '../api';
+import { api, API_BASE } from '../api';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import React from 'react'
@@ -16,18 +16,14 @@ function DogadjajPosebnaStrana() {
     useEffect(() => {
         async function fetchDogadjaj(id) {
             try {
-                const response = await fetch(`${API_BASE}/Dogadjaj/VratiDogadjaj/${id}`);
-                if (!response.ok) {
-                    throw new Error(`Greška pri dohvaćanju događaja: ${response.statusText}`);
-                }
-                const data = await response.json();
+                const data = await api.get(`/Dogadjaj/VratiDogadjaj/${id}`);
                 setDogadjaj(data);
             } catch (error) {
                 console.error('Greška pri dohvaćanju podataka o događaju:', error);
             }
         }
 
-        fetchDogadjaj(id); 
+        fetchDogadjaj(id);
     }, []);
 
     //const [korisnik, setKorisnik] = useState(null);
@@ -55,18 +51,14 @@ function DogadjajPosebnaStrana() {
     useEffect(() => {
         async function fetchDogadjaj(id) {
             try {
-                const response = await fetch(`${API_BASE}/Dogadjaj/VratiDogadjaj/${id}`);
-                if (!response.ok) {
-                    throw new Error(`Greška pri dohvaćanju događaja: ${response.statusText}`);
-                }
-                const data = await response.json();
+                const data = await api.get(`/Dogadjaj/VratiDogadjaj/${id}`);
                 setDogadjaj(data);
             } catch (error) {
                 console.error('Greška pri dohvaćanju podataka o događaju:', error);
             }
         }
 
-        fetchDogadjaj(id); 
+        fetchDogadjaj(id);
     }, []);
 
         const formatirajDatum = (datum) => {
@@ -99,28 +91,14 @@ function DogadjajPosebnaStrana() {
 
         
 
-        const obrisiObjavu = (id,index) => {
-          const url = `${API_BASE}/Dogadjaj/IzbrisiDogadjaj/${id}`;
-          fetch(url, {
-            method: 'DELETE',
-          })
-            .then(response => {
-              if (response.ok) {
-                // sad se azurira stanje dogadjaja tako da se ukloni izbrisn dogadjaj
-                //setDogadjaji(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
-                //-------------------OVDE MORA DOPUNA!!!-----------------------------------------------
-                //
-                //
-                //
-                //
-                //
-                //-------------------OVDE MORA DOPUNA!!!-----------------------------------------------
-              }
-            })
-            .catch(error => {
-              console.log('Doslo je do greske prilikom brisanja objave:', error);
-            });
-            setActiveIndex(null);
+        const obrisiObjavu = async (id, index) => {
+          try {
+            await api.del(`/Dogadjaj/IzbrisiDogadjaj/${id}`);
+            // TODO: nakon brisanja preusmeriti sa zasebne strane dogadjaja
+          } catch (error) {
+            console.log('Doslo je do greske prilikom brisanja objave:', error);
+          }
+          setActiveIndex(null);
         };
       
         const toggleOptions = (index) => {
@@ -229,46 +207,19 @@ function DogadjajPosebnaStrana() {
               return;
             }
         
-            const apiUrl = `${API_BASE}/Pr_dog/PrijaviDogadjaj/${id}`;
-            let razlogUrl = `${API_BASE}/Razlog/KreirajRazlog/${id}/${selectedOption}/${opis}`;
+            let razlogPath = `/Razlog/KreirajRazlog/${id}/${selectedOption}/${opis}`;
             if (selectedOption === "ostalo" && opis === "") {
-              razlogUrl += "bezOpisa";
+              razlogPath += "bezOpisa";
             }
-        
             if (selectedOption !== "ostalo") {
-              razlogUrl += "nema"; // da stavi nema na opis ako je bilo sta drugo selektovano osim OSTALO
+              razlogPath += "nema"; // "nema" na opis ako je selektovano bilo sta osim OSTALO
             }
-            
-        
+
             try {
-              const response1 = await fetch(apiUrl, {
-                method: 'POST',
-                credentials: 'include',
-              });
-              console.log(response1);
-        
-              if(response1.ok){
-                console.log("sve okej brt")
-              }
-              if (!response1.ok) {
-                console.log('Greska prilikom slanja prijave objave.');
-              }
-              if(response1.status === 401)
-              {
-                navigate('/')
-              }
-        
-              
-                const response2 = await fetch(razlogUrl, {
-                  method: 'POST',
-                });
-                console.log(response2);
-                if (!response2.ok) {
-                  
-                  console.log('Greška prilikom slanja razloga prijave.');
-                }
-              
-        
+              // 401 -> api klijent sam vraca na /login
+              await api.post(`/Pr_dog/PrijaviDogadjaj/${id}`, undefined, { credentials: 'include' });
+              await api.post(razlogPath);
+
               // Resetuj polja nakon uspešnog slanja
               setSelectedOption('');
               setOpis('');

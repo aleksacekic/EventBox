@@ -1,9 +1,8 @@
-import { API_BASE } from '../api';
+import { api } from '../api';
 import React, { useState, useEffect} from 'react';
 
 const NotifikacijaTest = () => {
   const [notifikacijaId, setNotifikacijaId] = useState("");
-  const baseUrl = API_BASE; 
 
 
    const [notifikacije, setNotifikacije] = useState([]);
@@ -17,14 +16,8 @@ const NotifikacijaTest = () => {
     const korisnikId = 8;
     const dogadjajID= 31;
 
-    const url = `${baseUrl}/Notifikacija/PostaviNotifikaciju/${dogadjajID}/${korisnikReagujeId}/${tipReakcije}/${sadrzajReakcije}/${vreme}/${korisnikId}`;
-
     try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await response.text();
+      const data = await api.post(`/Notifikacija/PostaviNotifikaciju/${dogadjajID}/${korisnikReagujeId}/${tipReakcije}/${sadrzajReakcije}/${vreme}/${korisnikId}`);
       alert(data);
     } catch (error) {
       alert("Greška: " + error);
@@ -38,25 +31,18 @@ const NotifikacijaTest = () => {
       return;
     }
 
-    const url = `${baseUrl}/Notifikacija/IzbrisiNotifikaciju/${notifikacijaId}`;
-
     try {
-      const response = await fetch(url, {
-        method: "DELETE",
-      });
-      const data = await response.text();
+      const data = await api.del(`/Notifikacija/IzbrisiNotifikaciju/${notifikacijaId}`);
       alert(data);
     } catch (error) {
       alert("Greška: " + error);
     }
   };
 
-  const fetchNotifikacije = async () =>
-    {
-        const response = await fetch(`${baseUrl}/Korisnik/VratiNotifikacijeKorisnika/9`);
-        const data = await response.json();
-        setNotifikacije(data);
-    }
+  const fetchNotifikacije = async () => {
+    const data = await api.get(`/Korisnik/VratiNotifikacijeKorisnika/9`);
+    setNotifikacije(data);
+  }
 
     useEffect(() => {
         fetchNotifikacije();

@@ -1,4 +1,4 @@
-import { API_BASE } from '../api';
+import { api, API_BASE } from '../api';
 import React from 'react'
 import Dogadjaj from './Dogadjaj'
 import DatePicker from 'react-datepicker'
@@ -127,21 +127,16 @@ function Main({ onNapraviDogadjaj }) {
 
   const korisnik_Id = Cookies.get('userID');
   
-  const ucitajKorisnika = () => {
-    const url = `${API_BASE}/Korisnik/VratiKorisnika_ID/${korisnik_Id}`;
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        //console.log(data.datum_rodjenja);
-        const formatiranDatum = formatirajDatum(data.datum_rodjenja);
-        data.datumrodjenja = formatiranDatum;
-        //console.log(formatiranDatum);
-        setKorisnik(data);
-        setmojdatum(formatiranDatum);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+  const ucitajKorisnika = async () => {
+    try {
+      const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
+      const formatiranDatum = formatirajDatum(data.datum_rodjenja);
+      data.datumrodjenja = formatiranDatum;
+      setKorisnik(data);
+      setmojdatum(formatiranDatum);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   //-------------------------------------------------------------------------------------------------------
@@ -158,8 +153,7 @@ function Main({ onNapraviDogadjaj }) {
   //----------------------------------------------
   const fetchNotifikacije = async () => {
     try {
-        const response = await fetch(`${API_BASE}/Korisnik/VratiPetNotifikacijaKorisnika/${korisnik_Id}`);
-        const data = await response.json();
+        const data = await api.get(`/Korisnik/VratiPetNotifikacijaKorisnika/${korisnik_Id}`);
 
        //koristimo fetchDogadjaj unutar map, jer eventName dolazi iz zasebnog API poziva. Pošto map ne podržava await, koristićemo Promise.all da sačekamo sve zahteve pre nego što ažuriramo setNotifications.
         const mappedNotifikacije = await Promise.all(
@@ -189,20 +183,7 @@ function Main({ onNapraviDogadjaj }) {
 const postaviNotifikaciju = async (dogadjajId,korisnikReagujeId, tipReakcije,sadrzajReakcije, vreme, korisnikId ) => {
 try {
     
-  const response = await fetch(`${API_BASE}/Notifikacija/PostaviNotifikaciju/${dogadjajId}/${korisnikReagujeId}/${tipReakcije}/${sadrzajReakcije}/${vreme}/${korisnikId}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    }
-  });
-  console.log(response);
-  if (response.ok) {
-    return await response.json(); // response.ok
-  }
-  else{
-    throw new Error("Neuspešno postavljanje notifikacije");
-  }
+  return await api.post(`/Notifikacija/PostaviNotifikaciju/${dogadjajId}/${korisnikReagujeId}/${tipReakcije}/${sadrzajReakcije}/${vreme}/${korisnikId}`);
 } catch (error) {
   console.error(error);
   return null;
@@ -224,11 +205,7 @@ try {
     async function fetchDogadjaj(id) {
       try {
           if (!id) return null;
-          const response = await fetch(`${API_BASE}/Dogadjaj/VratiDogadjaj/${id}`);
-          if (!response.ok) {
-              throw new Error(`Greška pri dohvatanju događaja: ${response.statusText}`);
-          }
-          return await response.json();
+          return await api.get(`/Dogadjaj/VratiDogadjaj/${id}`);
       } catch (error) {
           console.error('Greška pri dohvaćanju podataka o događaju:', error);
           return null;
@@ -239,13 +216,7 @@ try {
         async function fetchDogadjaj(id) {
             try {
                 if (!id) return;
-                const response = await fetch(`${API_BASE}/Dogadjaj/VratiDogadjaj/${id}`);
-                //console.log(response);
-                if (!response.ok) {
-                    throw new Error(`Greška pri dohvatanju događaja: ${response.statusText}`);
-                }
-                const data = await response.json();
-                //console.log(data);
+                const data = await api.get(`/Dogadjaj/VratiDogadjaj/${id}`);
                 setDogadjaj(data);
             } catch (error) {
                 console.error('Greška pri dohvaćanju podataka o događaju:', error);
@@ -262,11 +233,7 @@ try {
     async function fetchKorisnik(korisnik_Id) {
       try {
           if (!korisnik_Id) return null;
-          const response = await fetch(`${API_BASE}/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
-          if (!response.ok) {
-              throw new Error(`Greška pri dohvatanju korisnika: ${response.statusText}`);
-          }
-          return await response.json();
+          return await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
       } catch (error) {
           console.error('Greška pri dohvaćanju podataka o korisniku:', error);
           return null;

@@ -1,4 +1,4 @@
-import { API_BASE } from '../api';
+import { api, ApiError } from '../api';
 import React from 'react'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
@@ -50,52 +50,21 @@ const kreirajDogadjaj = async (e) => {
   const yZaSlanje = y || 20.4489; // default lng (Beograd)
 
   try {
+    const dogadjaj = await api.post(
+      `/Dogadjaj/DodajDogadjaj/${kreator}/${datumObjave}/${naslovZaSlanje}/${formattedDatumDogadjaja}/${vremeZaSlanje}/${opisZaSlanje}/${kategorijaZaSlanje}/${xZaSlanje}/${yZaSlanje}`
+    );
 
-    const response = await fetch(`${API_BASE}/Dogadjaj/DodajDogadjaj/${kreator}/${datumObjave}/${naslovZaSlanje}/${formattedDatumDogadjaja}/${vremeZaSlanje}/${opisZaSlanje}/${kategorijaZaSlanje}/${xZaSlanje}/${yZaSlanje}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-    console.log(response);
-    if (response.ok) { // response.ok
-      console.log(response);
-      //console.log(await response.text())
-      //const dogadjajId = await response.json();// OVDE UZIMAMO ID OD OBJAVE KOJU SMO NAPRAVILI FETCHEM IZNAD
-      const responseData = await response.json();
-      const dogadjajId = responseData.id;
-      //console.log(dogadjajId);
-
-      if (!slika) {
-        // Nema slike (polje je opciono za testiranje) -> preskoci upload
-        window.location.reload();
-        return;
-      }
-
-      let formData = new FormData();
+    if (slika) {
+      const formData = new FormData();
       formData.append('fajl', slika);
-
-      let risponz = await fetch(`${API_BASE}/Dogadjaj/DodajSlikuDogadjaju?dogadjaj_id=${dogadjajId}`, {
-        method: 'POST',
-        body: formData
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          console.log(data);
-          // Obrada odgovora
-          setSlika((prevKorisnik) => ({ ...prevKorisnik, slika: data.Message }));
-          window.location.reload();
-          setSlika(null);
-        })
-        .catch((error) => {
-          console.log("Došlo je do greške prilikom izvršavanja zahteva:", error);
-          // Dodajte dalju logiku ili manipulaciju prema potrebi
-        });
-      console.log(risponz);
+      await api.post(`/Dogadjaj/DodajSlikuDogadjaju?dogadjaj_id=${dogadjaj.id}`, formData);
     }
+
+    window.location.reload();
   } catch (error) {
-    console.error(error);
+    const poruka = error instanceof ApiError ? error.message : String(error);
+    console.error('Kreiranje dogadjaja nije uspelo:', poruka);
+    alert('Kreiranje dogadjaja nije uspelo: ' + poruka);
   }
 };
 

@@ -1,4 +1,4 @@
-import { API_BASE } from '../api';
+import { api, API_BASE } from '../api';
 import React from 'react'
 import lightBlueImage from '../lightblue.jpg';
 import HideShowMapa from './Hide&ShowMapa';
@@ -11,10 +11,8 @@ import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Component } from 'react';
 import Cookies from 'js-cookie'
-import { useNavigate } from 'react-router-dom';
 
 function Profil() {
-  const navigate = useNavigate();
   const [activeIndex, setActiveIndex] = useState(null);
   const toggleOptions = (index) => {
     if (activeIndex === index) {
@@ -54,34 +52,16 @@ function Profil() {
     }
   }, [selectedImage]);
 
-  const dodajSlikuKorisniku = () => {
-    const korisnikId = Cookies.get('userID'); // ID korisnika
-    const url = `${API_BASE}/Korisnik/DodajSlikuKorisniku?id_korisnika=${korisnikId}`;
-  
-    const formData = new FormData();
-    formData.append('fajl', selectedImage);
-  
-    fetch(url, {
-      method: 'POST',
-      body: formData,
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log(data);
-        // Obrada odgovora
-        setKorisnik((prevKorisnik) => ({ ...prevKorisnik, slika: data.slika }));
-        if(selectedImage)
-        {
-          window.location.reload();
-        }
-        setSelectedImage(null);
-        
-         
-      })
-      .catch((error) => {
-        console.log(error);
-        // Obrada greške
-      });
+  const dodajSlikuKorisniku = async () => {
+    try {
+      const korisnikId = Cookies.get('userID');
+      const formData = new FormData();
+      formData.append('fajl', selectedImage);
+      await api.post(`/Korisnik/DodajSlikuKorisniku?id_korisnika=${korisnikId}`, formData);
+      window.location.reload();
+    } catch (error) {
+      console.log(error);
+    }
   };
   
   const handleCameraIconClick = () => {
@@ -96,68 +76,36 @@ function Profil() {
     setBrojPosiljke(prevBrojPosiljke => prevBrojPosiljke + 1);
   }
 
-  const ucitajDogadjaje = () => {
-    //console.log("Usao sam u ClassicFetch");
-    const korisnik_Id = Cookies.get("userID");
-    const url = `${API_BASE}/Korisnik/VratiDogadjajeKorisnika/${korisnik_Id}/${brojPosiljke}/${ukupnoElemenata}`;
-    fetch(url, {
-      method: 'GET',
-      credentials: 'include',
-    })
-    .then(res => {
-      if (res.status === 401){
-        navigate('/')
+  const ucitajDogadjaje = async () => {
+    try {
+      const korisnik_Id = Cookies.get("userID");
+      // 401 -> api klijent sam vraca na /login
+      const data = await api.get(
+        `/Korisnik/VratiDogadjajeKorisnika/${korisnik_Id}/${brojPosiljke}/${ukupnoElemenata}`,
+        { credentials: 'include' }
+      );
+      if (data.kraj === undefined) {
+        const mapirani = data.dogadjaji.map(d => ({
+          ...d,
+          formattedDatum: moment(d.datum_Objave).format("DD.MM.YYYY"),
+        }));
+        setDogadjaji(prev => (brojPosiljke === 1 ? mapirani : [...prev, ...mapirani]));
+        setUkupnoElemenata(data.ukupno_elemenata);
       }
-      else{
-        return res.json();
-      }
-    }).catch(error =>{
-      console.log("");
-    })
-      .then(data => {
-        console.log(data);
-        if (data.kraj === undefined) {
-          if (brojPosiljke === 1)
-          setDogadjaji(data.dogadjaji.map(dogadjaj => ({ ...dogadjaj, formattedDatum: moment(dogadjaj.datum_Objave).format("DD.MM.YYYY") })));
-          else
-          setDogadjaji(prevDogadjaji => [...prevDogadjaji, ...data.dogadjaji.map(dogadjaj => ({ ...dogadjaj, formattedDatum: moment(dogadjaj.datum_Objave).format("DD.MM.YYYY") }))]);
-
-
-          setUkupnoElemenata(data.ukupno_elemenata);
-          
-        }
-        else{
-          console.log("Nisam uso u data fajl")    
-        }
-      }).catch(error =>{
-        console.log("");
-      })
-
-    //console.log("Izlazim iz ClassicFetch");
+    } catch (error) {
+      console.log("ucitajDogadjaje:", error);
+    }
   };
   
   // BRISANJE SLIKE KORISNIKU
-  const handleDeleteImage = () => {
-    const korisnik_Id = Cookies.get('userID');
-    const url = `${API_BASE}/Korisnik/IzbrisiSlikuKorisnika/${korisnik_Id}`;
-  
-    fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then(response => {
-        if (response.ok) {
-          console.log(response);
-          window.location.reload(); 
-        } else {
-          console.log("GRESKA PRILIKOM BRISANJA SLIKE");
-        }
-      })
-      .catch(error => {
-
-      });
+  const handleDeleteImage = async () => {
+    try {
+      const korisnik_Id = Cookies.get('userID');
+      await api.del(`/Korisnik/IzbrisiSlikuKorisnika/${korisnik_Id}`);
+      window.location.reload();
+    } catch (error) {
+      console.log("GRESKA PRILIKOM BRISANJA SLIKE", error);
+    }
   };
   
 
@@ -169,22 +117,17 @@ function Profil() {
     return moment(datum).format('DD.MM.YYYY');
   };
   
-  const ucitajKorisnika = () => {
-    const korisnik_Id = Cookies.get('userID');
-    const url = `${API_BASE}/Korisnik/VratiKorisnika_ID/${korisnik_Id}`;
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        //console.log(data.datum_rodjenja);
-        const formatiranDatum = formatirajDatum(data.datum_rodjenja);
-        data.datumrodjenja = formatiranDatum;
-        console.log(formatiranDatum);
-        setKorisnik(data);
-        setmojdatum(formatiranDatum);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+  const ucitajKorisnika = async () => {
+    try {
+      const korisnik_Id = Cookies.get('userID');
+      const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
+      const formatiranDatum = formatirajDatum(data.datum_rodjenja);
+      data.datumrodjenja = formatiranDatum;
+      setKorisnik(data);
+      setmojdatum(formatiranDatum);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const odrediHoroskopskiZnak = (datum) => {
@@ -234,21 +177,14 @@ function Profil() {
   };
 
   // BRISANJE OBJAVE
-  const obrisiObjavu = (id,index) => {
-    const url = `${API_BASE}/Dogadjaj/IzbrisiDogadjaj/${id}`;
-    fetch(url, {
-      method: 'DELETE',
-    })
-      .then(response => {
-        if (response.ok) {
-          // sad se azurira stanje dogadjaja tako da se ukloni izbrisn dogadjaj
-          setDogadjaji(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
-        }
-      })
-      .catch(error => {
-        console.log('Doslo je do greske prilikom brisanja objave:', error);
-      });
-      setActiveIndex(null);
+  const obrisiObjavu = async (id, index) => {
+    try {
+      await api.del(`/Dogadjaj/IzbrisiDogadjaj/${id}`);
+      setDogadjaji(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
+    } catch (error) {
+      console.log('Doslo je do greske prilikom brisanja objave:', error);
+    }
+    setActiveIndex(null);
   };
   
   const tekstHoroskopskogZnaka = {

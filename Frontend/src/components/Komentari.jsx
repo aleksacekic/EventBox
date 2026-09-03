@@ -1,8 +1,7 @@
-import { API_BASE } from '../api';
+import { api, API_BASE } from '../api';
 import React from 'react';
 import { useEffect, useState } from 'react';
 import Cookies from 'js-cookie'
-import { useNavigate } from 'react-router-dom';
 
 
 function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjajIdSubmit}) {
@@ -13,7 +12,6 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
   const [izabraniKomentarId, setIzabraniKomentarId] = useState(null);
   const [izmenjenTekstKomentara, setIzmenjenTekstKomentara] = useState('');
   const [korisnik, setKorisnik] = useState(null);
-  const navigate = useNavigate();
   
 
   // GET KOMENTARA
@@ -23,15 +21,8 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
 
   const fetchKomentari = async () => {
     try {
-      const response = await fetch(`${API_BASE}/Komentar/VratiKomentare/${dogadjajId}`);
-      //console.log(response);
-      if (response.ok) {
-        const komentari = await response.json();
-        //console.log(komentari);
-        setKomentari(komentari);
-      } else {
-        console.error('Zahtev nije uspeo!');
-      }
+      const komentari = await api.get(`/Komentar/VratiKomentare/${dogadjajId}`);
+      setKomentari(komentari);
     } catch (error) {
       console.error('Greska prilikom preuzimanja komentara!', error);
     }
@@ -50,21 +41,14 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
     event.preventDefault();
     try {
       const korisnik_Id = Cookies.get("userID");
-      const response = await fetch(
-        `${API_BASE}/Komentar/PostaviKomentar/${noviKomentar}/${korisnik_Id}/${dogadjajId}`,
-        {
-          method: 'POST',
-          credentials: 'include',
-        }
+      // 401 (npr. token istekao) -> api klijent sam vraca na /login
+      await api.post(
+        `/Komentar/PostaviKomentar/${noviKomentar}/${korisnik_Id}/${dogadjajId}`,
+        undefined,
+        { credentials: 'include' }
       );
-      if (response.ok) {
-        //onDogadjajIdSubmit(dogadjajId); //ovo sluzi za prosledjivanje dogadjajId iz Komentari.js u Dogajdaj.js pa u Main.js
-        fetchKomentari();
-        setNoviKomentar('');
-      } else if (response.status === 401){
-        console.log('Slanje komentara nije uspelo!');
-        navigate('/')
-      }
+      fetchKomentari();
+      setNoviKomentar('');
     } catch (error) {
       console.error('Greska prilikom slanja komentara!', error);
     }
@@ -73,18 +57,8 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
   // DELETE KOMENTARA
   const handleDeleteComment = async (commentId) => {
     try {
-      const response = await fetch(
-        `${API_BASE}/Komentar/IzbrisiKomentar/${commentId}`,
-        {
-          method: 'DELETE',
-        }
-      );
-      //console.log(response);
-      if (response.ok) {
-        fetchKomentari();
-      } else {
-        console.error('Brisanje komentara nije uspelo!');
-      }
+      await api.del(`/Komentar/IzbrisiKomentar/${commentId}`);
+      fetchKomentari();
     } catch (error) {
       console.error('Greska prilikom brisanja komentara!', error);
     }
@@ -99,19 +73,10 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
 
   const handleUpdateComment = async (commentId) => {
     try {
-      const response = await fetch(
-        `${API_BASE}/Komentar/IzmeniKomentar?id=${commentId}&tekst=${izmenjenTekstKomentara}`,
-        {
-          method: 'PUT',
-        }
-      );
-      if (response.ok) {
-        fetchKomentari();
-        setIzabraniKomentarId(null);
-        setIzmenjenTekstKomentara('');
-      } else {
-        console.error('Azuriranje komentara nije uspelo!');
-      }
+      await api.put(`/Komentar/IzmeniKomentar?id=${commentId}&tekst=${izmenjenTekstKomentara}`);
+      fetchKomentari();
+      setIzabraniKomentarId(null);
+      setIzmenjenTekstKomentara('');
     } catch (error) {
       console.error('Greska prilikom azuriranja komentara!', error);
     }
@@ -121,23 +86,14 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
   useEffect(() => {
     ucitajKorisnika();
   }, []);
-  const ucitajKorisnika = () => {
-    //console.log("USO SAM !")
-    const korisnik_Id = Cookies.get('userID');
-    //console.log(korisnik_Id);
-    const url = `${API_BASE}/Korisnik/VratiKorisnika_ID/${korisnik_Id}`;
-    //console.log(url);
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        //console.log(data);
-        //console.log(data.datum_rodjenja);
-        setKorisnik(data);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-      console.log("samo sam preskocio sve");
+  const ucitajKorisnika = async () => {
+    try {
+      const korisnik_Id = Cookies.get('userID');
+      const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
+      setKorisnik(data);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   
