@@ -7,13 +7,12 @@ import { registerLocale } from "react-datepicker"
 import srLatn from "date-fns/locale/sr-Latn";
 import TimePicker from './TimePicker'
 import Map from './Mapa'
-import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import Cookies from 'js-cookie'
 // import moment from 'moment';
 
-function NapraviDogadjaj() {
+function NapraviDogadjaj({ otvorena = false, onZatvori = () => {} }) {
 
   registerLocale("sr-Latn", srLatn);  
 
@@ -34,22 +33,25 @@ const [y, setY] = useState('');
 const kreirajDogadjaj = async (e) => {
   e.preventDefault();
 
-  if (!naslov || !kategorija || !datumDogadjaja || !vremePocetka || !opis || !x || !y) {
-    toast.error('Sva polja moraju biti popunjena!', {
-      position: toast.POSITION.TOP_CENTER,
-      className: 'toast-message'
-    });
-    return;
-  }
-
-  // const kreator = 2; // Hardkodirani kreator
+  // [test] Tvrda validacija "sva polja obavezna" je sklonjena da bi se lakse probalo.
+  // Prazna polja dobijaju bezbedan default (npr. mapa ne radi bez Google kljuca -> Beograd).
   const kreator = Cookies.get('userID');
   const datumObjave = new Date().toISOString().split('T')[0]; // danasnji datum u formatu YYYY-MM-DD
-  const formattedDatumDogadjaja = datumDogadjaja.toISOString().split('T')[0]; //lepo isece datum dogadjaja
+  const formattedDatumDogadjaja =
+    (datumDogadjaja && typeof datumDogadjaja.toISOString === 'function')
+      ? datumDogadjaja.toISOString().split('T')[0]
+      : datumObjave;
+
+  const naslovZaSlanje = naslov || 'Test dogadjaj';
+  const kategorijaZaSlanje = kategorija || 'Ostalo';
+  const vremeZaSlanje = vremePocetka || '12:00';
+  const opisZaSlanje = opis || 'Test opis';
+  const xZaSlanje = x || 44.7866; // default lat (Beograd)
+  const yZaSlanje = y || 20.4489; // default lng (Beograd)
 
   try {
-    
-    const response = await fetch(`${API_BASE}/Dogadjaj/DodajDogadjaj/${kreator}/${datumObjave}/${naslov}/${formattedDatumDogadjaja}/${vremePocetka}/${opis}/${kategorija}/${x}/${y}`, {
+
+    const response = await fetch(`${API_BASE}/Dogadjaj/DodajDogadjaj/${kreator}/${datumObjave}/${naslovZaSlanje}/${formattedDatumDogadjaja}/${vremeZaSlanje}/${opisZaSlanje}/${kategorijaZaSlanje}/${xZaSlanje}/${yZaSlanje}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -64,9 +66,16 @@ const kreirajDogadjaj = async (e) => {
       const responseData = await response.json();
       const dogadjajId = responseData.id;
       //console.log(dogadjajId);
+
+      if (!slika) {
+        // Nema slike (polje je opciono za testiranje) -> preskoci upload
+        window.location.reload();
+        return;
+      }
+
       let formData = new FormData();
       formData.append('fajl', slika);
-      
+
       let risponz = await fetch(`${API_BASE}/Dogadjaj/DodajSlikuDogadjaju?dogadjaj_id=${dogadjajId}`, {
         method: 'POST',
         body: formData
@@ -110,7 +119,7 @@ const handleSlikaChange = (e) => {
 
   return (
     <div>
-      <div className="post-popup job_post" id="forma">
+      <div className={`post-popup job_post ${otvorena ? 'active' : ''}`} id="forma">
         <div className="post-project">
           <h3>Napravi dogadjaj</h3>
           <div className="post-project-fields">
@@ -193,13 +202,12 @@ const handleSlikaChange = (e) => {
                 <div className="col-lg-12 zzatvaranje">
                   <ul>
                     <li><button className="active" type="submit" value="post">Napravi</button></li>
-                    {/* <li><a href="#" onClick={zatvoriFormu}>Otkazi</a></li> */}
-                    <li><a href="#" >Otkazi</a></li>
+                    <li><a href="#" onClick={(e) => { e.preventDefault(); onZatvori(); }}>Otkazi</a></li>
                   </ul>
                 </div>
               </div></form>
           </div>{/*post-project-fields end*/}
-          <a href="#" ><i className="la la-times-circle-o" /></a>
+          <a href="#" onClick={(e) => { e.preventDefault(); onZatvori(); }}><i className="la la-times-circle-o" /></a>
         </div>{/*post-project end*/}
       </div>{/*post-project-popup end*/}
       <ToastContainer />

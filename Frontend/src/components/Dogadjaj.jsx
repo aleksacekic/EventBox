@@ -16,94 +16,9 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
   const google = window.google;
   const navigate = useNavigate();
 
-//pretvoren jQuery kod u React
-  //#region 
-  
-  useEffect(() => {
-    const handleClick = (selector, className) => {
-      document.querySelectorAll(selector).forEach(element => {
-        element.addEventListener('click', (event) => {
-          event.preventDefault();
-          //document.querySelector(className).classList.toggle('active');
-          document.querySelector('.wrapper').classList.toggle('overlay');
-        });
-      });
-    };
-
-    handleClick('.zzatvaranje > ul > li > a', '.post-popup.pst-pj');
-    handleClick('.zzatvaranje > ul > li > a', '.post-popup.job_post');
-    handleClick('.post_project', '.post-popup.pst-pj');
-    handleClick('.post-jb', '.post-popup.job_post');
-    handleClick('.overview-open', '#overview-box');
-    handleClick('.exp-bx-open', '#experience-box');
-    handleClick('.ed-box-open', '#education-box');
-    handleClick('.lct-box-open', '#location-box');
-    handleClick('.skills-open', '#skills-box');
-    handleClick('.esp-bx-open', '#establish-box');
-    handleClick('.gallery_pt > a', '#create-portfolio');
-    handleClick('.emp-open', '#total-employes');
-    handleClick('.ask-question', '#question-box');
-    handleClick('.chat-mg', '.conversation-box');
-    handleClick('.ed-opts-open', '.ed-options');
-    handleClick('.not-box-open', '.notification-box');
-    handleClick('.user-info', '.user-account-settingss');
-    handleClick('.forum-links-btn > a', '.forum-links');
-
-    document.querySelectorAll('.close-box').forEach(element => {
-      element.addEventListener('click', (event) => {
-        event.preventDefault();
-        element.closest('.open').classList.remove('open');
-        document.querySelector('.wrapper').classList.remove('overlay');
-      });
-    });
-
-    document.querySelectorAll('.sign-control li').forEach(element => {
-      element.addEventListener('click', (event) => {
-        event.preventDefault();
-        const tabId = element.getAttribute('data-tab');
-        document.querySelectorAll('.sign-control li').forEach(el => el.classList.remove('current'));
-        document.querySelectorAll('.sign_in_sec').forEach(el => el.classList.remove('current'));
-        element.classList.add('current', 'animated', 'fadeIn');
-        document.getElementById(tabId).classList.add('current', 'animated', 'fadeIn');
-      });
-    });
-
-    document.querySelectorAll('.signup-tab ul li').forEach(element => {
-      element.addEventListener('click', (event) => {
-        event.preventDefault();
-        const tabId = element.getAttribute('data-tab');
-        document.querySelectorAll('.signup-tab ul li').forEach(el => el.classList.remove('current'));
-        document.querySelectorAll('.dff-tab').forEach(el => el.classList.remove('current'));
-        element.classList.add('current', 'animated', 'fadeIn');
-        document.getElementById(tabId).classList.add('current', 'animated', 'fadeIn');
-      });
-    });
-
-    document.querySelectorAll('.tab-feed ul li').forEach(element => {
-      element.addEventListener('click', (event) => {
-        event.preventDefault();
-        const tabId = element.getAttribute('data-tab');
-        document.querySelectorAll('.tab-feed ul li').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.product-feed-tab').forEach(el => el.classList.remove('current'));
-        element.classList.add('active', 'animated', 'fadeIn');
-        document.getElementById(tabId).classList.add('current', 'animated', 'fadeIn');
-      });
-    });
-
-    const gap = document.querySelector('.container').offsetLeft;
-    document.querySelectorAll('.cover-sec > a, .chatbox-list').forEach(element => {
-      element.style.right = `${gap}px`;
-    });
-
-    return () => {
-      // Cleanup event listeners
-      document.querySelectorAll('.zzatvaranje > ul > li > a, .post_project, .post-jb, .overview-open, .exp-bx-open, .ed-box-open, .lct-box-open, .skills-open, .esp-bx-open, .gallery_pt > a, .emp-open, .ask-question, .chat-mg, .ed-opts-open, .not-box-open, .user-info, .forum-links-btn > a, .close-box, .sign-control li, .signup-tab ul li, .tab-feed ul li').forEach(element => {
-        element.replaceWith(element.cloneNode(true));
-      });
-    };
-  }, []);
-
-//#endregion
+  // [Faza 1] Uklonjen mrtav "pretvoren jQuery kod" blok (imperativni DOM port teme):
+  // vezivao je listenere na selektore van ove komponente, a cleanup je radio
+  // element.replaceWith(cloneNode) sto lomi Reactovu rekonsilijaciju.
  
 
   //#region JAVASCRIPT

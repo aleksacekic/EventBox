@@ -59,7 +59,7 @@ namespace EventBoxApi.Controllers
                 dog.KreatorId = k;
                 dog.ID_Kreatora = k.Id;
                 dog.UserName_Kreatora = k.Korisnicko_Ime;
-                dog.SlikaKorisnika = k.KorisnikImage;
+                dog.SlikaKorisnika = k.KorisnikImage ?? "";   // kolona je NOT NULL, korisnik bez profilne ima null
                 dog.Datum_Objave = datum_objave;
                 dog.Naslov = naslov;
                 dog.Datum_Dogadjaja = datum_dogadjaja;
@@ -78,7 +78,8 @@ namespace EventBoxApi.Controllers
             }
             catch(Exception e)
             {
-                return BadRequest("Nije uspesno dodat dogadjaj! " + e.Message);
+                return BadRequest("Nije uspesno dodat dogadjaj! " + e.Message
+                    + (e.InnerException != null ? " | INNER: " + e.InnerException.Message : ""));
             }
         }
 
@@ -115,7 +116,7 @@ namespace EventBoxApi.Controllers
                 Korisnik k = await Context.Korisnici.FindAsync(dog.ID_Kreatora);
                 dog.Datum_Objave = datum_objave;
                 dog.UserName_Kreatora = k.Korisnicko_Ime;
-                dog.SlikaKorisnika = k.KorisnikImage;
+                dog.SlikaKorisnika = k.KorisnikImage ?? "";   // kolona je NOT NULL
                 dog.Naslov = naslov;
                 dog.Datum_Dogadjaja = datum_dogadjaja;
                 dog.Vreme_pocetka = vreme_pocetka;
@@ -129,7 +130,8 @@ namespace EventBoxApi.Controllers
             }
             catch(Exception e)
             {
-                return BadRequest("Nije uspesno azuriran dogadjaj! " + e.Message);
+                return BadRequest("Nije uspesno azuriran dogadjaj! " + e.Message
+                    + (e.InnerException != null ? " | INNER: " + e.InnerException.Message : ""));
             }
         }
 
