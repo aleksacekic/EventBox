@@ -1,8 +1,9 @@
 import { api } from '../api';
+import { useAuth } from '../auth';
 import React, { useState, useEffect } from "react";
-import Cookies from "js-cookie";
 
 function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
+  const { userId } = useAuth();
   const [zainteresovanActive, setZainteresovanActive] = useState(false);
   const [mozdaActive, setMozdaActive] = useState(false);
   const [nisamZainteresovanActive, setNisamZainteresovanActive] =
@@ -14,7 +15,7 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
       try {
         //console.log(IDucitanidogadjaji);
         //const dogadjajiIds = [39, 40, 43]; // Primer niza ID-jeva događaja
-        const idKorisnika = Cookies.get("userID"); // ID korisnika
+        const idKorisnika = userId;
 
         const queryString = IDucitanidogadjaji.join("%2C");
         const reakcije = await api.get(`/Reakcija/VratiReakcije/${idKorisnika}/${queryString}`);
@@ -78,7 +79,7 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
 
   const handleReactionClick = async (tip) => {
     try {
-      const korisnik_Id = Cookies.get("userID"); // ID korisnika
+      const korisnik_Id = userId;
       const dogadjaj_id = dogadjaj_Id; // ID događaja
 
       // Provera da li postoji prethodno označena reakcija

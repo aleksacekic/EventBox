@@ -7,7 +7,6 @@ import { registerLocale } from "react-datepicker"
 import srLatn from "date-fns/locale/sr-Latn";
 import { format } from 'date-fns';
 import Dogadjaj from './Dogadjaj'
-import Cookies from 'js-cookie'
 
 function Filtracija() {
 //#region 

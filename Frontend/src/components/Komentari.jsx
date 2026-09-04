@@ -1,11 +1,12 @@
 import { api, API_BASE } from '../api';
+import { useAuth } from '../auth';
 import React from 'react';
 import { useEffect, useState } from 'react';
-import Cookies from 'js-cookie'
 
 
 function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjajIdSubmit}) {
 
+  const { userId } = useAuth();
   const [komentari, setKomentari] = useState([]);
   const [noviKomentar, setNoviKomentar] = useState('');
   const [izmenjenKomentar, setIzmenjenKomentar] = useState('');
@@ -40,7 +41,7 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
   const handleFormSubmit = async (event) => {
     event.preventDefault();
     try {
-      const korisnik_Id = Cookies.get("userID");
+      const korisnik_Id = userId;
       // 401 (npr. token istekao) -> api klijent sam vraca na /login
       await api.post(
         `/Komentar/PostaviKomentar/${noviKomentar}/${korisnik_Id}/${dogadjajId}`,
@@ -88,7 +89,7 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
   }, []);
   const ucitajKorisnika = async () => {
     try {
-      const korisnik_Id = Cookies.get('userID');
+      const korisnik_Id = userId;
       const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
       setKorisnik(data);
     } catch (error) {

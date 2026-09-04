@@ -3,14 +3,16 @@ import React from 'react'
 import lightBlueImage from '../lightblue.jpg';
 import HideShowMapa from './Hide&ShowMapa';
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import moment from 'moment';
-import Cookies from 'js-cookie'
 
 function ProfilTudjiKomponenta() {
 
+  const { id } = useParams(); // id korisnika ciji se profil gleda (iz /profilkorisnika/:id)
+
   const ucitajKorisnika = async () => {
     try {
-      const korisnik_Id = Cookies.get('tudjiID');
+      const korisnik_Id = id;
       const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
       const formatiranDatum = formatirajDatum(data.datum_rodjenja);
       data.datumrodjenja = formatiranDatum;
@@ -49,7 +51,7 @@ function ProfilTudjiKomponenta() {
 
   useEffect(() => {
     ucitajDogadjaje();
-  }, [brojPosiljke]);
+  }, [brojPosiljke, id]); // ponovo ucitaj kad se promeni profil (:id)
 
 
   const handleImageUpload = (event) => {
@@ -75,7 +77,7 @@ function ProfilTudjiKomponenta() {
 
   const ucitajDogadjaje = async () => {
     try {
-      const korisnik_Id = Cookies.get('tudjiID');
+      const korisnik_Id = id;
       // 401 -> api klijent sam vraca na /login
       const data = await api.get(
         `/Korisnik/VratiDogadjajeKorisnika/${korisnik_Id}/${brojPosiljke}/${ukupnoElemenata}`,
@@ -97,7 +99,7 @@ function ProfilTudjiKomponenta() {
   // BRISANJE SLIKE KORISNIKU
   const handleDeleteImage = async () => {
     try {
-      const korisnik_Id = Cookies.get('tudjiID');
+      const korisnik_Id = id;
       await api.del(`/Korisnik/IzbrisiSlikuKorisnika/${korisnik_Id}`);
       window.location.reload();
     } catch (error) {
@@ -108,7 +110,7 @@ function ProfilTudjiKomponenta() {
 
   useEffect(() => {
     ucitajKorisnika();
-  }, []);
+  }, [id]); // ponovo ucitaj kad se promeni profil (:id)
 
   const formatirajDatum = (datum) => {
     return moment(datum).format('DD.MM.YYYY');

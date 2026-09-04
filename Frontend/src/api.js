@@ -12,6 +12,7 @@
 //    - telo se serijalizuje/parsira (JSON ili FormData)
 // ============================================================================
 import Cookies from 'js-cookie'
+import { clearAuthCookies } from './auth'
 
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5153'
 
@@ -54,8 +55,7 @@ async function request(method, path, { body, headers, ...rest } = {}) {
 
   // Token istekao / nevalidan -> nazad na login (jedno mesto umesto po komponentama)
   if (res.status === 401) {
-    Cookies.remove('token')
-    Cookies.remove('userID')
+    clearAuthCookies()
     if (window.location.pathname !== '/') window.location.assign('/')
     throw new ApiError(401, 'Neautorizovano - prijavite se ponovo', url)
   }

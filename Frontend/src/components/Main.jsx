@@ -8,13 +8,14 @@ import { registerLocale } from "react-datepicker"
 import srLatn from "date-fns/locale/sr-Latn";
 import { Link } from 'react-router-dom';
 import moment from 'moment';
-import Cookies from 'js-cookie'
+import { useAuth } from '../auth';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import { useNavigate } from 'react-router-dom';
 
 
 function Main({ onNapraviDogadjaj }) {
- 
+
+  const { userId } = useAuth();
 //  RADIO BUTTONI!
   const [originalColor, setOriginalColor] = useState('');
   const [korisnik, setKorisnik] = useState(null);
@@ -125,7 +126,7 @@ function Main({ onNapraviDogadjaj }) {
     return moment(datum).format('DD.MM.YYYY');
   };
 
-  const korisnik_Id = Cookies.get('userID');
+  const korisnik_Id = userId;
   
   const ucitajKorisnika = async () => {
     try {

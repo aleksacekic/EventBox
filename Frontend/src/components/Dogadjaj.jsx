@@ -6,7 +6,7 @@ import Komentari from './Komentari';
 import Reakcije from './Reakcije'
 import moment from 'moment';
 import { format } from 'date-fns';
-import Cookies from 'js-cookie'
+import { useAuth } from '../auth';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -15,6 +15,7 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
   // console.log(filtriraniDogadjaji);
   const google = window.google;
   const navigate = useNavigate();
+  const { userId } = useAuth();
 
   // [Faza 1] Uklonjen mrtav "pretvoren jQuery kod" blok (imperativni DOM port teme):
   // vezivao je listenere na selektore van ove komponente, a cleanup je radio
@@ -343,7 +344,7 @@ function Dogadjaj({ primljenDatum, primljenNaziv, onDogadjajIdChange}) {
 
   // Postavljamo korisnik_Id iz cookies-a odmah po učitavanju komponente
   useEffect(() => {
-    const id = Cookies.get('userID');
+    const id = userId;
     if (id) {
       setKorisnikId(id);
     } else {

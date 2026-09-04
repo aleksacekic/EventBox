@@ -10,9 +10,10 @@ import { Button } from 'react-bootstrap';
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Component } from 'react';
-import Cookies from 'js-cookie'
+import { useAuth } from '../auth';
 
 function Profil() {
+  const { userId } = useAuth();
   const [activeIndex, setActiveIndex] = useState(null);
   const toggleOptions = (index) => {
     if (activeIndex === index) {
@@ -54,7 +55,7 @@ function Profil() {
 
   const dodajSlikuKorisniku = async () => {
     try {
-      const korisnikId = Cookies.get('userID');
+      const korisnikId = userId;
       const formData = new FormData();
       formData.append('fajl', selectedImage);
       await api.post(`/Korisnik/DodajSlikuKorisniku?id_korisnika=${korisnikId}`, formData);
@@ -78,7 +79,7 @@ function Profil() {
 
   const ucitajDogadjaje = async () => {
     try {
-      const korisnik_Id = Cookies.get("userID");
+      const korisnik_Id = userId;
       // 401 -> api klijent sam vraca na /login
       const data = await api.get(
         `/Korisnik/VratiDogadjajeKorisnika/${korisnik_Id}/${brojPosiljke}/${ukupnoElemenata}`,
@@ -100,7 +101,7 @@ function Profil() {
   // BRISANJE SLIKE KORISNIKU
   const handleDeleteImage = async () => {
     try {
-      const korisnik_Id = Cookies.get('userID');
+      const korisnik_Id = userId;
       await api.del(`/Korisnik/IzbrisiSlikuKorisnika/${korisnik_Id}`);
       window.location.reload();
     } catch (error) {
@@ -119,7 +120,7 @@ function Profil() {
   
   const ucitajKorisnika = async () => {
     try {
-      const korisnik_Id = Cookies.get('userID');
+      const korisnik_Id = userId;
       const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
       const formatiranDatum = formatirajDatum(data.datum_rodjenja);
       data.datumrodjenja = formatiranDatum;

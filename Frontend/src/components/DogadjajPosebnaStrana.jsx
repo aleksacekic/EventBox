@@ -7,7 +7,6 @@ import Komentari from './Komentari';
 import Reakcije from './Reakcije'
 import moment from 'moment';
 import { format } from 'date-fns';
-import Cookies from 'js-cookie'
 import { useLocation } from 'react-router-dom';
 
 
@@ -67,7 +66,7 @@ function DogadjajPosebnaStrana() {
 
    /* useEffect(() => {
       const ucitajKorisnika = () => {
-          const korisnik_Id = Cookies.get('userID');
+          const korisnik_Id = userId;
           const url = `${API_BASE}/Korisnik/VratiKorisnika_ID/${korisnik_Id}`;
 
           fetch(url)

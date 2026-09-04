@@ -33,7 +33,7 @@ namespace EventBoxApi.Controllers
                 k.Tekst = tekst;
                 k.Username_Korisnika = kor.Korisnicko_Ime;
                 k.Dogadjaj_Id = d;
-                k.SlikaKorisnika = kor.KorisnikImage;
+                k.SlikaKorisnika = kor.KorisnikImage ?? "";   // kolona je NOT NULL, korisnik bez profilne ima null
 
                 Context.Komentari.Add(k);
                 await Context.SaveChangesAsync();
@@ -56,7 +56,8 @@ namespace EventBoxApi.Controllers
             }
             catch(Exception ex)
             {
-                return BadRequest("Nije uspesno ubacen novi komentar! "+ex.Message);
+                return BadRequest("Nije uspesno ubacen novi komentar! " + ex.Message
+                    + (ex.InnerException != null ? " | INNER: " + ex.InnerException.Message : ""));
             }
         }
 

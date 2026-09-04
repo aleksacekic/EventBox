@@ -1,24 +1,29 @@
 import { api } from '../api';
+import { useAuth } from '../auth';
 
 import { Link } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
-import Cookies from 'js-cookie';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 function LoginRegistracijaKomponenta() {
 
-  
+  const { login, logout } = useAuth();
+
+  // Ruta sa koje je RequireAuth izbacio korisnika - vracamo ga tamo posle prijave
+  const location = useLocation();
+  const from = location.state?.from?.pathname || '/pocetna';
+
   const [activeTab, setActiveTab] = useState('tab-1'); // Podrazumevano aktivan tab je "Prijava"
 
   const handleClick = (tabId) => {
     setActiveTab(tabId);
   };
 
+  // Kad se otvori login stranica, ocisti eventualnu staru sesiju
   useEffect(() => {
-    Cookies.remove('token');
-    Cookies.remove('userID');
-  }, []);
-  
+    logout();
+  }, [logout]);
+
 
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
@@ -56,9 +61,8 @@ function LoginRegistracijaKomponenta() {
       } else if (data.blokiran !== undefined) {
         alert("Vas nalog je blokiran");
       } else {
-        Cookies.set('token', `${data.token}`, { path: '/' });
-        Cookies.set('userID', `${data.userID}`, { path: '/' });
-        navigate('/pocetna');
+        login({ token: data.token, userId: data.userID });
+        navigate(from, { replace: true });
       }
     } catch (error) {
       console.error('Greska pri prijavi:', error);

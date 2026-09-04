@@ -2,7 +2,7 @@ import { api, API_BASE } from '../api';
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { HubConnectionBuilder } from "@microsoft/signalr";
-import Cookies from "js-cookie";
+import { useAuth } from "../auth";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 
@@ -33,7 +33,8 @@ const Chat = () => {
   }, [messages[selectedUser?.id]]);
 
   const navigate = useNavigate();
-  const korisnik_Id = Cookies.get("userID");
+  const { userId } = useAuth();
+  const korisnik_Id = userId;
   async function fetchKorisnik(korisnik_Id) {
     try {
       if (!korisnik_Id) return null;

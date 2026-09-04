@@ -9,10 +9,12 @@ import TimePicker from './TimePicker'
 import Map from './Mapa'
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
-import Cookies from 'js-cookie'
+import { useAuth } from '../auth';
 // import moment from 'moment';
 
 function NapraviDogadjaj({ otvorena = false, onZatvori = () => {} }) {
+
+  const { userId } = useAuth();
 
   registerLocale("sr-Latn", srLatn);  
 
@@ -35,7 +37,7 @@ const kreirajDogadjaj = async (e) => {
 
   // [test] Tvrda validacija "sva polja obavezna" je sklonjena da bi se lakse probalo.
   // Prazna polja dobijaju bezbedan default (npr. mapa ne radi bez Google kljuca -> Beograd).
-  const kreator = Cookies.get('userID');
+  const kreator = userId;
   const datumObjave = new Date().toISOString().split('T')[0]; // danasnji datum u formatu YYYY-MM-DD
   const formattedDatumDogadjaja =
     (datumDogadjaja && typeof datumDogadjaja.toISOString === 'function')

@@ -1,12 +1,13 @@
 import { api, API_BASE } from '../api';
+import { useAuth } from '../auth';
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import moment from "moment";
-import Cookies from "js-cookie";
 
 import { useNavigate } from "react-router-dom";
 
 function Header() {
+  const { userId } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [korisnik, setKorisnik] = useState(null);
   const [mojdatum, setmojdatum] = useState();
@@ -20,14 +21,7 @@ function Header() {
   };
 
   const prosledi = (id) => {
-    const path = window.location.pathname;
-    console.log(path);
-    Cookies.set("tudjiID", id);
-    if (path === "/profilkorisnika") {
-      window.location.reload();
-    } else {
-      navigate("/profilkorisnika");
-    }
+    navigate(`/profilkorisnika/${id}`);
   };
 
   const handleMenuToggle = () => {
@@ -108,7 +102,7 @@ function Header() {
 
   const ucitajKorisnika = async () => {
     try {
-      const korisnik_Id = Cookies.get("userID");
+      const korisnik_Id = userId;
       const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
       const formatiranDatum = formatirajDatum(data.datum_rodjenja);
       data.datumrodjenja = formatiranDatum;
@@ -120,7 +114,7 @@ function Header() {
   };
 
   useEffect(() => {
-    const korisnik_Id = Cookies.get("userID"); // jel mi treba ovo ponovo? sta je sigurnije
+    const korisnik_Id = userId;
     if (!korisnik_Id) return;
 
     async function fetchNeprocitanePoruke() {
