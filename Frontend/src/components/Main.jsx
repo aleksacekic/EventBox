@@ -9,13 +9,14 @@ import srLatn from "date-fns/locale/sr-Latn";
 import { Link } from 'react-router-dom';
 import moment from 'moment';
 import { useAuth } from '../auth';
-import { HubConnectionBuilder } from '@microsoft/signalr';
+import { useNotifications } from '../notifications';
 import { useNavigate } from 'react-router-dom';
 
 
 function Main({ onNapraviDogadjaj }) {
 
   const { userId } = useAuth();
+  const { notifications } = useNotifications();
 //  RADIO BUTTONI!
   const [originalColor, setOriginalColor] = useState('');
   const [korisnik, setKorisnik] = useState(null);
@@ -152,66 +153,10 @@ function Main({ onNapraviDogadjaj }) {
   };
 
   //----------------------------------------------
-  const fetchNotifikacije = async () => {
-    try {
-        const data = await api.get(`/Korisnik/VratiPetNotifikacijaKorisnika/${korisnik_Id}`);
-
-       //koristimo fetchDogadjaj unutar map, jer eventName dolazi iz zasebnog API poziva. Pošto map ne podržava await, koristićemo Promise.all da sačekamo sve zahteve pre nego što ažuriramo setNotifications.
-        const mappedNotifikacije = await Promise.all(
-            data.map(async (not) => {
-                const dogadjaj = await fetchDogadjaj(not.dogadjajId);
-                const korisnik = await fetchKorisnik(not.korisnikKojiReagujeId);
-                return {
-                    reactionType: not.tipReakcije || null,
-                    commentText: not.sadrzajReakcije || null,
-                    reason: not.tipReakcije || null,
-                    eventId: not.dogadjajId,
-                    eventName: dogadjaj?.naslov || "Nepoznat dogadjaj",
-                    organizer: korisnik?.korisnicko_Ime || "Nepoznat korisnik",
-                    time: new Date(not.vreme).toLocaleString("sr-RS"),
-                };
-            })
-        );
-        setNotifications(mappedNotifikacije);
-        //setNotifications(mappedNotifikacije.slice(0, 5)); // Ograniči na 5
-    } catch (error) {
-        console.error("Greška pri učitavanju notifikacija:", error);
-    }
-};
-
-
-
-const postaviNotifikaciju = async (dogadjajId,korisnikReagujeId, tipReakcije,sadrzajReakcije, vreme, korisnikId ) => {
-try {
-    
-  return await api.post(`/Notifikacija/PostaviNotifikaciju/${dogadjajId}/${korisnikReagujeId}/${tipReakcije}/${sadrzajReakcije}/${vreme}/${korisnikId}`);
-} catch (error) {
-  console.error(error);
-  return null;
-}
-};
-
-
-
-
 
     //-------------------------------------------------------------------------------------------------------
 
-   const [connection, setConnection] = useState(null);
-    const [notifications, setNotifications] = useState([]);
     const [dogadjaj, setDogadjaj] = useState({});
-  
-
-    //sredi ovo - dupli kod
-    async function fetchDogadjaj(id) {
-      try {
-          if (!id) return null;
-          return await api.get(`/Dogadjaj/VratiDogadjaj/${id}`);
-      } catch (error) {
-          console.error('Greška pri dohvaćanju podataka o događaju:', error);
-          return null;
-      }
-  }
 
       useEffect(() => {
         async function fetchDogadjaj(id) {
@@ -231,249 +176,14 @@ try {
     }, [selectedDogadjajId]);
   
 
-    async function fetchKorisnik(korisnik_Id) {
-      try {
-          if (!korisnik_Id) return null;
-          return await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
-      } catch (error) {
-          console.error('Greška pri dohvaćanju podataka o korisniku:', error);
-          return null;
-      }
-  }
-  
-    
-    useEffect(() => {
-      if (!korisnik_Id) {
-          console.log("Nema userID, ne mogu da pokrenem SignalR.");
-          return;
-      }
-  
-      fetchNotifikacije();
-  
-      //console.log("Kreiram SignalR konekciju za userID:", korisnik_Id);
-  
-      const connect = new HubConnectionBuilder()
-          .withUrl(`${API_BASE}/notificationHub?userId=${encodeURIComponent(korisnik_Id)}`)
-          .build();
-  
-      connect.start()
-          .then(() => console.log("Connected to SignalR hub"))
-          .catch(err => console.error("Connection failed: ", err));
-  
-      connect.on("ReceiveNewReaction", async (reactionType, eventId, reactingUserId) => {
-          console.log("New reaction received:", reactionType, "Event ID:", eventId, "Reacting User ID:", reactingUserId);
-  
-          const dogadjaj = await fetchDogadjaj(eventId);
-          //console.log(dogadjaj);
 
-          const korisnikKojiReaguje = await fetchKorisnik(reactingUserId);
-          //console.log(korisnikKojiReaguje);
-
-          if (dogadjaj) {
-              // Čuvanje notifikacije u bazi
-              await postaviNotifikaciju(
-                  eventId,   // ID događaja
-                  korisnikKojiReaguje.id,         // Korisnik koji reaguje
-                  reactionType,           // Tip reakcije 
-                  reactionType,           // Pošto SadrzajReakcije može biti isti kao tip 
-                  new Date().toLocaleString("sv-SE"), // Trenutno vreme u ISO format
-                  dogadjaj.iD_Kreatora    // Korisnik čija je objava (vlasnik događaja)
-                              
-              );
-  
-              // Ažuriranje lokalne liste notifikacija
-              setNotifications((prev) => [
-                  { 
-                      reactionType, 
-                      eventId, 
-                      eventName: dogadjaj.naslov, 
-                      organizer: korisnikKojiReaguje.korisnicko_Ime, 
-                      time: new Date().toLocaleString("sr-RS")
-                  },
-                  ...prev.slice(0, 4) // Ograničava listu na 5 notifikacija
-              ]);
-          }
-      });
-  
-      setConnection(connect);
-  
-      return () => {
-          if (connect) {
-              //console.log("Stopping SignalR connection...");
-              connect.off("ReceiveNewReaction");
-              connect.stop();
-          }
-      };
-  }, []);
-  
-
-
-  useEffect(() => {
-    if (!korisnik_Id) {
-      console.log("Nema userID, ne mogu da pokrenem SignalR.");
-      return;
-  }
-
-  fetchNotifikacije(); 
-
-  //console.log("Kreiram SignalR konekciju za userID:", korisnik_Id);
-
-  const connect = new HubConnectionBuilder()
-      .withUrl(`${API_BASE}/notificationHub?userId=${encodeURIComponent(korisnik_Id)}`)
-      .build();
-
-  connect.start()
-      .then(() => console.log("Connected to SignalR hub"))
-      .catch(err => console.error("Connection failed: ", err));
-
-
-    connect.on("ReceiveNewComment", async (commentText, eventId, reactingUserId) => {
-      console.log("New comment received:", commentText, "Event ID:", eventId, "Reacting User ID:", reactingUserId);
-
-      const dogadjaj = await fetchDogadjaj(eventId);
-      //console.log(dogadjaj);
-
-      const korisnikKojiReaguje = await fetchKorisnik(reactingUserId);
-      //console.log(korisnikKojiReaguje);
-
-
-      if (dogadjaj) {
-        // Čuvanje notifikacije u bazi
-        await postaviNotifikaciju(
-            eventId,   // ID događaja
-            korisnikKojiReaguje.id,         // Korisnik koji reaguje
-            commentText,           // Tip reakcije 
-            commentText,           // SadrzajReakcije
-            new Date().toLocaleString("sv-SE"), // Trenutno vreme u ISO format
-            dogadjaj.iD_Kreatora    // Korisnik čija je objava (vlasnik događaja)
-                        
-        );
-
-        // Ažuriranje lokalne liste notifikacija
-        setNotifications((prev) => [
-            { 
-              commentText, 
-                eventId, 
-                eventName: dogadjaj.naslov, 
-                organizer: korisnikKojiReaguje.korisnicko_Ime, 
-                time: new Date().toLocaleString("sr-RS")
-            },
-            ...prev.slice(0, 4) // Ograničava listu na 5 notifikacija
-        ]);
-    }
-  });
-
-  setConnection(connect);
-
-return () => {
-  if (connect) {
-    //console.log("Stopping SignalR connection...");
-    connect.off("ReceiveNewComment");
-    connect.stop();
-  }
-};
-
-}, []);
-
-useEffect(() => {
-  if (!korisnik_Id) {
-    console.log("Nema userID, ne mogu da pokrenem SignalR.");
-    return;
-}
-
-fetchNotifikacije();
-
-//console.log("Kreiram SignalR konekciju za userID:", korisnik_Id);
-
-const connect = new HubConnectionBuilder()
-    .withUrl(`${API_BASE}/notificationHub?userId=${encodeURIComponent(korisnik_Id)}`)
-    .build();
-
-connect.start()
-    .then(() => console.log("Connected to SignalR hub"))
-    .catch(err => console.error("Connection failed: ", err));
-
-connect.on("ReceiveEventReport", async (reason, eventId) => {
-  console.log("New report received:", reason, "Event ID:", eventId);
-
-  const dogadjaj = await fetchDogadjaj(eventId);
-
-  if (dogadjaj) {
-    // Čuvanje notifikacije u bazi
-    await postaviNotifikaciju(
-        eventId,   // ID događaja
-        0,         // Korisnik koji reaguje je ovde 0 jer njega ne pamtimo za prijavu.
-        reason,           // Tip reakcije 
-        reason,           // SadrzajReakcije
-        new Date().toLocaleString("sv-SE"), // Trenutno vreme u ISO format
-        dogadjaj.iD_Kreatora    // Korisnik čija je objava (vlasnik događaja)
-                    
-    );
-
-    // Ažuriranje lokalne liste notifikacija
-    setNotifications((prev) => [
-        { 
-            reason, 
-            eventId, 
-            eventName: dogadjaj.naslov, 
-            organizer: "Neko", 
-            time: new Date().toLocaleString("sr-RS")
-        },
-        ...prev.slice(0, 4) // Ograničava listu na 5 notifikacija
-    ]);
-}
-});
-
-setConnection(connect);
-
-return () => {
-if (connect) {
-  //console.log("Stopping SignalR connection...");
-  connect.off("ReceiveEventReport");
-  connect.stop();
-}
-};
-
-}, []);
-  
-
-  //   console.log("AJDI0:" + dogadjaj.iD_Kreatora);
-  //   useEffect(() => {
-  //     console.log(dogadjaj);
-  //     console.log("AJDI1:" + dogadjaj.iD_Kreatora);
-  //     if (!dogadjaj.iD_Kreatora) return;
-  //     console.log("AJDI2:" + dogadjaj.iD_Kreatora);
-  //     const connect = new HubConnectionBuilder()
-  //     .withUrl("${API_BASE}/notificationHub?userId=" + encodeURIComponent(dogadjaj.iD_Kreatora))
-  //     .build();
-  //     console.log("AJDI3:" + dogadjaj.iD_Kreatora);
-  
-  // connect.start()
-  //     .then(() => console.log("Connected to SignalR hub"))
-  //     .catch(err => console.error("Connection failed: ", err));
-  
-  
-  //       connect.on("ReceiveNewComment", (commentText, eventId) => {
-  //         console.log("New comment received:", commentText, "Event ID:", eventId);
-  //         setNotifications((prevNotifications) => [...prevNotifications, commentText]);
-  //       });
-        
-  
-  
-  //     setConnection(connect);
-  
-  //     return () => {
-  //       if (connection) {
-  //         connection.stop();
-  //       }
-  //     };
-  //   }, [dogadjaj.iD_Kreatora]);
-    //-------------------------------------------------------------------------------------------------------
-
+  // [SignalR] Konekcija za notifikacije premestena u src/notifications.jsx
+  // (NotificationsProvider), montiran jednom u App.jsx - da radi na svakoj
+  // strani, ne samo dok je korisnik na /pocetna. Vidi useNotifications() gore.
 
 const navigate = useNavigate();
-const handleClickObjava = (id, obj) => {
-  navigate(`/objava/${id}`, { state: { obj } });
+const handleClickObjava = (id) => {
+  navigate(`/objava/${id}`);
 };
 
   return (
@@ -673,7 +383,7 @@ const handleClickObjava = (id, obj) => {
                      
                       {notifications.length > 0 ? (
                         notifications.map((notif, index) => (
-                          <div className="job-info" key={index} onClick={() => handleClickObjava(notif.eventId, korisnik)}>
+                          <div className="job-info" key={index} onClick={() => handleClickObjava(notif.eventId)}>
                             <div className="job-details">
                               <p>{notif.organizer} je {notif.reactionType ? " reagovao" 
                               : notif.reason ? " prijavio" 

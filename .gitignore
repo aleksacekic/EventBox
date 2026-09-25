@@ -18,3 +18,6 @@ Thumbs.db
 
 # Node (frontend has its own .gitignore too)
 node_modules/
+
+# Licne beleske za ucenje - ne ide u repo
+REFACTOR.md

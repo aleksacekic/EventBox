@@ -3,17 +3,19 @@ import React from 'react'
 import lightBlueImage from '../lightblue.jpg';
 import HideShowMapa from './Hide&ShowMapa';
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import moment from 'moment';
-import { format, isAfter } from 'date-fns';
 import { BsCamera } from 'react-icons/bs';
 import { Button } from 'react-bootstrap';
-import { useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { Component } from 'react';
 import { useAuth } from '../auth';
 
+
 function Profil() {
-  const { userId } = useAuth();
+  const { id: routeId } = useParams();      // definisan samo na /profilkorisnika/:id
+  const { userId } = useAuth();             // ulogovani korisnik
+  const profileId = routeId || userId;      // koji profil gledamo
+  const isOwnProfile = String(profileId) === String(userId);
+
   const [activeIndex, setActiveIndex] = useState(null);
   const toggleOptions = (index) => {
     if (activeIndex === index) {
@@ -23,15 +25,8 @@ function Profil() {
     }
   };
 
-
-
   // [Faza 1] tab-feed prebacen na React state (feed-dd / info-dd).
   const [profileTab, setProfileTab] = useState('feed-dd');
-
-  // [Faza 1] Uklonjena 2 mrtva jQuery bloka (kopija teme): globalni handleri na
-  // selektore koje ova komponenta ne renderuje ili kojima React vec upravlja.
-
-  
 
   const [dogadjaji, setDogadjaji] = useState([]);
   const [brojPosiljke, setBrojPosiljke] = useState(1);
@@ -40,7 +35,6 @@ function Profil() {
   const [mojdatum, setmojdatum] = useState();
   const [showOptions, setShowOptions] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null); // za dodavanje slike
-
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
@@ -53,36 +47,36 @@ function Profil() {
     }
   }, [selectedImage]);
 
+  // Menjanje slike ima smisla samo na svom profilu - dugme koje ovo zove je
+  // vec sakriveno kad !isOwnProfile, ali profileId===userId ovde svakako vazi.
   const dodajSlikuKorisniku = async () => {
     try {
-      const korisnikId = userId;
       const formData = new FormData();
       formData.append('fajl', selectedImage);
-      await api.post(`/Korisnik/DodajSlikuKorisniku?id_korisnika=${korisnikId}`, formData);
+      await api.post(`/Korisnik/DodajSlikuKorisniku?id_korisnika=${userId}`, formData);
       window.location.reload();
     } catch (error) {
       console.log(error);
     }
   };
-  
-  const handleCameraIconClick = () => {
-  setShowOptions(!showOptions);
-};
 
+  const handleCameraIconClick = () => {
+    setShowOptions(!showOptions);
+  };
 
   useEffect(() => {
     ucitajDogadjaje();
-  }, [brojPosiljke]);
+  }, [brojPosiljke, profileId]); // ponovo ucitaj kad se promeni profil
+
   const UcitajDalje = () => {
     setBrojPosiljke(prevBrojPosiljke => prevBrojPosiljke + 1);
   }
 
   const ucitajDogadjaje = async () => {
     try {
-      const korisnik_Id = userId;
       // 401 -> api klijent sam vraca na /login
       const data = await api.get(
-        `/Korisnik/VratiDogadjajeKorisnika/${korisnik_Id}/${brojPosiljke}/${ukupnoElemenata}`,
+        `/Korisnik/VratiDogadjajeKorisnika/${profileId}/${brojPosiljke}/${ukupnoElemenata}`,
         { credentials: 'include' }
       );
       if (data.kraj === undefined) {
@@ -97,31 +91,28 @@ function Profil() {
       console.log("ucitajDogadjaje:", error);
     }
   };
-  
-  // BRISANJE SLIKE KORISNIKU
+
+  // BRISANJE SLIKE KORISNIKU (samo svoj profil)
   const handleDeleteImage = async () => {
     try {
-      const korisnik_Id = userId;
-      await api.del(`/Korisnik/IzbrisiSlikuKorisnika/${korisnik_Id}`);
+      await api.del(`/Korisnik/IzbrisiSlikuKorisnika/${userId}`);
       window.location.reload();
     } catch (error) {
       console.log("GRESKA PRILIKOM BRISANJA SLIKE", error);
     }
   };
-  
 
   useEffect(() => {
     ucitajKorisnika();
-  }, []);
+  }, [profileId]); // ponovo ucitaj kad se promeni profil
 
   const formatirajDatum = (datum) => {
     return moment(datum).format('DD.MM.YYYY');
   };
-  
+
   const ucitajKorisnika = async () => {
     try {
-      const korisnik_Id = userId;
-      const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
+      const data = await api.get(`/Korisnik/VratiKorisnika_ID/${profileId}`);
       const formatiranDatum = formatirajDatum(data.datum_rodjenja);
       data.datumrodjenja = formatiranDatum;
       setKorisnik(data);
@@ -132,22 +123,20 @@ function Profil() {
   };
 
   const odrediHoroskopskiZnak = (datum) => {
-    console.log(mojdatum);
-    console.log(datum);
     const [dan, mesec, godina] = datum.split('.');
     const isValidDate = (d, m, y) => {
       const date = new Date(y, m - 1, d);
       return date.getDate() == d && date.getMonth() + 1 == m && date.getFullYear() == y;
     };
-  
+
     if (!isValidDate(parseInt(dan), parseInt(mesec), parseInt(godina))) {
       console.log('Neispravan format datuma.');
       return null;
     }
-  
+
     const d = parseInt(dan, 10);
     const m = parseInt(mesec, 10);
-  
+
     if ((m === 1 && d >= 20) || (m === 2 && d <= 18)) {
       return 'Vodolija';
     } else if ((m === 2 && d >= 19) || (m === 3 && d <= 20)) {
@@ -177,8 +166,8 @@ function Profil() {
     }
   };
 
-  // BRISANJE OBJAVE
-  const obrisiObjavu = async (id, index) => {
+  // BRISANJE OBJAVE (samo svoj profil - dugme skriveno inace)
+  const obrisiObjavu = async (id) => {
     try {
       await api.del(`/Dogadjaj/IzbrisiDogadjaj/${id}`);
       setDogadjaji(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
@@ -187,7 +176,7 @@ function Profil() {
     }
     setActiveIndex(null);
   };
-  
+
   const tekstHoroskopskogZnaka = {
     Vodolija: 'Vodolije, ova godina će biti obeležena prekretnicama koje bi mogle zauvek da promene putanju vašeg života. Produbljujete svoje najbliže veze i stvarate doživotna sećanja sa ljudima oko vas. Uverite se da ste u mogućnosti da zastanete i pomirišete ruže dok prolazite pored njih. Ove godine će vam biti važno da razmislite o putu karijere na kojem ste. Ono što ćete shvatiti radeći ovo je da ćete možda biti srećniji nego što ste sebi dozvoljavali da budete u prošlosti. Ako shvatite da ste se zadovoljili poslom koji obavljate, ova trenutna pauza će vam dati jasnoću kako da se odvojite i konačno napravite korak da počnete iznova.',
     Riba: 'Ribe, ove godine biće o samosvesti i ličnoj odgovornosti za sebe, ali ne i samopokoravanju i samosažaljenju. Snažni ste i samouvereni onoliko koliko sebi dozvoljavate da budete, i vidim da pronalazite snagu da kopate u novu i poboljšanu verziju sebe jednostavnim otpuštanjem starih navika. Bilo da ovo dolazi od odvajanja od vašeg trenutno haosa ili da kreće od davanja vremena novim projektima i mogućnostima za rad, čini se da se vaš identitet pomera na bolje.',
@@ -204,13 +193,8 @@ function Profil() {
     'Nepoznat znak': 'Ovo je tekst za nepoznat znak.',
   };
 
-  
-  
-
   return (
     <div>
-      
-
       <div>
         <section className="cover-sec">
           <img src={lightBlueImage} className='covermuski' />
@@ -231,40 +215,35 @@ function Profil() {
                                     className="profilnaslika"
                                     src={korisnik.korisnikImage ? `${API_BASE}/resources/${korisnik.korisnikImage}` : "http://via.placeholder.com/170x170"}
                                   />
-                                <Button variant="light" className="camera-icon" onClick={handleCameraIconClick}>
-                                  <BsCamera />
-                                </Button>
+                                {isOwnProfile && (
+                                  <Button variant="light" className="camera-icon" onClick={handleCameraIconClick}>
+                                    <BsCamera />
+                                  </Button>
+                                )}
                               </div>
                             ) : (
                               <p>Korisnik nije dostupan</p>
                             )}
                           </div>
-                          
-                          {showOptions && (
+
+                          {isOwnProfile && showOptions && (
                           <div className="options">
-                            {korisnik.korisnikImage && (
+                            {korisnik?.korisnikImage && (
                               <div className="option" onClick={handleDeleteImage}>
                                 Izbrisi sliku
                               </div>
                             )}
                             <div className="option" onClick={() => {
                                document.querySelector('input[type="file"]').click();
-                               dodajSlikuKorisniku(); // Poziv funkcije dodajSlikuKorisniku
                              }}>
                                <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
                                Dodaj sliku
                              </div>
-      
-                           
                           </div>
                         )}
 
                         </div>
                         <div className="user_pro_status">
-                          {/* <ul className="flw-hr">
-                            <li><a href="#" title className="flww"><i className="la la-plus" /> Follow</a></li>
-                            <li><a href="#" title className="hre">Hire</a></li>
-                          </ul> */}
                           <div className="user-specs profilimeusername">
                             {korisnik ? <h3>{korisnik.ime} {korisnik.prezime}</h3> : <p>Korisnik nije dostupan</p>}
                             {korisnik ? <span>@{korisnik.korisnicko_Ime}</span> : <p>Username nije dostupan</p>}
@@ -275,11 +254,6 @@ function Profil() {
                               <span className='drugispanprofil'>dogadjaja</span>
                               <b>{ukupnoElemenata}</b>
                             </li>
-                            {/* <li>
-                              <span>Ukupno</span>
-                              <span className='drugispanprofil'>reakcija</span>
-                              <b>BROJ</b>
-                            </li> */}
                           </ul>
                         </div>{/*user_pro_status end*/}
                       </div>{/*user_profile end*/}
@@ -289,10 +263,6 @@ function Profil() {
                   <div className="col-lg-6">
                     <div className="main-ws-sec">
                       <div className="user-tab-sec">
-                        {/* <h3>John Doe</h3>
-                        <div className="star-descp">
-                          <span>@johndoetheking</span>
-                        </div>star-descp end */}
                         <div className="tab-feed">
                           <ul>
                             <li
@@ -323,24 +293,24 @@ function Profil() {
                               <div className="post-bar">
                                 <div className="post_topbar">
                                   <div className="usy-dt">
-                                   
+
                                   {korisnik ? <img
                                     className="profilnaslikaobjava"
                                     src={korisnik.korisnikImage ? `${API_BASE}/resources/${korisnik.korisnikImage}` : "http://via.placeholder.com/50x50"}/> : <p>Korisnik nije dostupan</p>}
-                                  
-                                 
+
                                     <div className="usy-name">
                                       {korisnik ? <h3>{korisnik.ime} {korisnik.prezime}</h3> : <p>Korisnik nije dostupan</p>}
                                       <span><img src="images/clock.png" />{dogadjaj.formattedDatum}</span>
                                     </div>
                                   </div>
-                                  <div className={`ed-opts ${activeIndex === index ? 'active' : ''}`}>
-                                    <a className="ed-opts-open" onClick={() => toggleOptions(index)}><i className="la la-ellipsis-v" /></a>
-                                    <ul className={`ed-options ${activeIndex === index ? 'active' : ''}`}>
-                                      {/* <li><a className='opcijeobjava'>Uredi objavu</a></li> */}
-                                      <li><a className='opcijeobjava' onClick={() => obrisiObjavu(dogadjaj.id)}>Obrisi objavu</a></li>
-                                    </ul>
-                                  </div>
+                                  {isOwnProfile && (
+                                    <div className={`ed-opts ${activeIndex === index ? 'active' : ''}`}>
+                                      <a className="ed-opts-open" onClick={() => toggleOptions(index)}><i className="la la-ellipsis-v" /></a>
+                                      <ul className={`ed-options ${activeIndex === index ? 'active' : ''}`}>
+                                        <li><a className='opcijeobjava' onClick={() => obrisiObjavu(dogadjaj.id)}>Obrisi objavu</a></li>
+                                      </ul>
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="job_descp">
                                   <h3>{dogadjaj.naslov}</h3>
@@ -349,17 +319,13 @@ function Profil() {
                                     <li><span>20.05.2023. od 21:00</span></li>
                                   </ul>
                                   <p>{dogadjaj.opis}</p>
-                                  {/* images/izletiste.jpg */}
                                   {dogadjaj.dogadjajImage && (
                                     <img src={`${API_BASE}/resources/${dogadjaj.dogadjajImage}`} className="rounded float-left dogadjaj-slika" />
                                   )}
-                                  {/* ${API_BASE}/resources/${dogadjaj.dogadjajImage} */}
-                                  {/* MAPA POCETAK */}
                                   <HideShowMapa
                                     latitude={dogadjaj.x}
                                     longitude={dogadjaj.y}
                                   />
-                                  {/* MAPA KRAJ */}
                                   <div>
                                     <div className="divreakcije divreakcije1">
                                       <button className='btnzaintprofil'
@@ -420,7 +386,7 @@ function Profil() {
             </div>
           </div>
         </main >
-      
+
         {/*theme-layout end*/}
       </div >
     </div >
