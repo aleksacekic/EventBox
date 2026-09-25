@@ -1,54 +1,35 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useState } from 'react';
+import { Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 
-const Map = ({ x, y, onMapMarker }) => {
-  const mapRef = useRef(null); // Referenca na mapu
-  const markerRef = useRef(null); // Referenca na marker
+const pocetniCentar = { lat: 44.2107675, lng: 20.9224158 }; // Beograd - da se vidi Srbija
 
-  useEffect(() => {
-    const initMap = () => {
-      const mapOptions = {
-        center: { lat: 44.2107675, lng: 20.9224158 }, // Pocetni centar mape
-        zoom: 7, // Pocetni nivo zumiranja mape (namesteno da se vidi SRBIJA)
-      };
+// Mapa za POSTAVLJANJE lokacije (klik -> marker) - koristi se pri kreiranju
+// dogadjaja. Standardizovano na @vis.gl/react-google-maps (zvanicna React
+// biblioteka koju danas Google preporucuje) umesto rucnog window.google.maps.
+const Mapa = ({ x, y, onMapMarker }) => {
+  const [marker, setMarker] = useState(
+    x && y ? { lat: x, lng: y } : null
+  );
 
-      const map = new window.google.maps.Map(mapRef.current, mapOptions);
-      mapRef.current.map = map; // Čuvanje reference na mapu u ref objektu
+  const handleClick = useCallback((event) => {
+    const latLng = event.detail.latLng;
+    if (!latLng) return;
+    setMarker(latLng);
+    onMapMarker(latLng.lat, latLng.lng);
+  }, [onMapMarker]);
 
-      // Dodavanje oznacavanja mesta dogadjaja na klik mape
-      map.addListener("click", function (event) {
-        placeMarker(event.latLng, map);
-      });
-
-      // Oznacavanje mesta dogadjaja
-      function placeMarker(latLng, map) {
-        if (markerRef.current) {
-          // Ako postoji prethodni marker, ukloni ga sa mape
-          markerRef.current.setMap(null);
-        }
-
-        const marker = new window.google.maps.Marker({
-          position: latLng,
-          map: map,
-        });
-
-        // Cuvanje reference na trenutni marker u ref objektu
-        markerRef.current = marker;
-
-        // Cuvanje koordinata oznacenog mesta u promenljivama x i y
-        const latitude = latLng.lat();
-        const longitude = latLng.lng();
-
-        // Pozivanje onMapMarker funkcije i prosleđivanje koordinata
-        onMapMarker(latitude, longitude);
-      }
-    };
-
-    // Pozivanje funkcije za inicijalizaciju mape
-    initMap();
-  }, []);
-
-  return <div ref={mapRef} style={{ height: '280px' }} />;
+  return (
+    <Map
+      style={{ height: '280px' }}
+      defaultCenter={pocetniCentar}
+      defaultZoom={7}
+      gestureHandling="greedy"
+      onClick={handleClick}
+      mapId="DEMO_MAP_ID" // AdvancedMarker ne radi bez mapId - zameni pravim iz Cloud Console-a u produkciji
+    >
+      {marker && <AdvancedMarker position={marker} />}
+    </Map>
+  );
 };
 
-export default Map;
-
+export default Mapa;

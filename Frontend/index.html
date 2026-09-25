@@ -21,8 +21,9 @@
     <link rel="stylesheet" type="text/css" href="/css/style.css" />
     <link rel="stylesheet" type="text/css" href="/css/responsive.css" />
 
-    <!-- Google Maps: kljuc ubaciti kroz env u Fazi 2 -->
-    <script src="https://maps.googleapis.com/maps/api/js?key={MYGOOGLEMAPSAPIKEY}&libraries=places"></script>
+    <!-- Google Maps skriptu sad ucitava @vis.gl/react-google-maps (<APIProvider>,
+         src/maps.jsx) - rucni <script> tag ovde bi je ucitao DVAPUT i Google
+         baca gresku na to. Kljuc ide kroz VITE_GOOGLE_MAPS_API_KEY u .env. -->
 
     <title>EventBox</title>
   </head>

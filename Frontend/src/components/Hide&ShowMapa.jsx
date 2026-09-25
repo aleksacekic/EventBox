@@ -1,7 +1,10 @@
-
 import React, { useState } from 'react';
-import { GoogleMap, Marker } from '@react-google-maps/api';
+import { Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 
+// Mapa za PRIKAZ vec postavljene lokacije, sakrivena iza dugmeta - koristi se
+// u karticama dogadjaja i na profilu. Standardizovano na
+// @vis.gl/react-google-maps (ista biblioteka kao Mapa.jsx - pre je ovde bio
+// @react-google-maps/api, dva razlicita nacina rada sa istim Google Maps-om).
 const HideShowMapa = ({ latitude, longitude }) => {
   const [mapVisible, setMapVisible] = useState(false);
 
@@ -16,13 +19,13 @@ const HideShowMapa = ({ latitude, longitude }) => {
       </button>
       {mapVisible && (
         <div style={{ height: '250px', width: '100%' }}>
-          <GoogleMap
-            mapContainerStyle={{ height: '100%', width: '100%' }}
-            zoom={11}
-            center={{ lat: latitude, lng: longitude }}
+          <Map
+            defaultZoom={11}
+            defaultCenter={{ lat: latitude, lng: longitude }}
+            mapId="DEMO_MAP_ID" // AdvancedMarker ne radi bez mapId - zameni pravim iz Cloud Console-a u produkciji
           >
-            <Marker position={{ lat: latitude, lng: longitude }} />
-          </GoogleMap>
+            <AdvancedMarker position={{ lat: latitude, lng: longitude }} />
+          </Map>
         </div>
       )}
     </div>

@@ -8,11 +8,13 @@ import DogadjajZasebno from "./Pages/DogadjajZasebno";
 import Chat from "./Pages/Chat";
 import { AuthProvider, RequireAuth } from "./auth";
 import { NotificationsProvider } from "./notifications";
+import { GoogleMapsProvider } from "./maps";
 
 function App() {
   return (
     <AuthProvider>
       <NotificationsProvider>
+      <GoogleMapsProvider>
       <Router>
         <div className="App">
           <Routes>
@@ -29,6 +31,7 @@ function App() {
           </Routes>
         </div>
       </Router>
+      </GoogleMapsProvider>
       </NotificationsProvider>
     </AuthProvider>
   );
