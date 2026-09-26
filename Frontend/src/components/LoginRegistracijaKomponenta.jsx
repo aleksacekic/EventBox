@@ -135,10 +135,10 @@ function LoginRegistracijaKomponenta() {
               <div className="col-lg-6">
                 <div className="cmp-info">
                   <div className="cm-logo">
-                  <img className='logozalogin' src="images/eb-logo-dugi2.png" />
+                  <img className='logozalogin' src="/images/eb-logo-dugi2.png" />
                     <p>Eventbox je inovativna društvena mreža koja predstavlja jedinstveno mesto za povezivanje ljudi koji žele da organizuju i učestvuju u raznovrsnim događajima.</p>
                   </div>{/*cm-logo end*/}
-                  <img src="images/cm-main-img.png" />
+                  <img src="/images/cm-main-img.png" />
                 </div>{/*cmp-info end*/}
               </div>
               <div className="col-lg-6">
@@ -303,7 +303,7 @@ function LoginRegistracijaKomponenta() {
               <li><a href="#" >Language</a></li>
               <li><a href="#" >Copyright Policy</a></li>
             </ul> */}
-            <p><img src="images/copy-icon.png" />Copyright 2023</p>
+            <p><img src="/images/copy-icon.png" />Copyright 2023</p>
           </div>
         </div>{/*footy-sec end*/}
       </div>{/*sign-in-page end*/}

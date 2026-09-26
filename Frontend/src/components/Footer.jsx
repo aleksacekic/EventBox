@@ -2,7 +2,7 @@ import React from 'react'
 
 function Footer() {
   return (
-    <div>
+    <div className="site-footer">
       <div className="tags-sec full-width">
         <ul>
           <li><a href="#">Help Center</a></li>
@@ -14,8 +14,8 @@ function Footer() {
           <li><a href="#">Copyright Policy</a></li>
         </ul>
         <div className="cp-sec">
-        <p><img src="images/copy-icon2.png" />Copyright 2023</p>
-              <img className="fl-rgt slikafooter" src="images/eb-logo-dugi2.png" />
+        <p><img src="/images/copy-icon2.png" />Copyright 2023</p>
+              <img className="fl-rgt slikafooter" src="/images/eb-logo-dugi2.png" />
         </div>
       </div>{/*tags-sec end*/}
     </div>

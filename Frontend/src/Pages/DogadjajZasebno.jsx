@@ -6,7 +6,7 @@ import Footer from '../components/Footer'
 
 function DogadjajZasebno() {
   return (
-    <div>
+    <div className="wrapper">
         <Header />
        <DogadjajPosebnaStrana />
        <Footer />

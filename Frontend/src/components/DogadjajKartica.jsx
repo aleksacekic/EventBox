@@ -80,7 +80,7 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
           />
           <div className="usy-name">
             <h3>@{dogadjaj.userName_Kreatora}</h3>
-            <span><img src="images/clock.png" />{dogadjaj.formattedDatum}</span>
+            <span><img src="/images/clock.png" />{dogadjaj.formattedDatum}</span>
           </div>
         </div>
 
@@ -113,11 +113,11 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
       <div className="job-status-bar">
         <ul className="like-com d-flex">
           <li className="komentardiv" onClick={(e) => { stop(e); setPrikaziKomentare(v => !v); }}>
-            <img src="images/com.png" className="com-slika" />
+            <img src="/images/com.png" className="com-slika" />
             <a href="#" className="com">Komentar</a>
           </li>
           <li className="prijavidiv" onClick={otvoriPrijavuFormu}>
-            <img src="images/report17.png" />
+            <img src="/images/report17.png" />
             <a href="#" className="report-to-admin">Prijavi objavu</a>
           </li>
 

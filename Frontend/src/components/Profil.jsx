@@ -270,7 +270,7 @@ function Profil() {
                               onClick={() => setProfileTab('feed-dd')}
                             >
                               <a>
-                                <img src="images/ic1.png" />
+                                <img src="/images/ic1.png" />
                                 <span>Pregled dogadjaja</span>
                               </a>
                             </li>
@@ -279,7 +279,7 @@ function Profil() {
                               onClick={() => setProfileTab('info-dd')}
                             >
                               <a>
-                                <img src="images/ic2.png" />
+                                <img src="/images/ic2.png" />
                                 <span>Informacije</span>
                               </a>
                             </li>
@@ -300,7 +300,7 @@ function Profil() {
 
                                     <div className="usy-name">
                                       {korisnik ? <h3>{korisnik.ime} {korisnik.prezime}</h3> : <p>Korisnik nije dostupan</p>}
-                                      <span><img src="images/clock.png" />{dogadjaj.formattedDatum}</span>
+                                      <span><img src="/images/clock.png" />{dogadjaj.formattedDatum}</span>
                                     </div>
                                   </div>
                                   {isOwnProfile && (

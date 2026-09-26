@@ -140,7 +140,7 @@ function Header() {
             <div className="logo">
               <Link to="/pocetna">
                 <a href="index.html">
-                  <img src="images/logosajt(4).ico" />
+                  <img src="/images/logosajt(4).ico" />
                 </a>
               </Link>
             </div>
@@ -194,7 +194,7 @@ function Header() {
                 <li>
                   <a style={{ display: "block" }}>
                     <span>
-                      <img src="images/icon1.png" />
+                      <img src="/images/icon1.png" />
                     </span>
                     <Link to="/pocetna">Pocetna</Link>
                   </a>
@@ -202,7 +202,7 @@ function Header() {
                 <li>
                   <a>
                     <span>
-                      <img src="images/icon4.png" />
+                      <img src="/images/icon4.png" />
                     </span>
                     <Link to="/profil">Profil</Link>
                   </a>
@@ -210,7 +210,7 @@ function Header() {
                 {/* <li class="chat-icon">
                   <a>
                     <span>
-                      <img src="images/icon6.png" />
+                      <img src="/images/icon6.png" />
 
                       <div className="notification-badge">
                         {neprocitanePoruke}
@@ -222,7 +222,7 @@ function Header() {
                 <li className="chat-icon">
                   <Link to="/chat" className="chat-link">
                     <span className="chat-icon-container">
-                      <img src="images/icon6.png" alt="Poruke" />
+                      <img src="/images/icon6.png" alt="Poruke" />
                       {neprocitanePoruke > 0 && (
                         <div className="notification-badge">
                           {neprocitanePoruke}
@@ -241,7 +241,7 @@ function Header() {
                     style={{ display: "none" }}
                   >
                     <span>
-                      <img src="images/icon7.png" />
+                      <img src="/images/icon7.png" />
                     </span>
                     Notifikacije
                   </a>

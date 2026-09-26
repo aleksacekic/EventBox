@@ -98,7 +98,7 @@ function Pr_Dog() {
               <div className="usy-dt">
                 <div className="usy-name">
                   <h3>{dogadjaj.dogadjaj_Id.userName_Kreatora}</h3>
-                  <span><img src="images/clock.png" />{new Date(dogadjaj.dogadjaj_Id.datum_Objave).toLocaleDateString()}</span>
+                  <span><img src="/images/clock.png" />{new Date(dogadjaj.dogadjaj_Id.datum_Objave).toLocaleDateString()}</span>
                 </div>
               </div>
               <div className="ed-opts">
@@ -129,19 +129,19 @@ function Pr_Dog() {
             <div className="job-status-bar">
               <ul className="like-com d-flex">
                 <li className="komentardiv" onClick={(event) => otvoriDiv(event, dogadjaj.dogadjaj_Id.id)}>
-                  <img src="images/com.png" className="com-slika" />
+                  <img src="/images/com.png" className="com-slika" />
                   <a href="#" className="com">Razlozi</a>
                 </li>
                 <li className="prijavidiv" onClick={() => BlokirajFunc(dogadjaj.dogadjaj_Id.iD_Kreatora)}>
-                  <img src="images/report17.png" />
+                  <img src="/images/report17.png" />
                   <a href="#" className="report-to-admin">Blokiraj</a>
                 </li>
                 <li className="prijavidiv" onClick={() => ObrisiFunc(dogadjaj.id, dogadjaj.dogadjaj_Id.id)}>
-                  <img src="images/report17.png" />
+                  <img src="/images/report17.png" />
                   <a href="#" className="report-to-admin">Obriši</a>
                 </li>
                 <li className="prijavidiv" onClick={() => IgnorisiFunc(dogadjaj.id, dogadjaj.dogadjaj_Id.id)}>
-                  <img src="images/report17.png" />
+                  <img src="/images/report17.png" />
                   <a href="#" className="report-to-admin">Ignoriši</a>
                 </li>
               </ul>

@@ -46,11 +46,11 @@ return (
       <div className="radio-div">
                         <p className="filtriraj">Filtriraj sve dogadjaje po:</p>
                         <label className="radio-label radio-label1" htmlFor="radio1">
-                          <img src="images/date32.ico" />
+                          <img src="/images/date32.ico" />
                           <input type="radio" className="radio-input" name="exampleRadios" id="radio1" defaultValue="option1" onClick={() => toggleDiv('div1')} />Datum
                         </label>
                         <label className="radio-label radio-label2" htmlFor="radio2">
-                          <img src="images/abc96.png" />
+                          <img src="/images/abc96.png" />
                           <input type="radio" className="radio-input" name="exampleRadios" id="radio2" defaultValue="option2" onClick={() => toggleDiv('div2')} />Naziv
                         </label>
                       </div>

@@ -120,7 +120,7 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
                   <div className="comment">
                     <h3>{komentar.username_korisnika}</h3>
                     <span>
-                      <img src="images/clock.png" alt="" />
+                      <img src="/images/clock.png" alt="" />
                       3 min ago
                     </span>
                     <p>
