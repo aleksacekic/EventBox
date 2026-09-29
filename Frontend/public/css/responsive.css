@@ -22,14 +22,10 @@
 	.cp-sec {text-align: center;}
 	.flw-status li {margin-right: 10px;}
 	.flw-status li span {font-size: 16px;}
-	.footy-sec ul {width: 100%;text-align: center;}
 	.fl-rgt {float: none;margin-top: 0;padding-bottom: 20px;width: auto;padding-right: 0;}
 	.hr-rate {margin-top: 10px;}
 	.tab-feed ul li {margin-bottom: 30px;}
 	.tab-feed {margin-bottom: 30px;}
-	.footy-sec p {width: 100%;text-align: center;margin-top: 15px;}
-	.footy-sec p img {float: none;top: 2px;}
-	.footy-sec {text-align: center;}
 	nav ul ul {left: 50%;top: 0;border: 1px solid #e4e4e4;padding-left: 20px;padding-right: 20px;}
 	.sgt-text span {font-size: 12px;}
 	.odeljcihamburgermenu{
@@ -60,16 +56,6 @@
 	.right-sidebar {margin-top: 50px;}
 	.user-pro-img > a {left: 56%;}
 	.no-pd {padding: 0;}
-	.footy-sec ul li {margin-bottom: 10px;}
-	.cm-logo {padding-left: 0;}
-	.signin-pop::before {display: none;}
-	.cmp-info > img {display: none;}
-	.cm-logo {margin-bottom: 0px;}
-	.sign-control {text-align: left;}
-	.sign_in_sec {padding: 0 20px;}
-	.sign-control {padding-left: 20px;padding-right: 0;margin-bottom: 30px;}
-	.signin-popup {width: 100%;padding: 95px 40px 0px 40px;}
-	.cmp-info {padding: 40px 20px 0 20px;}
 	.profile-account-setting {margin-bottom: 50px;}
 	.notifikacije-u-hederu{display:inline !important;}
 	.widget-jobs{display:none;}
@@ -89,7 +75,6 @@
 	.comment_box input {width: 84%;}
 	.comment_box {width: 88%;}
 	.no-pd {padding: 0;}
-	.sign-in-page {padding: 170px 0 170px 0;}
 	/* .user-profile{display:none !important;}
 	.user-fw-status{display:none !important;} */
 	.izlaz-dugme{right:4%;top:23%;}
@@ -98,7 +83,6 @@
 
 @media (max-width: 576px) {
 	.pr_dog_klasa {padding-left: 4%; padding-right: 4%; padding-top: 120px;}
-	.signin-pop {margin-bottom: 40px;}
 	.logo {width: 100%;text-align: center;}
 	.logo img {float: none;}
 	.search-bar {width: 100%;}
@@ -118,7 +102,6 @@
 	/* main {padding: 20px 0 40px 0} */
 	.like-com li {float: left;}/*margin-bottom: 15px;width: 100%;*/
 	.job-status-bar > a {float: left;width: 100%;margin-top: -5px;}
-	.footy-sec {margin-top: 30px;}
 	.post-popup {width: 100%;overflow: scroll;}
 	.price-br {float: left;width: 100% !important;}
 	.post-project > a {top: 21px;right: 20px;}
