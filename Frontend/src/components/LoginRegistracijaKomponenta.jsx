@@ -160,13 +160,13 @@ function LoginRegistracijaKomponenta() {
               <form onSubmit={handleSubmit1}>
                 <div className="auth-field">
                   <i className="la la-at" />
-                  <input type="text" name="username" placeholder="Korisnicko ime" autoComplete="off" className="auth-input" />
+                  <input type="text" name="username" placeholder="Korisnicko ime" autoComplete="username" className="auth-input" />
                 </div>
                 {errors.username && <span className="error-message">{errors.username}</span>}
 
                 <div className="auth-field">
                   <i className="la la-lock" />
-                  <input type="password" name="password" placeholder="Password" className="auth-input" />
+                  <input type="password" name="password" placeholder="Password" autoComplete="current-password" className="auth-input" />
                 </div>
                 {errors.password && <span className="error-message">{errors.password}</span>}
 
@@ -178,37 +178,37 @@ function LoginRegistracijaKomponenta() {
               <form onSubmit={handleSubmit2}>
                 <div className="auth-field">
                   <i className="la la-user" />
-                  <input type="text" name="ime" placeholder="Ime" autoComplete="off" className="auth-input" />
+                  <input type="text" name="ime" placeholder="Ime" autoComplete="given-name" className="auth-input" />
                 </div>
                 {errors.ime && <span className="error-message">{errors.ime}</span>}
 
                 <div className="auth-field">
                   <i className="la la-user" />
-                  <input type="text" name="prezime" placeholder="Prezime" autoComplete="off" className="auth-input" />
+                  <input type="text" name="prezime" placeholder="Prezime" autoComplete="family-name" className="auth-input" />
                 </div>
                 {errors.prezime && <span className="error-message">{errors.prezime}</span>}
 
                 <div className="auth-field">
                   <i className="la la-at" />
-                  <input type="text" name="username1" placeholder="Korisnicko ime" autoComplete="off" className="auth-input" />
+                  <input type="text" name="username1" placeholder="Korisnicko ime" autoComplete="username" className="auth-input" />
                 </div>
                 {errors.username1 && <span className="error-message">{errors.username1}</span>}
 
                 <div className="auth-field">
                   <i className="la la-mail-forward" />
-                  <input type="email" name="email" placeholder="Mail adresa" autoComplete="off" className="auth-input" />
+                  <input type="email" name="email" placeholder="Mail adresa" autoComplete="email" className="auth-input" />
                 </div>
                 {errors.email && <span className="error-message">{errors.email}</span>}
 
                 <div className="auth-field">
                   <i className="la la-calendar" />
-                  <input type="date" name="date" placeholder="Datum rodjenja" autoComplete="off" className="auth-input" />
+                  <input type="date" name="date" placeholder="Datum rodjenja" autoComplete="bday" className="auth-input" />
                 </div>
                 {errors.date && <span className="error-message">{errors.date}</span>}
 
                 <div className="auth-field">
                   <i className="la la-lock" />
-                  <input type="password" name="password" placeholder="Lozinka" className="auth-input" />
+                  <input type="password" name="password" placeholder="Lozinka" autoComplete="new-password" minLength={8} className="auth-input" />
                 </div>
                 {errors.password && <span className="error-message">{errors.password}</span>}
 

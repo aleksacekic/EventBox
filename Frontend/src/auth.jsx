@@ -16,6 +16,14 @@ import { Navigate, useLocation } from 'react-router-dom'
 import Cookies from 'js-cookie'
 
 const COOKIE_OPTS = { path: '/' }
+// secure -> kolacic se salje samo preko HTTPS-a (automatski false na http://localhost u razvoju,
+// true cim se sajt vrti na https:// u produkciji - nema potrebe rucno menjati)
+// sameSite: 'strict' -> browser ga ne salje ni na jedan cross-site zahtev
+const SET_COOKIE_OPTS = {
+  ...COOKIE_OPTS,
+  secure: window.location.protocol === 'https:',
+  sameSite: 'strict',
+}
 
 // Cisti auth kolacice. Koristi ga i logout() i api.js na 401 - da imena
 // kljuceva ('token', 'userID') stoje na jednom mestu.
@@ -34,8 +42,8 @@ export function AuthProvider({ children }) {
   }))
 
   const login = useCallback(({ token, userId }) => {
-    Cookies.set('token', String(token), COOKIE_OPTS)
-    Cookies.set('userID', String(userId), COOKIE_OPTS)
+    Cookies.set('token', String(token), SET_COOKIE_OPTS)
+    Cookies.set('userID', String(userId), SET_COOKIE_OPTS)
     setAuth({ token: String(token), userId: String(userId) })
   }, [])
 
