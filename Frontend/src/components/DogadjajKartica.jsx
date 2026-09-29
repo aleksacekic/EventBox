@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import HideShowMapa from './Hide&ShowMapa';
 import Komentari from './Komentari';
 import Reakcije from './Reakcije';
+import moment from 'moment';
 
 // Jedna kartica dogadjaja - ceo prikaz (topbar, opis, mapa, reakcije, komentari,
 // prijava sadrzaja) na jednom mestu. Koristi ga i feed (Dogadjaj.jsx, lista) i
@@ -107,7 +108,7 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
           <span className="dogadjaj-card-badge">{dogadjaj.kategorija}</span>
           <span className="dogadjaj-card-when">
             <i className="la la-calendar" />
-            {new Date(dogadjaj.datum_Dogadjaja).toLocaleDateString()} od {dogadjaj.vreme_pocetka}
+            {moment(dogadjaj.datum_Dogadjaja).format('DD.MM.YYYY.')} od {dogadjaj.vreme_pocetka}
           </span>
         </div>
         {dogadjaj.opis && <p className="dogadjaj-card-desc">{dogadjaj.opis}</p>}

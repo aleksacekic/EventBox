@@ -82,10 +82,11 @@ function DogadjajPosebnaStrana() {
 
   if (nijeNadjen || !dogadjaj) {
     return (
-      <div className="col-lg-6 col-md-8 no-pd">
-        <div className="main-ws-sec">
-          <button onClick={handleBackClick} className="back-btn">
-            <i className="la la-arrow-left ikonicaback"></i>
+      <div className="container dogadjaj-standalone">
+        <div className="dogadjaj-standalone-inner">
+          <button onClick={handleBackClick} className="dogadjaj-standalone-back">
+            <i className="la la-arrow-left" />
+            Povratak na pocetnu
           </button>
           <p>Ovaj dogadjaj ne postoji ili je obrisan.</p>
         </div>
@@ -94,10 +95,11 @@ function DogadjajPosebnaStrana() {
   }
 
   return (
-    <div className="col-lg-6 col-md-8 no-pd">
-      <div className="main-ws-sec">
-        <button onClick={handleBackClick} className="back-btn">
-          <i className="la la-arrow-left ikonicaback"></i>
+    <div className="container dogadjaj-standalone">
+      <div className="dogadjaj-standalone-inner">
+        <button onClick={handleBackClick} className="dogadjaj-standalone-back">
+          <i className="la la-arrow-left" />
+          Povratak na pocetnu
         </button>
         <DogadjajKartica
           dogadjaj={dogadjaj}

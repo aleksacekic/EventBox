@@ -235,15 +235,6 @@
 
 
 
-.back-btn{
-	margin: 10px;
-	margin-top: 50px;
-	margin-left:40px;
-	padding: 5px 10px;
-	border: 1px solid #FFA500;
-	border-radius: 10px;
-}
-
 .back-btn-chat{
 	margin: 10px;
 	margin-top: 91px;
@@ -2642,6 +2633,10 @@ select {
 }
 
 .dogadjaj-card-author-info {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 4px;
 	min-width: 0;
 }
 .dogadjaj-card-author-info h3 {
@@ -2649,6 +2644,7 @@ select {
 	color: #1a1a1a;
 	font-size: 15px;
 	font-weight: 700;
+	line-height: 1.2;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -2659,6 +2655,7 @@ select {
 	gap: 5px;
 	color: #999;
 	font-size: 12.5px;
+	line-height: 1.2;
 }
 
 .dogadjaj-card-menu {
@@ -2743,13 +2740,15 @@ select {
 	margin-bottom: 12px;
 }
 .dogadjaj-card-badge {
-	background-color: var(--eb-orange-tint, #FFF4E0);
-	color: var(--eb-orange, #FFA500);
+	background-color: var(--eb-orange, #FFA500);
+	color: #fff;
 	font-size: 12px;
 	font-weight: 700;
+	letter-spacing: 0.2px;
 	text-transform: capitalize;
-	padding: 4px 10px;
+	padding: 5px 12px;
 	border-radius: 999px;
+	box-shadow: 0 2px 6px rgba(255, 165, 0, 0.35);
 }
 .dogadjaj-card-when {
 	display: flex;
@@ -3127,6 +3126,46 @@ select {
 	.dogadjaj-card-avatar {
 		width: 40px;
 		height: 40px;
+	}
+}
+
+/* ================= dogadjaj-standalone (deep-link /objava/:id) ================= */
+
+.dogadjaj-standalone {
+	padding-top: 24px;
+	padding-bottom: 40px;
+}
+.dogadjaj-standalone-inner {
+	max-width: 720px;
+	margin: 0 auto;
+}
+.dogadjaj-standalone-back {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 16px;
+	padding: 9px 16px;
+	border: 1.5px solid #e8e8e8;
+	border-radius: 999px;
+	background-color: #fff;
+	color: #555;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+.dogadjaj-standalone-back i {
+	font-size: 16px;
+}
+.dogadjaj-standalone-back:hover {
+	border-color: var(--eb-orange, #FFA500);
+	color: var(--eb-orange, #FFA500);
+	background-color: var(--eb-orange-tint, #FFF4E0);
+}
+
+@media (max-width: 560px) {
+	.dogadjaj-standalone {
+		padding-top: 16px;
 	}
 }
 
