@@ -103,7 +103,7 @@ function DogadjajPosebnaStrana() {
           dogadjaj={dogadjaj}
           korisnik={korisnik}
           onObrisi={obrisiObjavu}
-          className="post-barALTERNATIVE"
+          className="dogadjaj-card dogadjaj-card-standalone"
         />
       </div>
     </div>

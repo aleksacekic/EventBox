@@ -8,7 +8,7 @@ import { useAuth } from '../auth';
 import { useNavigate } from 'react-router-dom';
 
 
-function Dogadjaj({ primljenDatum, primljenNaziv }) {
+function Dogadjaj({ primljenDatum, primljenNaziv, noviDogadjaj }) {
   const navigate = useNavigate();
   const { userId } = useAuth();
 
@@ -52,6 +52,18 @@ function Dogadjaj({ primljenDatum, primljenNaziv }) {
   useEffect(() => {
     fetchDogadjaji();
   }, [brojPosiljke]);
+
+  // Novokreiran dogadjaj (iz NapraviDogadjaj -> HomePage -> Main -> ovde) se
+  // zalepi na vrh liste bez novog fetch-a. `_isNovi` flag samo javlja kartici
+  // da odigra kratku "evo tvog posta" animaciju - ne ide na backend.
+  useEffect(() => {
+    if (!noviDogadjaj) return;
+    setDogadjaji(prev => [
+      { ...noviDogadjaj, formattedDatum: moment(noviDogadjaj.datum_Objave).format("DD.MM.YYYY"), _isNovi: true },
+      ...prev,
+    ]);
+    setIDucitanidogadjaji(prev => [noviDogadjaj.id, ...prev]);
+  }, [noviDogadjaj]);
 
 
   useEffect(() => {

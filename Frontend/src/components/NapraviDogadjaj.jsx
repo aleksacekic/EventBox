@@ -2,9 +2,10 @@ import { api, ApiError } from '../api';
 import React from 'react'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
-import { useEffect, useState} from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { registerLocale } from "react-datepicker"
 import srLatn from "date-fns/locale/sr-Latn";
+import { format } from 'date-fns';
 import TimePicker from './TimePicker'
 import Map from './Mapa'
 import 'react-toastify/dist/ReactToastify.css';
@@ -12,7 +13,7 @@ import { ToastContainer } from 'react-toastify';
 import { useAuth } from '../auth';
 // import moment from 'moment';
 
-function NapraviDogadjaj({ otvorena = false, onZatvori = () => {} }) {
+function NapraviDogadjaj({ otvorena = false, onZatvori = () => {}, onKreiran = () => {} }) {
 
   const { userId } = useAuth();
 
@@ -38,10 +39,13 @@ const kreirajDogadjaj = async (e) => {
   // [test] Tvrda validacija "sva polja obavezna" je sklonjena da bi se lakse probalo.
   // Prazna polja dobijaju bezbedan default (npr. mapa ne radi bez Google kljuca -> Beograd).
   const kreator = userId;
-  const datumObjave = new Date().toISOString().split('T')[0]; // danasnji datum u formatu YYYY-MM-DD
+  // format(..., 'yyyy-MM-dd') umesto .toISOString().split('T')[0] - potonje racuna
+  // sa UTC pa je oko ponoci pomeralo datum za jedan dan unazad (lokalno vreme je
+  // ispred UTC-a).
+  const datumObjave = format(new Date(), 'yyyy-MM-dd'); // danasnji datum u formatu YYYY-MM-DD
   const formattedDatumDogadjaja =
-    (datumDogadjaja && typeof datumDogadjaja.toISOString === 'function')
-      ? datumDogadjaja.toISOString().split('T')[0]
+    (datumDogadjaja && typeof datumDogadjaja.getFullYear === 'function')
+      ? format(datumDogadjaja, 'yyyy-MM-dd')
       : datumObjave;
 
   const naslovZaSlanje = naslov || 'Test dogadjaj';
@@ -59,15 +63,31 @@ const kreirajDogadjaj = async (e) => {
     if (slika) {
       const formData = new FormData();
       formData.append('fajl', slika);
-      await api.post(`/Dogadjaj/DodajSlikuDogadjaju?dogadjaj_id=${dogadjaj.id}`, formData);
+      const slikaStatus = await api.post(`/Dogadjaj/DodajSlikuDogadjaju?dogadjaj_id=${dogadjaj.id}`, formData);
+      if (slikaStatus.statusCode === 1) {
+        dogadjaj.dogadjajImage = slikaStatus.message;
+      }
     }
 
-    window.location.reload();
+    resetujFormu();
+    onZatvori();
+    onKreiran(dogadjaj);
   } catch (error) {
     const poruka = error instanceof ApiError ? error.message : String(error);
     console.error('Kreiranje dogadjaja nije uspelo:', poruka);
     alert('Kreiranje dogadjaja nije uspelo: ' + poruka);
   }
+};
+
+const resetujFormu = () => {
+  setNaslov('');
+  setKategorija('');
+  setSlika(null);
+  setDatumDogadjaja('');
+  setVremePocetka('');
+  setOpis('');
+  setX('');
+  setY('');
 };
 
 
@@ -88,99 +108,149 @@ const handleSlikaChange = (e) => {
   setSlika(e.target.files[0]);
 };
 
+// ESC zatvara formu dok je otvorena
+useEffect(() => {
+  if (!otvorena) return;
+  const handleEsc = (e) => {
+    if (e.key === 'Escape') onZatvori();
+  };
+  document.addEventListener('keydown', handleEsc);
+  return () => document.removeEventListener('keydown', handleEsc);
+}, [otvorena, onZatvori]);
+
+// Klik van kartice (na tamni overlay) zatvara formu
+const handleOverlayClick = useCallback((e) => {
+  if (e.target === e.currentTarget) onZatvori();
+}, [onZatvori]);
+
   return (
     <div>
-      <div className={`post-popup job_post ${otvorena ? 'active' : ''}`} id="forma">
-        <div className="post-project">
-          <h3>Napravi dogadjaj</h3>
-          <div className="post-project-fields">
-            <form onSubmit={kreirajDogadjaj}>
-              <div className="row">
-                <div className="col-lg-12">
-                  <input type="text" name="title" placeholder="Naziv" value={naslov} onChange={(e) => setNaslov(e.target.value)} 
-                    />
-                </div>
-                <div className="col-lg-6">
-                  <div className="inp-field">
-                    <select
-                      value={kategorija} onChange={(e) => setKategorija(e.target.value)}
-                      >
-                      <option>Ostalo</option>
-                      <option>Zurka</option>
-                      <option>Humanitarna akcija</option>
-                      <option>Ekoloska akcija</option>
-                      <option>Sportski dogadjaj</option>
-                      <option>Koncert</option>
-                      
-                    </select>
-                  </div>
-                </div>
-                {/* <div class="col-lg-6">
-      								<form>
-      									<div class="input-group mb-3">
-      										<input type="file" class="form-control" id="inputFile" accept="image/*" multiple>
-      										<label class="input-group-text" for="inputFile">Dodaj slike</label> 
-      									</div>
-      								</form>
-      							</div> */}
-                <div className="col-lg-6">
-                  <div className="input-group mb-3">
-                    <label className="input-group-text">Dodaj sliku ➞</label>
-                    <input type="file" className="form-control" id="inputFile" accept="image/*" onChange={handleSlikaChange}/> 
-                  </div>
-                </div>
-                <div className="col-lg-6">
-                  <div className="price-br">
-                  <DatePicker
-                      selected={datumDogadjaja}
-                      onChange={handleDatePickerChange}
-                      
-                      locale="sr-Latn" //srpski jezik
-                      minDate={new Date()}
-                      dateFormat="yyyy.MM.dd" 
-                      dayClassName={(date) =>
-                        date.getDay() === 0 || date.getDay() === 6 ? "weekend-day": ""
-                      } 
-                      //selected={date}
-                      placeholderText="Izaberite datum"
-                    />              
-                  </div>
-                    
-                </div>
-                <div className="col-lg-6">
-                  <div>
-                    <TimePicker
-                    value={vremePocetka}
-                    onChange={(value) => setVremePocetka(value)}
-                    />
-                  </div>
-                </div>
-                {/* POSTAVLJANJE MAPE */}
-                <div id="map" className="col-lg-12">
-                      <Map 
-                      x={x}
-                      y={y}
-                     onMapMarker={handleMapMarker}
-                      />
-                </div>
+      <div
+        className={`create-event-modal ${otvorena ? 'is-open' : ''}`}
+        id="forma"
+        onClick={handleOverlayClick}
+      >
+        <div className="create-event-card">
+          <div className="create-event-header">
+            <h3>Napravi dogadjaj</h3>
+            <button
+              type="button"
+              className="create-event-close"
+              onClick={onZatvori}
+              aria-label="Zatvori"
+            >
+              <i className="la la-times" />
+            </button>
+          </div>
 
-                <div className="col-lg-12 postaviopisdogadjaja">
-                  <textarea name="description" placeholder="Opis dogadjaja (max 200 karaktera)" className="opisdogadjaja" maxLength={200}
-                  value={opis}
-                  onChange={(e) => setOpis(e.target.value)}
-                    />
-                </div>
-                <div className="col-lg-12 zzatvaranje">
-                  <ul>
-                    <li><button className="active" type="submit" value="post">Napravi</button></li>
-                    <li><a href="#" onClick={(e) => { e.preventDefault(); onZatvori(); }}>Otkazi</a></li>
-                  </ul>
-                </div>
-              </div></form>
-          </div>{/*post-project-fields end*/}
-          <a href="#" onClick={(e) => { e.preventDefault(); onZatvori(); }}><i className="la la-times-circle-o" /></a>
-        </div>{/*post-project end*/}
-      </div>{/*post-project-popup end*/}
+          <form onSubmit={kreirajDogadjaj} className="create-event-form">
+            <div className="create-event-field">
+              <label htmlFor="ced-naziv">Naziv</label>
+              <input
+                id="ced-naziv"
+                type="text"
+                name="title"
+                placeholder="Naziv dogadjaja"
+                className="create-event-input"
+                value={naslov}
+                onChange={(e) => setNaslov(e.target.value)}
+              />
+            </div>
+
+            <div className="create-event-row">
+              <div className="create-event-field">
+                <label htmlFor="ced-kategorija">Kategorija</label>
+                <select
+                  id="ced-kategorija"
+                  className="create-event-input create-event-select"
+                  value={kategorija}
+                  onChange={(e) => setKategorija(e.target.value)}
+                >
+                  <option>Ostalo</option>
+                  <option>Zurka</option>
+                  <option>Humanitarna akcija</option>
+                  <option>Ekoloska akcija</option>
+                  <option>Sportski dogadjaj</option>
+                  <option>Koncert</option>
+                </select>
+              </div>
+
+              <div className="create-event-field">
+                <label htmlFor="ced-slika">Slika</label>
+                <label htmlFor="ced-slika" className="create-event-file">
+                  <i className="la la-image" />
+                  <span>{slika ? slika.name : 'Dodaj sliku...'}</span>
+                </label>
+                <input
+                  id="ced-slika"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleSlikaChange}
+                  hidden
+                />
+              </div>
+            </div>
+
+            <div className="create-event-row">
+              <div className="create-event-field">
+                <label htmlFor="ced-datum">Datum</label>
+                <DatePicker
+                  id="ced-datum"
+                  selected={datumDogadjaja}
+                  onChange={handleDatePickerChange}
+                  locale="sr-Latn"
+                  minDate={new Date()}
+                  dateFormat="d.M.yyyy."
+                  calendarClassName="eb-calendar"
+                  dayClassName={(date) =>
+                    date.getDay() === 0 || date.getDay() === 6 ? "weekend-day" : ""
+                  }
+                  placeholderText="Izaberite datum"
+                  className="create-event-input"
+                  wrapperClassName="create-event-date-wrapper"
+                />
+              </div>
+
+              <div className="create-event-field">
+                <label htmlFor="time">Vreme</label>
+                <TimePicker
+                  value={vremePocetka}
+                  onChange={(value) => setVremePocetka(value)}
+                />
+              </div>
+            </div>
+
+            <div className="create-event-field">
+              <label>Lokacija</label>
+              <div className="create-event-map">
+                <Map
+                  x={x}
+                  y={y}
+                  onMapMarker={handleMapMarker}
+                />
+              </div>
+            </div>
+
+            <div className="create-event-field">
+              <label htmlFor="ced-opis">Opis</label>
+              <textarea
+                id="ced-opis"
+                name="description"
+                placeholder="Opis dogadjaja (max 200 karaktera)"
+                className="create-event-input create-event-textarea"
+                maxLength={200}
+                value={opis}
+                onChange={(e) => setOpis(e.target.value)}
+              />
+            </div>
+
+            <div className="create-event-actions">
+              <button type="submit" className="create-event-submit">Napravi</button>
+              <button type="button" className="create-event-cancel" onClick={onZatvori}>Otkazi</button>
+            </div>
+          </form>
+        </div>{/*create-event-card end*/}
+      </div>{/*create-event-modal end*/}
       <ToastContainer />
     </div>
   )

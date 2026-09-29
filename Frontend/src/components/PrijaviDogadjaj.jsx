@@ -4,7 +4,6 @@ import { useState,useEffect } from 'react';
 import HideShowMapa from './Hide&ShowMapa';
 import Komentari from './Komentari';
 import Reakcije from './Reakcije'
-import Filtracija from './Filtracija';
 import { format } from 'date-fns';
 import Main from './Main';
 import moment from 'moment';

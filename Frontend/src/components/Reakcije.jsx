@@ -124,38 +124,36 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
   };
 
   return (
-    <div>
-      <div className="divreakcije">
-        <button
-          className={`zainteresovan ${zainteresovanActive ? "active" : ""}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleZainteresovanClick();
-          }}
-        >
-          Zainteresovan sam
-        </button>
-        <button
-          className={`mozda ${mozdaActive ? "active" : ""}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleMozdaClick();
-          }}
-        >
-          Mozda
-        </button>
-        <button
-          className={`nisamzainteresovan ${
-            nisamZainteresovanActive ? "active" : ""
-          }`}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleNisamZainteresovanClick();
-          }}
-        >
-          Nisam zainteresovan
-        </button>
-      </div>
+    <div className="dogadjaj-card-reakcije">
+      <button
+        className={`dogadjaj-card-reakcija dogadjaj-card-reakcija-da ${zainteresovanActive ? "is-active" : ""}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleZainteresovanClick();
+        }}
+      >
+        Zainteresovan sam
+      </button>
+      <button
+        className={`dogadjaj-card-reakcija dogadjaj-card-reakcija-mozda ${mozdaActive ? "is-active" : ""}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleMozdaClick();
+        }}
+      >
+        Mozda
+      </button>
+      <button
+        className={`dogadjaj-card-reakcija dogadjaj-card-reakcija-ne ${
+          nisamZainteresovanActive ? "is-active" : ""
+        }`}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleNisamZainteresovanClick();
+        }}
+      >
+        Nisam zainteresovan
+      </button>
     </div>
   );
 }

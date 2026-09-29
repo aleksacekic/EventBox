@@ -160,7 +160,7 @@ function LoginRegistracijaKomponenta() {
               <form onSubmit={handleSubmit1}>
                 <div className="auth-field">
                   <i className="la la-at" />
-                  <input type="text" name="username" placeholder="Korisnicko ime" autoComplete="username" className="auth-input" />
+                  <input type="text" name="username" placeholder="Korisnicko ime" autoComplete="off" className="auth-input" />
                 </div>
                 {errors.username && <span className="error-message">{errors.username}</span>}
 
@@ -190,7 +190,7 @@ function LoginRegistracijaKomponenta() {
 
                 <div className="auth-field">
                   <i className="la la-at" />
-                  <input type="text" name="username1" placeholder="Korisnicko ime" autoComplete="username" className="auth-input" />
+                  <input type="text" name="username1" placeholder="Korisnicko ime" autoComplete="off" className="auth-input" />
                 </div>
                 {errors.username1 && <span className="error-message">{errors.username1}</span>}
 

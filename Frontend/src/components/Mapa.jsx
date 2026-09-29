@@ -20,7 +20,7 @@ const Mapa = ({ x, y, onMapMarker }) => {
 
   return (
     <Map
-      style={{ height: '280px' }}
+      style={{ height: '190px' }}
       defaultCenter={pocetniCentar}
       defaultZoom={7}
       gestureHandling="greedy"

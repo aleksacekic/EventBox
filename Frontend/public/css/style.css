@@ -253,11 +253,6 @@
 	border-radius: 10px;
 }
 
-.slikakorisnikakomentar{
-	height: 40px;
-	width: 40px;
-}
-
 .profilnaslikahomepageobjava{
 	height: 50px;
 	width: 50px !important;
@@ -633,15 +628,6 @@ DEO SA NOTIFIKACIJAMA ZA MOBILNI*/
 	background-color: rgba(0, 0, 0, 0.5); 
 }
 
-.form-control{
-	padding: 7px !important;
-}
-
-.postaviopisdogadjaja{
-	margin-top: 20px;
-	margin-bottom: 20px;
-	height: 30px;
-}
 
 /* POP-up za prijavi dogadjaj */
 
@@ -837,133 +823,202 @@ div.divreakcije button.nisamzainteresovan.active {
 
 /* Filtriranje - na levoj strani */
 
-.filtriraj{
-	/* float:left; */
-	font-size: 18px;
-	font-weight: 600;
-	color:black;
-	margin-bottom: 15px;
-}
+/* ================= feed-filter (moderna zamena za stare radio-div filtere) ================= */
 
-/* Radio buttoni */
-
-.radio-div{
-	text-align: center; 
-}
-
-.radio-label {
-	 display: inline-block; /* da bi se label i input pojavili jedan pored drugog */
-	 cursor: pointer; /* da bi se pokazivac promenio kada je preko labele */
-	 font-size: 16px; /* velicina fonta */
-	 margin-right: 0px; /*razmak izmedju labela */
-	 margin-left: 0px;
-	 position: relative; /*da bi mogli da pozicioniramo custom stilizovani radio button unutar labele */
-	 margin-bottom:15px;
-	 padding-top:17px;
-	 padding-bottom:17px;
-	 padding-left:8px;
-	 padding-right:8px;
-	 /* width: 80px;  VIDI OVO --- MOZDA MOZE LEPSE DA IZGLEDA !!!  */
-	 border-radius: 6px;
-	 color:white;
-	 background-color: #FFA500;
-	 font-size: 16px;
-	 transition: background-color 0.2s;
-	 text-align: center;
-	 width: 65px;
-   height: 65px;
-/* .radio-div img{
-	height: 24px;
-	
- */
-}
-
-.radio-label img{
-height: 20px;
-margin-left: 15px;
-margin-bottom: 4px;
-}
-
-.radio-label:hover{
-	background-color:#FFD700;
-}
-
-.radio-label:active{
-	background-color:#FFD700;
-}
-
-/* stil za input */
-.radio-input {
-	display: none; /* sakrijemo originalni radio button */
-}
-
-.pretrazivanje-naziv{
-	float: left;
-	width: 100%;
+.feed-filter {
 	background-color: #fff;
+	border-radius: 12px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+	padding: 14px 16px;
 	margin-bottom: 20px;
-	border-left: 1px solid #e5e5e5;
-	border-right: 1px solid #e5e5e5;
-	border-bottom: 1px solid #e5e5e5;
-	
-}
-.pretrazivanje-datum{
-	float: left;
-	width: 100%;
-	background-color: #fff;
-	margin-bottom: 20px;
-	border-left: 1px solid #e5e5e5;
-	border-right: 1px solid #e5e5e5;
-	border-bottom: 1px solid #e5e5e5;
 }
 
-.div-naslov{
-	float: left;
-	width: 100%;
-	padding: 20px;
-	border-bottom: 1px solid #e5e5e5;
-	position: relative;
+.feed-filter-tabs {
+	display: flex;
+	background-color: #f2f2f2;
+	border-radius: 999px;
+	padding: 4px;
+	gap: 4px;
 }
 
-.div-naslov h3 {
-	color: #000000;
-	font-size: 18px;
+.feed-filter-tabs button {
+	flex: 1;
+	border: 0;
+	background-color: transparent;
+	border-radius: 999px;
+	padding: 8px 12px;
+	color: #7a7a7a;
+	font-size: 13px;
 	font-weight: 600;
-	float: left;
-}
-.div-naslov i {
-	float: right;
-	color: #b7b7b7;
-	font-size: 30px;
-	position: absolute;
-	right: 5px;
-	top: 15px;
-}
-
-/* Pretrazi - dugme */
-
-.pretrazi-button{
-	float: left;
-	/* width: 80%;  */
-	padding: 5px 10px;
-	margin:17px;
-	margin-top:10px;
 	cursor: pointer;
-	background-color: #FFA500;
-	color: #fff;
-	border:none;
-	font-size: 16px;
-	display: inline-block;
-	height: 40px;
-	padding: 0 15px;
-	line-height: 40px;
-	font-weight: 500;
-	border-radius: 4px;
-	transition: box-shadow 0.15s;
+	transition: background-color 0.15s ease, color 0.15s ease;
+	white-space: nowrap;
 }
 
-.pretrazi-button:hover{
-	box-shadow: 1px 1px 0 rgba(0,0,0,0.15);
+.feed-filter-tabs button.active {
+	background-color: var(--eb-orange, #FFA500);
+	color: #fff;
+	box-shadow: 0 4px 10px -3px rgba(255, 165, 0, 0.6);
+}
+
+.feed-filter-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+.feed-filter-controls .react-datepicker-wrapper {
+	flex: 1;
+}
+
+.feed-filter-input {
+	flex: 1;
+	height: 40px;
+	padding: 0 14px;
+	color: #333;
+	font-size: 14px;
+	background-color: #fafafa;
+	border: 1.5px solid #e8e8e8;
+	border-radius: 8px;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.feed-filter-input:focus {
+	background-color: #fff;
+	border-color: var(--eb-orange, #FFA500);
+	outline: none;
+}
+
+.feed-filter-search-btn {
+	flex-shrink: 0;
+	height: 40px;
+	padding: 0 16px;
+	border: 0;
+	border-radius: 8px;
+	background-color: var(--eb-orange, #FFA500);
+	color: #fff;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: box-shadow 0.15s ease;
+}
+.feed-filter-search-btn:hover {
+	box-shadow: 0 4px 10px -3px rgba(255, 165, 0, 0.6);
+}
+
+.feed-filter-active-note {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 10px;
+	font-size: 13px;
+	color: #7a7a7a;
+}
+
+.feed-filter-reset {
+	border: 0;
+	background: none;
+	color: var(--eb-orange, #FFA500);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	padding: 0;
+}
+
+/* ================= eb-calendar (moderna koza za react-datepicker) ================= */
+
+.eb-calendar.react-datepicker {
+	font-family: 'Source Sans Pro', sans-serif;
+	border: 0;
+	border-radius: 14px;
+	box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.25);
+	overflow: hidden;
+}
+
+.eb-calendar .react-datepicker__triangle {
+	display: none;
+}
+
+.eb-calendar .react-datepicker__header {
+	background-color: #fff;
+	border-bottom: 1px solid #f0f0f0;
+	padding-top: 16px;
+}
+
+.eb-calendar .react-datepicker__current-month {
+	color: #333;
+	font-size: 14px;
+	font-weight: 700;
+	margin-bottom: 8px;
+}
+
+.eb-calendar .react-datepicker__day-names {
+	margin-top: 4px;
+}
+
+.eb-calendar .react-datepicker__day-name {
+	color: var(--eb-orange, #FFA500);
+	font-size: 12px;
+	font-weight: 700;
+	text-transform: uppercase;
+	width: 2.2rem;
+}
+
+.eb-calendar .react-datepicker__month {
+	margin: 8px 12px 12px 12px;
+}
+
+.eb-calendar .react-datepicker__day {
+	width: 2.2rem;
+	line-height: 2.2rem;
+	color: #444;
+	font-size: 13px;
+	border-radius: 999px;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.eb-calendar .react-datepicker__day:hover {
+	background-color: var(--eb-orange-tint, #FFF4E0);
+	border-radius: 999px;
+}
+
+.eb-calendar .react-datepicker__day--today {
+	font-weight: 700;
+	color: var(--eb-orange, #FFA500);
+}
+
+.eb-calendar .react-datepicker__day--selected,
+.eb-calendar .react-datepicker__day--keyboard-selected {
+	background-color: var(--eb-orange, #FFA500);
+	color: #fff;
+	font-weight: 700;
+}
+.eb-calendar .react-datepicker__day--selected:hover,
+.eb-calendar .react-datepicker__day--keyboard-selected:hover {
+	background-color: var(--eb-orange-dark, #e69200);
+}
+
+.eb-calendar .react-datepicker__day--disabled {
+	color: #d5d5d5;
+}
+.eb-calendar .react-datepicker__day--disabled:hover {
+	background-color: transparent;
+}
+
+.eb-calendar .react-datepicker__navigation {
+	top: 16px;
+}
+.eb-calendar .react-datepicker__navigation-icon::before {
+	border-color: #999;
+	border-width: 2px 2px 0 0;
+	width: 7px;
+	height: 7px;
+}
+.eb-calendar .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
+	border-color: var(--eb-orange, #FFA500);
 }
 
 .job-status-bar ul {
@@ -1739,6 +1794,19 @@ main {
 	border-bottom: 1px solid #e4e4e4;
 	margin-bottom: 20px;
 }
+
+/* Kratak "evo tvog posta" bljesak na novokreiranoj kartici - vidi Dogadjaj.jsx */
+.novi-dogadjaj {
+	animation: novi-dogadjaj-fadeout 2s ease-out forwards;
+}
+@keyframes novi-dogadjaj-fadeout {
+	0% {
+		box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.7);
+	}
+	100% {
+		box-shadow: 0 0 0 3px rgba(255, 165, 0, 0);
+	}
+}
 .post_topbar {
 	float: left;
 	width: 100%;
@@ -2267,161 +2335,799 @@ main {
 /* ================ post-project-popup =============== */
 
 
-.post-popup {
-	width: 570px;
-	height: 100%;
-	margin: 0 auto;
-	position: fixed;
-	top: 55%;
-	left: 50%;
-	-webkit-transform: translateX(-50%) translateY(-50%) scale(0.65);
-	-moz-transform: translateX(-50%) translateY(-50%) scale(0.65);
-	-ms-transform: translateX(-50%) translateY(-50%) scale(0.65);
-	-o-transform: translateX(-50%) translateY(-50%) scale(0.65);
-	transform: translateX(-50%) translateY(-50%) scale(0.65);
-	opacity: 0;
-	visibility: hidden;
-	z-index: 0;
-}
-.post-popup.active {
-	opacity: 1;
-	visibility: visible;
-	z-index: 999;
-	-webkit-transform: scale(1) translateX(-50%) translateY(-50%);
-}
-
-
-.post-project > a {
-	position: absolute;
-	top: -20px;
-	right: -20px;
-	color: #fff;
-	font-size: 22px;
-	cursor: pointer;
-}
-.post-project > a:hover {
-	color: #fff;
-}
-.post-project {
-	float: left;
-	width: 100%;
-	position: relative;
-}
-.post-project h3 {
-	float: left;
-	width: 100%;
-	background-color: #FFD700;
-	color: black;
-	text-align: center;
-	font-size: 18px;
-	font-weight: 500;
-	padding: 20px 0;
-}
-.post-project-fields {
-	float: left;
-	width: 100%;
-	padding: 30px 20px;
-	background-color: #fff;
-}
-.post-project-fields form {
-	float: left;
-	width: 100%;
-}
-.post-project-fields form input {
-	padding: 0 15px;
-	height: 40px;
-}
-.post-project-fields form textarea {
-	padding: 15px;
-	height: 50px;
-}
-.post-project-fields form input,
-.post-project-fields form textarea,
-.post-project-fields form select {
-	width: 100%;
-	color: #b2b2b2;
-	font-size: 14px;
-	border: 1px solid #e5e5e5;
-	margin-bottom: 20px;
-	font-weight: 500;
-}
-.post-project-fields form select {
-	height: 40px;
-	padding: 0 10px;
-}
-.post-project-fields form ul {
-	float: left;
-	margin-top: 20px;
-	margin-bottom: 20px;
-	width: 100%;
-}
-.post-project-fields form ul li {
-	display: inline-block;
-	margin-right: 15px;
-}
-.post-project-fields form ul li button.active {
-	background-color: #FFD700;
-	color: black;
-}
-.post-project-fields form ul li button,
-.post-project-fields form ul li a {
-	color: #000000;
-	font-size: 16px;
-	border: 1px solid #e5e5e5;
-	padding: 10px 25px;
-	display: inline-block;
-	background-color: #fff;
-	font-weight: 600;
-	cursor: pointer;
-}
-.post-project-fields form ul li button:hover,
-.post-project-fields form ul li a:hover {
-	background-color: #FFA500;
-	color: #fff;
-} 
 ::-webkit-input-placeholder { /* Chrome/Opera/Safari */
   color: #b2b2b2;
 }
 ::-moz-placeholder { /* Firefox 19+ */
   color: #b2b2b2;
 }
-.price-br {
-	float: left;
-	width: 225px !important;
-	position: relative;
-}
-.price-br > i {
-	position: absolute;
-	top: 0;
-	right: 0;
-	color: #b2b2b2;
-	font-size: 18px;
-	width: 40px;
-	height: 40px;
-	line-height: 40px;
-	border-left: 1px solid #e5e5e5;
-	text-align: center;
-}
 select {
 	-webkit-appearance: none;
     -moz-appearance: none;
 }
 
-.inp-field {
-	float: left;
+/* ================= create-event (moderna zamena za stari post-popup) ================= */
+
+.create-event-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px 16px;
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 0.2s ease;
+}
+.create-event-modal.is-open {
+	opacity: 1;
+	visibility: visible;
+	z-index: 999;
+}
+
+.create-event-card {
 	width: 100%;
+	max-width: 620px;
+	max-height: 94vh;
+	overflow-y: auto;
+	background-color: #fff;
+	border-radius: 18px;
+	border: 1px solid rgba(0, 0, 0, 0.06);
+	box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.45);
+}
+
+.create-event-header {
+	position: sticky;
+	top: 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 18px 24px;
+	background: linear-gradient(135deg, var(--eb-orange, #FFA500), #ff8c3c);
+	border-radius: 18px 18px 0 0;
+	box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.35);
+	z-index: 1;
+}
+.create-event-header h3 {
+	color: #fff;
+	font-size: 18px;
+	font-weight: 700;
+	margin: 0;
+}
+.create-event-close {
+	flex-shrink: 0;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 0;
+	border-radius: 999px;
+	background-color: rgba(255, 255, 255, 0.2);
+	color: #fff;
+	font-size: 16px;
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+.create-event-close:hover {
+	background-color: rgba(255, 255, 255, 0.35);
+}
+
+.create-event-form {
+	padding: 18px 24px 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.create-event-row {
+	display: flex;
+	gap: 16px;
+}
+.create-event-row .create-event-field {
+	flex: 1;
+	min-width: 0;
+}
+
+.create-event-field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.create-event-field label {
+	color: #555;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.create-event-input {
+	width: 100%;
+	height: 44px;
+	padding: 0 14px;
+	color: #333;
+	font-size: 14px;
+	background-color: #fafafa;
+	border: 1.5px solid #e8e8e8;
+	border-radius: 10px;
+	box-sizing: border-box;
+	transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.create-event-input:focus {
+	outline: none;
+	background-color: #fff;
+	border-color: var(--eb-orange, #FFA500);
+	box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.15);
+}
+.create-event-input::placeholder {
+	color: #aaa;
+}
+
+.create-event-select {
+	cursor: pointer;
+}
+
+.create-event-textarea {
+	height: 90px;
+	padding: 12px 14px;
+	resize: vertical;
+}
+
+.create-event-input-invalid {
+	border-color: #e05a5a;
+}
+.create-event-input-invalid:focus {
+	border-color: #e05a5a;
+	box-shadow: 0 0 0 3px rgba(224, 90, 90, 0.15);
+}
+.create-event-error {
+	display: block;
+	margin-top: 4px;
+	color: #e05a5a;
+	font-size: 12px;
+}
+
+.create-event-date-wrapper {
+	width: 100%;
+}
+
+.create-event-file {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	height: 44px;
+	padding: 0 14px;
+	color: #888;
+	font-size: 14px;
+	background-color: #fafafa;
+	border: 1.5px dashed #ddd;
+	border-radius: 10px;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+	overflow: hidden;
+}
+.create-event-file span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.create-event-file:hover {
+	border-color: var(--eb-orange, #FFA500);
+	background-color: var(--eb-orange-tint, #FFF4E0);
+}
+.create-event-file i {
+	color: var(--eb-orange, #FFA500);
+	font-size: 16px;
+	flex-shrink: 0;
+}
+
+.create-event-map {
+	border-radius: 12px;
+	overflow: hidden;
+	border: 1.5px solid #e8e8e8;
+}
+
+.create-event-actions {
+	display: flex;
+	gap: 12px;
+	margin-top: 4px;
+}
+.create-event-submit {
+	flex: 1;
+	height: 46px;
+	border: 0;
+	border-radius: 10px;
+	background: linear-gradient(135deg, var(--eb-orange, #FFA500), var(--eb-orange-dark, #e69200));
+	color: #fff;
+	font-size: 15px;
+	font-weight: 700;
+	cursor: pointer;
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.create-event-submit:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 10px 20px -8px rgba(255, 165, 0, 0.6);
+}
+.create-event-cancel {
+	flex: 1;
+	height: 46px;
+	border: 1.5px solid #e8e8e8;
+	border-radius: 10px;
+	background-color: #fff;
+	color: #666;
+	font-size: 15px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.create-event-cancel:hover {
+	background-color: #f7f7f7;
+	border-color: #ddd;
+}
+
+.create-event-time {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+.create-event-time-select {
+	flex: 1;
+	min-width: 0;
+	height: 44px;
+	padding: 0 8px;
+	text-align: center;
+	color: #333;
+	font-size: 14px;
+	background-color: #fafafa;
+	border: 1.5px solid #e8e8e8;
+	border-radius: 10px;
+	box-sizing: border-box;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.create-event-time-select:focus {
+	outline: none;
+	background-color: #fff;
+	border-color: var(--eb-orange, #FFA500);
+	box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.15);
+}
+.create-event-time-sep {
+	color: #999;
+	font-weight: 700;
+}
+
+@media (max-width: 560px) {
+	.create-event-row {
+		flex-direction: column;
+	}
+}
+
+/* ================= dogadjaj-card (moderna kartica objave, zamena za post-bar/job_descp) ================= */
+/* Napomena: Profil.jsx ima svoju (nezavisnu, dupliranu) staru verziju kartice koja
+   i dalje koristi stare klase (post-bar, job_descp, divreakcije...) - ne diramo ih. */
+
+.dogadjaj-card {
+	background-color: #fff;
+	border: 1px solid #eee;
+	border-radius: 16px;
+	box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+	margin-bottom: 24px;
+	overflow: hidden;
+}
+
+.dogadjaj-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 16px 20px 12px;
+}
+
+.dogadjaj-card-author {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+}
+
+.dogadjaj-card-avatar {
+	width: 46px;
+	height: 46px;
+	flex-shrink: 0;
+	border-radius: 999px;
+	object-fit: cover;
+	object-position: center;
+	border: 1px solid #eee;
+}
+
+.dogadjaj-card-author-info {
+	min-width: 0;
+}
+.dogadjaj-card-author-info h3 {
+	margin: 0;
+	color: #1a1a1a;
+	font-size: 15px;
+	font-weight: 700;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.dogadjaj-card-author-info span {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	color: #999;
+	font-size: 12.5px;
+}
+
+.dogadjaj-card-menu {
 	position: relative;
+	flex-shrink: 0;
 }
-.inp-field:before {
-	content: '\f107';
+.dogadjaj-card-menu-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	color: #999;
+	font-size: 17px;
+	cursor: pointer;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+.dogadjaj-card-menu-btn:hover {
+	background-color: #f2f2f2;
+	color: #444;
+}
+.dogadjaj-card-menu-list {
 	position: absolute;
-	top: 13px;
-	right: 15px;
-	color: #717171;
-	font-family: fontawesome;
+	top: 100%;
+	right: 0;
+	min-width: 160px;
+	margin-top: 4px;
+	background-color: #fff;
+	border-radius: 10px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+	padding: 6px;
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-4px);
+	transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+	z-index: 5;
 }
-.post-popup.job_post .price-br {
-	width: 100% !important;
+.dogadjaj-card-menu.is-open .dogadjaj-card-menu-list {
+	opacity: 1;
+	visibility: visible;
+	transform: translateY(0);
+}
+.dogadjaj-card-menu-list li {
+	list-style: none;
+}
+.dogadjaj-card-menu-list li button {
+	width: 100%;
+	text-align: left;
+	padding: 8px 10px;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: #444;
+	font-size: 13.5px;
+	cursor: pointer;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+.dogadjaj-card-menu-list li button:hover {
+	background-color: rgba(224, 90, 90, 0.08);
+	color: #e05a5a;
+}
+
+.dogadjaj-card-body {
+	padding: 0 20px 16px;
+}
+
+.dogadjaj-card-title {
+	margin: 0 0 10px;
+	color: #1a1a1a;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.dogadjaj-card-meta {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+.dogadjaj-card-badge {
+	background-color: var(--eb-orange-tint, #FFF4E0);
+	color: var(--eb-orange, #FFA500);
+	font-size: 12px;
+	font-weight: 700;
+	text-transform: capitalize;
+	padding: 4px 10px;
+	border-radius: 999px;
+}
+.dogadjaj-card-when {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: #777;
+	font-size: 13px;
+}
+
+.dogadjaj-card-desc {
+	margin: 0 0 14px;
+	color: #444;
+	font-size: 14.5px;
+	line-height: 1.55;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.dogadjaj-card-image {
+	width: 100%;
+	max-height: 380px;
+	object-fit: cover;
+	border-radius: 12px;
+	display: block;
+	margin-bottom: 14px;
+}
+
+.dogadjaj-card-reakcije {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 14px;
+}
+.dogadjaj-card-reakcija {
+	flex: 1;
+	min-width: 130px;
+	padding: 9px 10px;
+	border: 1.5px solid #e8e8e8;
+	border-radius: 10px;
+	background-color: #fafafa;
+	color: #555;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.dogadjaj-card-reakcija:hover {
+	border-color: #ccc;
+	background-color: #f2f2f2;
+}
+.dogadjaj-card-reakcija-da.is-active {
+	background-color: #e9f7ee;
+	border-color: #53d690;
+	color: #2f9e63;
+}
+.dogadjaj-card-reakcija-mozda.is-active {
+	background-color: #fff4e0;
+	border-color: var(--eb-orange, #FFA500);
+	color: #d98200;
+}
+.dogadjaj-card-reakcija-ne.is-active {
+	background-color: #fdecec;
+	border-color: #e05a5a;
+	color: #c9302c;
+}
+
+.dogadjaj-card-actions {
+	display: flex;
+	border-top: 1px solid #f0f0f0;
+	padding: 4px 8px;
+}
+.dogadjaj-card-action {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 10px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: #777;
+	font-size: 13.5px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+.dogadjaj-card-action:hover {
+	background-color: #fff4e0;
+	color: var(--eb-orange, #FFA500);
+}
+
+.dogadjaj-card-comments {
+	border-top: 1px solid #f0f0f0;
+	padding: 16px 20px;
+	background-color: #fafafa;
+}
+
+/* Report / "hvala" modal - isti obrazac kao create-event-modal */
+.dogadjaj-modal-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px 16px;
+	background-color: rgba(0, 0, 0, 0.45);
+}
+.dogadjaj-modal-card {
+	width: 100%;
+	max-width: 420px;
+	max-height: 90vh;
+	overflow-y: auto;
+	background-color: #fff;
+	border-radius: 16px;
+	padding: 22px;
+	box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.45);
+}
+.dogadjaj-modal-card-sm {
+	max-width: 380px;
+	position: relative;
+	text-align: center;
+	padding: 32px 24px;
+}
+.dogadjaj-modal-card h4 {
+	margin: 0 0 16px;
+	color: #1a1a1a;
+	font-size: 17px;
+	font-weight: 700;
+}
+.dogadjaj-modal-card p {
+	color: #444;
+	font-size: 14.5px;
+	line-height: 1.55;
+	margin: 0;
+}
+.dogadjaj-modal-close {
+	position: absolute;
+	top: 10px;
+	right: 14px;
+	border: 0;
+	background: transparent;
+	color: #999;
+	font-size: 22px;
+	line-height: 1;
+	cursor: pointer;
+}
+.dogadjaj-modal-close:hover {
+	color: #444;
+}
+.dogadjaj-report-options {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-bottom: 14px;
+}
+.dogadjaj-report-options label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: #444;
+	font-size: 14px;
+	cursor: pointer;
+}
+.dogadjaj-report-ostalo {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-bottom: 14px;
+}
+.dogadjaj-report-ostalo label {
+	color: #555;
+	font-size: 13px;
+	font-weight: 600;
+}
+.dogadjaj-report-ostalo textarea {
+	padding: 10px 12px;
+	border: 1.5px solid #e8e8e8;
+	border-radius: 10px;
+	font-size: 14px;
+	resize: vertical;
+	box-sizing: border-box;
+}
+.dogadjaj-modal-actions {
+	display: flex;
+	gap: 10px;
+}
+.dogadjaj-modal-cancel,
+.dogadjaj-modal-submit {
+	flex: 1;
+	height: 42px;
+	border-radius: 10px;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+}
+.dogadjaj-modal-cancel {
+	border: 1.5px solid #e8e8e8;
+	background-color: #fff;
+	color: #666;
+}
+.dogadjaj-modal-cancel:hover {
+	background-color: #f7f7f7;
+	border-color: #ddd;
+}
+.dogadjaj-modal-submit {
+	border: 0;
+	background-color: var(--eb-orange, #FFA500);
+	color: #fff;
+}
+.dogadjaj-modal-submit:hover {
+	background-color: #ff9800;
+}
+
+/* ================= komentar-* (moderna zamena za comment-sec/comment-list/...) ================= */
+
+.komentar-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.komentar-lista {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.komentar-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.komentar-avatar {
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	border-radius: 999px;
+	object-fit: cover;
+	object-position: center;
+}
+
+.komentar-sadrzaj {
+	min-width: 0;
+	flex: 1;
+}
+
+.komentar-bubble {
+	background-color: #fff;
+	border: 1px solid #eee;
+	border-radius: 14px;
+	padding: 10px 14px;
+}
+.komentar-bubble h3 {
+	margin: 0 0 3px;
+	color: #1a1a1a;
+	font-size: 13.5px;
+	font-weight: 700;
+}
+.komentar-bubble p {
+	margin: 0;
+	color: #444;
+	font-size: 14px;
+	line-height: 1.45;
+	word-break: break-word;
+}
+.komentar-edit-input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 6px 8px;
+	border: 1.5px solid #e8e8e8;
+	border-radius: 8px;
+	font-size: 14px;
+}
+
+.komentar-footer {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 5px;
+	padding: 0 4px;
+}
+.komentar-vreme {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	color: #999;
+	font-size: 12px;
+}
+.komentar-akcije {
+	display: flex;
+	gap: 10px;
+}
+.komentar-akcije button {
+	border: 0;
+	background: transparent;
+	color: #777;
+	font-size: 12.5px;
+	font-weight: 600;
+	cursor: pointer;
+	padding: 0;
+}
+.komentar-akcije button:hover {
+	color: var(--eb-orange, #FFA500);
+}
+.komentar-akcije button.komentar-akcija-obrisi:hover {
+	color: #e05a5a;
+}
+
+.komentar-prazno {
+	color: #999;
+	font-size: 13.5px;
+	margin: 0;
+}
+
+.komentar-forma {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.komentar-input {
+	flex: 1;
+	min-width: 0;
+	height: 40px;
+	padding: 0 14px;
+	border: 1.5px solid #e8e8e8;
+	border-radius: 999px;
+	background-color: #fff;
+	color: #333;
+	font-size: 14px;
+	box-sizing: border-box;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.komentar-input:focus {
+	outline: none;
+	border-color: var(--eb-orange, #FFA500);
+	box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.15);
+}
+.komentar-posalji {
+	flex-shrink: 0;
+	height: 40px;
+	padding: 0 18px;
+	border: 0;
+	border-radius: 999px;
+	background-color: var(--eb-orange, #FFA500);
+	color: #fff;
+	font-size: 13.5px;
+	font-weight: 700;
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+.komentar-posalji:hover {
+	background-color: #ff9800;
+}
+
+@media (max-width: 560px) {
+	.dogadjaj-card-header {
+		padding: 14px 16px 10px;
+	}
+	.dogadjaj-card-body {
+		padding: 0 16px 14px;
+	}
+	.dogadjaj-card-comments {
+		padding: 14px 16px;
+	}
+	.dogadjaj-card-reakcija {
+		min-width: 100%;
+	}
+	.dogadjaj-card-avatar {
+		width: 40px;
+		height: 40px;
+	}
 }
 
 

@@ -13,7 +13,7 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
   const [izabraniKomentarId, setIzabraniKomentarId] = useState(null);
   const [izmenjenTekstKomentara, setIzmenjenTekstKomentara] = useState('');
   const [korisnik, setKorisnik] = useState(null);
-  
+
 
   // GET KOMENTARA
   useEffect(() => {
@@ -97,97 +97,83 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
     }
   };
 
-  
+
 
   return (
-    <div>
+    <div className="komentar-wrap">
       {komentari.length > 0 && dogadjajId === prikazaniDogadjaj ? (
-        <div className="comment-sec" >
-          <ul>
+        <ul className="komentar-lista">
 
-            {komentari[0].komentari.map((komentar) => (  //MORA komentari[0] jer niz komentari sadrzi samo jedan objekat koji ima svoje polje komentari, a unutar tog polja se nalazi niz nasih komentara
+          {komentari[0].komentari.map((komentar) => (  //MORA komentari[0] jer niz komentari sadrzi samo jedan objekat koji ima svoje polje komentari, a unutar tog polja se nalazi niz nasih komentara
 
-              <li key={komentar.id}>
-                <div className="comment-list">
-                  <div className="bg-img">
-                  <img 
-                  className='slikakorisnikakomentar'  
-                   src={komentar.slikaKorisnika ? `${API_BASE}/resources/${komentar.slikaKorisnika}` : "http://via.placeholder.com/40x40"}
-            />
-            
+            <li key={komentar.id} className="komentar-item">
+              <img
+                className="komentar-avatar"
+                src={komentar.slikaKorisnika ? `${API_BASE}/resources/${komentar.slikaKorisnika}` : "http://via.placeholder.com/40x40"}
+              />
 
-                  </div>
-                  <div className="comment">
-                    <h3>{komentar.username_korisnika}</h3>
-                    <span>
-                      <img src="/images/clock.png" alt="" />
-                      3 min ago
-                    </span>
-                    <p>
-                      {izabraniKomentarId === komentar.id ? (
-                        <input
-                          type="text"
-                          value={izmenjenTekstKomentara}
-                          onChange={(e) => setIzmenjenTekstKomentara(e.target.value)}
-                        />
-                      ) : (
-                        komentar.tekst
-                      )}
-                    </p>
-                    {korisnik && korisnik.korisnicko_Ime === komentar.username_korisnika ? (
-                      <div className="comment-buttons">
+              <div className="komentar-sadrzaj">
+                <div className="komentar-bubble">
+                  <h3>{komentar.username_korisnika}</h3>
+                  {izabraniKomentarId === komentar.id ? (
+                    <input
+                      className="komentar-edit-input"
+                      type="text"
+                      value={izmenjenTekstKomentara}
+                      onChange={(e) => setIzmenjenTekstKomentara(e.target.value)}
+                    />
+                  ) : (
+                    <p>{komentar.tekst}</p>
+                  )}
+                </div>
+                <div className="komentar-footer">
+                  <span className="komentar-vreme">
+                    <i className="la la-clock-o" /> 3 min ago
+                  </span>
+                  {korisnik && korisnik.korisnicko_Ime === komentar.username_korisnika && (
+                    <div className="komentar-akcije">
                       {izabraniKomentarId === komentar.id ? (
                         <>
-                          <button onClick={() => handleUpdateComment(komentar.id)}>
+                          <button type="button" onClick={() => handleUpdateComment(komentar.id)}>
                             Sacuvaj
                           </button>
-                          <button onClick={() => setIzabraniKomentarId(null)}>
+                          <button type="button" onClick={() => setIzabraniKomentarId(null)}>
                             Odustani
                           </button>
                         </>
                       ) : (
-                        <button onClick={() => handleEditComment(komentar.id, komentar.tekst)}>
+                        <button type="button" onClick={() => handleEditComment(komentar.id, komentar.tekst)}>
                           Izmeni
                         </button>
                       )}
-                      <button onClick={() => handleDeleteComment(komentar.id)}>
+                      <button type="button" className="komentar-akcija-obrisi" onClick={() => handleDeleteComment(komentar.id)}>
                         Obrisi
                       </button>
                     </div>
-                    ) : (console.log("Nema brt"))}
-                      
-                    
-                  </div>
+                  )}
                 </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+              </div>
+            </li>
+          ))}
+        </ul>
       ) : (
-        <p>Trenutno nema komentara.</p>
+        <p className="komentar-prazno">Trenutno nema komentara.</p>
       )}
 
 
-      <div className="post-comment">
-        <div className="cm_img">
-
-        <img 
-                  className='slikakorisnikakomentar'  
-                   src={korisnikovaSlika ? `${API_BASE}/resources/${korisnikovaSlika}` : "http://via.placeholder.com/40x40"}
-            />
-
-        </div>
-        <div className="comment_box">
-          <form onSubmit={handleFormSubmit}>
-            <input
-              type="text"
-              placeholder="Postavi komentar"
-              value={noviKomentar}
-              onChange={handleInputChange} />
-            <button type="submit">Salji</button>
-          </form>
-        </div>
-      </div>
+      <form className="komentar-forma" onSubmit={handleFormSubmit}>
+        <img
+          className="komentar-avatar"
+          src={korisnikovaSlika ? `${API_BASE}/resources/${korisnikovaSlika}` : "http://via.placeholder.com/40x40"}
+        />
+        <input
+          className="komentar-input"
+          type="text"
+          placeholder="Postavi komentar"
+          value={noviKomentar}
+          onChange={handleInputChange} />
+        <button type="submit" className="komentar-posalji">Salji</button>
+      </form>
     </div>
   );
 };

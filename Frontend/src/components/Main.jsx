@@ -13,60 +13,22 @@ import { useNotifications } from '../notifications';
 import { useNavigate } from 'react-router-dom';
 
 
-function Main({ onNapraviDogadjaj }) {
+function Main({ onNapraviDogadjaj, noviDogadjaj }) {
 
   const { userId } = useAuth();
   const { notifications } = useNotifications();
-//  RADIO BUTTONI!
-  const [originalColor, setOriginalColor] = useState('');
   const [korisnik, setKorisnik] = useState(null);
   const [mojdatum, setmojdatum] = useState();
   const [NazivPicker, setNazivPicker] = useState("");
   const [NazivZaSlanje, setNazivZaSlanje] = useState("default");
 
-  
-
-  useEffect(() => {
-    const radio1 = document.getElementById('radio1');
-    const radio2 = document.getElementById('radio2');
-
-    setOriginalColor(window.getComputedStyle(radio1.parentElement).getPropertyValue('background-color'));
-
-    const handleClick = (event) => {
-      const clickedId = event.target.id;
-      if (clickedId === 'radio1' && !radio1.parentElement.classList.contains('changed-color')) {
-        radio1.parentElement.style.backgroundColor = 'rgba(255, 215, 0)';
-        radio1.parentElement.classList.add('changed-color');
-        radio2.parentElement.style.backgroundColor = '';
-        radio2.parentElement.classList.remove('changed-color');
-      } else if (clickedId === 'radio2' && !radio2.parentElement.classList.contains('changed-color')) {
-        radio2.parentElement.style.backgroundColor = 'rgba(255, 215, 0)';
-        radio2.parentElement.classList.add('changed-color');
-        radio1.parentElement.style.backgroundColor = '';
-        radio1.parentElement.classList.remove('changed-color');
-      } else {
-        radio1.parentElement.style.backgroundColor = originalColor;
-        radio1.parentElement.classList.remove('changed-color');
-        radio2.parentElement.style.backgroundColor = originalColor;
-        radio2.parentElement.classList.remove('changed-color');
-      }
-    };
-
-    radio1.addEventListener('click', handleClick);
-    radio2.addEventListener('click', handleClick);
-
-    return () => {
-      radio1.removeEventListener('click', handleClick);
-      radio2.removeEventListener('click', handleClick);
-    };
-  }, [originalColor]);
-
-
-
-  // [Faza 1] Uklonjen mrtav jQuery blok (kopija teme): vezivao je globalne
-  // click handlere na selektore koje ova komponenta ne renderuje. Prave interakcije
-  // (Header dropdown-ovi, login tabovi) vec imaju svoj React state u tim komponentama.
-
+  // Koji filter je trenutno aktivan - jedan izvor istine umesto rucnog
+  // pokazivanja/sakrivanja div-ova preko document.getElementById.
+  const [filterMode, setFilterMode] = useState('sve'); // 'sve' | 'datum' | 'naziv'
+  // Menja se samo kad se filter potpuno resetuje - <Dogadjaj key={feedKey}>
+  // se onda ponovo montira iz pocetka i sam ucita opsti feed (cisto, bez
+  // dodatne logike ovde za "vracanje" stare liste).
+  const [feedKey, setFeedKey] = useState(0);
 
   registerLocale("sr-Latn", srLatn);
   //#region JAVASCRIPT
@@ -78,43 +40,34 @@ function Main({ onNapraviDogadjaj }) {
 
 
   //#endregion
-  //#region 
-  // FUNKCIJA ZA OTVARANJE-ZATVARANJE radio-buttona KOD FILTRIRANJA !
-  function toggleDiv(id) {
-    var div = document.getElementById(id);
-    var otherDiv = (id === 'div1') ? 'div2' : 'div1';
-
-    if (div.style.display === 'block') {
-      div.style.display = 'none';
-    } else {
-      div.style.display = 'block';
-      document.getElementById(otherDiv).style.display = 'none';
-    }
-  }
-  //#endregion
   // za datum kod radio buttona
 
   const [datumPicker, setDatumPicker] = useState(() => new Date());
   const [dateZaSlanje, setDateZaSlanje] = useState(() => new Date("2000-01-01"));
 
-  const miniFunkcija = async () => {
+  const primeniDatumFilter = () => {
     const local = (new Date(`${datumPicker.getFullYear()}-${datumPicker.getMonth()+1}-${datumPicker.getDate()}`));
-    await Promise.all([
-      setDateZaSlanje(local),
-    ]);
+    setDateZaSlanje(local);
   }
-  
-  const miniFunkcija2 = async () => {
-    await Promise.all([
-      setNazivZaSlanje(NazivPicker),
-    ]);
+
+  const primeniNazivFilter = () => {
+    setNazivZaSlanje(NazivPicker);
   }
-  
+
+  const resetujFilter = () => {
+    setFilterMode('sve');
+    setDatumPicker(new Date());
+    setDateZaSlanje(new Date("2000-01-01"));
+    setNazivPicker("");
+    setNazivZaSlanje("default");
+    setFeedKey(k => k + 1);
+  }
+
   const promeniDatum = (datum) => {
     setDatumPicker(datum);
   }
-  
-  
+
+
   const promeniNaziv = (event) => {
     setNazivPicker(event.target.value);
   }
@@ -222,64 +175,6 @@ const handleClickObjava = (id) => {
                       </ul>
                     </div>{/*user-data end*/}
 
-                    {/* FILTRACIJA */}
-                    <div className="radio-div">
-                      <p className="filtriraj">Filtriraj sve dogadjaje po:</p>
-                      <label className="radio-label radio-label1" htmlFor="radio1">
-                        <img src="/images/date32.ico" />
-                        <input type="radio" className="radio-input" name="exampleRadios" id="radio1" defaultValue="option1" onClick={() => toggleDiv('div1')} />Datum
-                      </label>
-                      <label className="radio-label radio-label2" htmlFor="radio2">
-                        <img src="/images/abc96.png" />
-                        <input type="radio" className="radio-input" name="exampleRadios" id="radio2" defaultValue="option2" onClick={() => toggleDiv('div2')} />Naziv
-                      </label>
-                    </div>
-                    <div id="div1" style={{ display: 'none' }}>
-                      <h2 />
-                      <p>
-                      </p>
-                      <div className="pretrazivanje-datum">
-                        <div className="div-naslov">
-                          <h3>Pretrazi po datumu:</h3>
-                        </div>
-                        <div className="suggestion-usd">
-                          <div>
-                            <DatePicker
-                              locale="sr-Latn" //srpski jezik
-                              minDate={new Date()}
-                              //dateFormat="dd.MM.yyyy" // ormat datuma(01.01.2001)
-                              /*dayClassName={(date) =>
-                                date.getDay() === 0 || date.getDay() === 6 ? "weekend-day" : ""
-                              } */
-                              selected={datumPicker}
-                              onChange={(date) => promeniDatum(date)}   
-                              placeholderText="Izaberite datum"
-                            />
-                          </div>
-                        </div>
-
-
-                        <button className="pretrazi-button" onClick={() => { miniFunkcija() }}>Pretrazi</button>
-                      </div>
-                      <p />
-                    </div>
-                    <div id="div2" style={{ display: 'none' }}>
-                      <h2 />
-                      <p>
-                      </p><div className="pretrazivanje-naziv">
-                        <div className="div-naslov">
-                          <h3>Pretrazi po nazivu:</h3>
-
-                        </div>
-                        <p className="suggestion-usd">
-                        <input id="NazivPromena"className="datum-input" type="text" onChange={(event) => promeniNaziv(event)} />
-                        </p>
-                        <button className="pretrazi-button" type="submit" onClick={() => {miniFunkcija2()}}>Pretrazi</button>
-                      </div>
-                      <p />
-                    </div>
-
-
                   </div> {/*main-left-sidebar end*/}
                 </div>
                 <div className="col-lg-6 col-md-8 no-pd">
@@ -301,10 +196,77 @@ const handleClickObjava = (id) => {
                         </ul>
                       </div>{/*post-st end*/}
                     </div>{/*post-topbar end*/}
-                    <div className="posts-section" >
-                      <Dogadjaj primljenDatum={dateZaSlanje} primljenNaziv={NazivZaSlanje} onDogadjajIdChange={handleDogadjajId} />
 
-                      
+                    <div className="feed-filter">
+                      <div className="feed-filter-tabs">
+                        <button
+                          type="button"
+                          className={filterMode === 'sve' ? 'active' : ''}
+                          onClick={resetujFilter}
+                        >
+                          Svi dogadjaji
+                        </button>
+                        <button
+                          type="button"
+                          className={filterMode === 'datum' ? 'active' : ''}
+                          onClick={() => setFilterMode('datum')}
+                        >
+                          Po datumu
+                        </button>
+                        <button
+                          type="button"
+                          className={filterMode === 'naziv' ? 'active' : ''}
+                          onClick={() => setFilterMode('naziv')}
+                        >
+                          Po nazivu
+                        </button>
+                      </div>
+
+                      {filterMode === 'datum' && (
+                        <div className="feed-filter-controls">
+                          <DatePicker
+                            locale="sr-Latn"
+                            minDate={new Date()}
+                            selected={datumPicker}
+                            onChange={(datum) => promeniDatum(datum)}
+                            placeholderText="Izaberite datum"
+                            dateFormat="d.M.yyyy."
+                            calendarClassName="eb-calendar"
+                            className="feed-filter-input"
+                          />
+                          <button className="feed-filter-search-btn" onClick={primeniDatumFilter}>Pretrazi</button>
+                        </div>
+                      )}
+
+                      {filterMode === 'naziv' && (
+                        <div className="feed-filter-controls">
+                          <input
+                            type="text"
+                            className="feed-filter-input"
+                            placeholder="Naziv dogadjaja..."
+                            value={NazivPicker}
+                            onChange={(event) => promeniNaziv(event)}
+                          />
+                          <button className="feed-filter-search-btn" onClick={primeniNazivFilter}>Pretrazi</button>
+                        </div>
+                      )}
+
+                      {(dateZaSlanje.getTime() !== new Date("2000-01-01").getTime() || NazivZaSlanje !== "default") && (
+                        <div className="feed-filter-active-note">
+                          <span>
+                            {NazivZaSlanje !== "default"
+                              ? `Prikazani dogadjaji po nazivu: "${NazivZaSlanje}"`
+                              : `Prikazani dogadjaji za datum: ${datumPicker.toLocaleDateString('sr-Latn')}`}
+                          </span>
+                          <button className="feed-filter-reset" onClick={resetujFilter}>Prikazi sve</button>
+                        </div>
+                      )}
+                    </div>{/*feed-filter end*/}
+
+                    <div className="posts-section" >
+                      <Dogadjaj key={feedKey} primljenDatum={dateZaSlanje} primljenNaziv={NazivZaSlanje} onDogadjajIdChange={handleDogadjajId} noviDogadjaj={noviDogadjaj} />
+
+
                     </div>{/*posts-section end*/}
                     <div className="notifikacije-forma" style={{ display: 'none' }}>
                       <div className="notifikacije-content">

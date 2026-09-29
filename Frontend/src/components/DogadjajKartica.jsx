@@ -1,7 +1,7 @@
 import { api, API_BASE } from '../api';
 import React, { useState } from 'react';
 import HideShowMapa from './Hide&ShowMapa';
-import Komentari from './Komentari'; 
+import Komentari from './Komentari';
 import Reakcije from './Reakcije';
 
 // Jedna kartica dogadjaja - ceo prikaz (topbar, opis, mapa, reakcije, komentari,
@@ -15,7 +15,12 @@ import Reakcije from './Reakcije';
 //    po stringovima id-jeva kao pre - to je i pravilo dupla DOM id-jeva kad je
 //    vise kartica na stranici odjednom)
 //  - otvaranje komentara na jednoj kartici ne zatvara komentare na drugoj
-function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, className = 'post-bar' }) {
+//
+// Napomena o CSS klasama: kartica koristi sopstveni "dogadjaj-card-*" namespace
+// (public/css/style.css), NE stare "post-bar/job_descp/..." klase - one i dalje
+// koristi Profil.jsv koji ima svoju (nezavisnu, dupliranu) verziju kartice, pa
+// je dirati taj stari CSS ovde rizicno.
+function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, className = 'dogadjaj-card' }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [prikaziKomentare, setPrikaziKomentare] = useState(false);
 
@@ -68,100 +73,98 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
 
   return (
     <div
-      className={className}
+      className={`${className} ${dogadjaj._isNovi ? 'novi-dogadjaj' : ''}`}
       onClick={onOpen ? () => onOpen(dogadjaj) : undefined}
       style={onOpen ? { cursor: 'pointer' } : undefined}
     >
-      <div className="post_topbar">
-        <div className="usy-dt">
+      <div className="dogadjaj-card-header">
+        <div className="dogadjaj-card-author">
           <img
-            className="profilnaslikaobjava"
+            className="dogadjaj-card-avatar"
             src={dogadjaj.slikaKorisnika ? `${API_BASE}/resources/${dogadjaj.slikaKorisnika}` : "http://via.placeholder.com/50x50"}
           />
-          <div className="usy-name">
+          <div className="dogadjaj-card-author-info">
             <h3>@{dogadjaj.userName_Kreatora}</h3>
-            <span><img src="/images/clock.png" />{dogadjaj.formattedDatum}</span>
+            <span><i className="la la-clock-o" />{dogadjaj.formattedDatum}</span>
           </div>
         </div>
 
         {jeVlasnik && (
-          <div className={`ed-opts ${menuOpen ? 'active' : ''}`} onClick={stop}>
-            <a className="ed-opts-open" onClick={(e) => { stop(e); setMenuOpen(v => !v); }}>
+          <div className={`dogadjaj-card-menu ${menuOpen ? 'is-open' : ''}`} onClick={stop}>
+            <button type="button" className="dogadjaj-card-menu-btn" onClick={(e) => { stop(e); setMenuOpen(v => !v); }} aria-label="Opcije">
               <i className="la la-ellipsis-v" />
-            </a>
-            <ul className={`ed-options ${menuOpen ? 'active' : ''}`}>
-              <li><a className='opcijeobjava' onClick={(e) => { stop(e); onObrisi(dogadjaj.id); }}>Obrisi objavu</a></li>
+            </button>
+            <ul className="dogadjaj-card-menu-list">
+              <li><button type="button" onClick={(e) => { stop(e); onObrisi(dogadjaj.id); }}>Obrisi objavu</button></li>
             </ul>
           </div>
         )}
       </div>
 
-      <div className="job_descp">
-        <h3>{dogadjaj.naslov}</h3>
-        <ul className="job-dt">
-          <li><a href="#">{dogadjaj.kategorija}</a></li>
-          <li><span>{new Date(dogadjaj.datum_Dogadjaja).toLocaleDateString()} od {dogadjaj.vreme_pocetka}</span></li>
-        </ul>
-        <p>{dogadjaj.opis}</p>
+      <div className="dogadjaj-card-body">
+        <h3 className="dogadjaj-card-title">{dogadjaj.naslov}</h3>
+        <div className="dogadjaj-card-meta">
+          <span className="dogadjaj-card-badge">{dogadjaj.kategorija}</span>
+          <span className="dogadjaj-card-when">
+            <i className="la la-calendar" />
+            {new Date(dogadjaj.datum_Dogadjaja).toLocaleDateString()} od {dogadjaj.vreme_pocetka}
+          </span>
+        </div>
+        {dogadjaj.opis && <p className="dogadjaj-card-desc">{dogadjaj.opis}</p>}
         {dogadjaj.dogadjajImage && (
-          <img src={`${API_BASE}/resources/${dogadjaj.dogadjajImage}`} className="rounded float-left dogadjaj-slika" />
+          <img src={`${API_BASE}/resources/${dogadjaj.dogadjajImage}`} className="dogadjaj-card-image" />
         )}
         <HideShowMapa latitude={dogadjaj.x} longitude={dogadjaj.y} />
         <Reakcije dogadjaj_Id={dogadjaj.id} IDucitanidogadjaji={idsZaReakcije ?? [dogadjaj.id]} />
       </div>
 
-      <div className="job-status-bar">
-        <ul className="like-com d-flex">
-          <li className="komentardiv" onClick={(e) => { stop(e); setPrikaziKomentare(v => !v); }}>
-            <img src="/images/com.png" className="com-slika" />
-            <a href="#" className="com">Komentar</a>
-          </li>
-          <li className="prijavidiv" onClick={otvoriPrijavuFormu}>
-            <img src="/images/report17.png" />
-            <a href="#" className="report-to-admin">Prijavi objavu</a>
-          </li>
-
-          {prijaviFormaOtvorena && (
-            <>
-              <div className="popup-overlay" onClick={stop} style={{ display: 'block' }} />
-              <div className="popup-form" onClick={stop} style={{ display: 'block' }}>
-                <div className="form-options">
-                  <label><input type="radio" name={`opcija-${dogadjaj.id}`} defaultChecked onChange={() => setSelectedOption('nepozeljan')} /> Nepozeljan sadrzaj</label>
-                  <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('nasilje')} /> Nasilje</label>
-                  <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('terorizam')} /> Terorizam</label>
-                  <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('govor_mrznje')} /> Govor mrznje</label>
-                  <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('lazne_informacije')} /> Lazne informacije</label>
-                  <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('uznemiravanje')} /> Uznemiravanje</label>
-                  <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('ostalo')} /> Ostalo</label>
-                </div>
-                {selectedOption === 'ostalo' && (
-                  <div className="form-ostalo">
-                    <label>Opisite nam razlog prijave:</label>
-                    <textarea rows={3} value={opis} onChange={(e) => setOpis(e.target.value)} />
-                  </div>
-                )}
-                <div className="form-buttons">
-                  <button className="btn-otkazi" onClick={(e) => { stop(e); zatvoriPrijavuFormu(); }}>Otkazi</button>
-                  <button className="btn-prijavi" onClick={posaljiPrijavu}>Prijavi</button>
-                </div>
-              </div>
-            </>
-          )}
-
-          {prijavaPoslata && (
-            <>
-              <div className="overlay1" onClick={stop} style={{ display: 'block' }} />
-              <div className="popup" onClick={stop} style={{ display: 'block' }}>
-                <span className="close" onClick={(e) => { stop(e); setPrijavaPoslata(false); }}>×</span>
-                <p>Uspesno ste prijavili objavu koja krsi pravila zajednice. Administrator ce uskoro pregledati vasu prijavu. Hvala!</p>
-              </div>
-            </>
-          )}
-        </ul>
+      <div className="dogadjaj-card-actions">
+        <button type="button" className="dogadjaj-card-action" onClick={(e) => { stop(e); setPrikaziKomentare(v => !v); }}>
+          <i className="la la-comment" /> Komentar
+        </button>
+        <button type="button" className="dogadjaj-card-action" onClick={otvoriPrijavuFormu}>
+          <i className="la la-flag" /> Prijavi objavu
+        </button>
       </div>
 
+      {prijaviFormaOtvorena && (
+        <div className="dogadjaj-modal-overlay" onClick={(e) => { stop(e); zatvoriPrijavuFormu(); }}>
+          <div className="dogadjaj-modal-card" onClick={stop}>
+            <h4>Prijavi objavu</h4>
+            <div className="dogadjaj-report-options">
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} defaultChecked onChange={() => setSelectedOption('nepozeljan')} /> Nepozeljan sadrzaj</label>
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('nasilje')} /> Nasilje</label>
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('terorizam')} /> Terorizam</label>
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('govor_mrznje')} /> Govor mrznje</label>
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('lazne_informacije')} /> Lazne informacije</label>
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('uznemiravanje')} /> Uznemiravanje</label>
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('ostalo')} /> Ostalo</label>
+            </div>
+            {selectedOption === 'ostalo' && (
+              <div className="dogadjaj-report-ostalo">
+                <label>Opisite nam razlog prijave:</label>
+                <textarea rows={3} value={opis} onChange={(e) => setOpis(e.target.value)} />
+              </div>
+            )}
+            <div className="dogadjaj-modal-actions">
+              <button type="button" className="dogadjaj-modal-cancel" onClick={(e) => { stop(e); zatvoriPrijavuFormu(); }}>Otkazi</button>
+              <button type="button" className="dogadjaj-modal-submit" onClick={posaljiPrijavu}>Prijavi</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {prijavaPoslata && (
+        <div className="dogadjaj-modal-overlay" onClick={(e) => { stop(e); setPrijavaPoslata(false); }}>
+          <div className="dogadjaj-modal-card dogadjaj-modal-card-sm" onClick={stop}>
+            <button type="button" className="dogadjaj-modal-close" onClick={(e) => { stop(e); setPrijavaPoslata(false); }} aria-label="Zatvori">×</button>
+            <p>Uspesno ste prijavili objavu koja krsi pravila zajednice. Administrator ce uskoro pregledati vasu prijavu. Hvala!</p>
+          </div>
+        </div>
+      )}
+
       {prikaziKomentare && (
-        <div className="comment-section" onClick={stop}>
+        <div className="dogadjaj-card-comments" onClick={stop}>
           <Komentari
             dogadjajId={dogadjaj.id}
             prikazaniDogadjaj={dogadjaj.id}
