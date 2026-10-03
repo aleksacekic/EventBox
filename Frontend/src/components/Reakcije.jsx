@@ -2,7 +2,8 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 import React, { useState, useEffect } from "react";
 
-function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
+// samoPrikaz: zavrsen dogadjaj - bez reagovanja, samo brojevi (prosledjuju se u `brojevi`)
+function Reakcije({ dogadjaj_Id, IDucitanidogadjaji, samoPrikaz = false, brojevi }) {
   const { userId } = useAuth();
   const [zainteresovanActive, setZainteresovanActive] = useState(false);
   const [mozdaActive, setMozdaActive] = useState(false);
@@ -11,6 +12,7 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
   const [aktivneReakcije, setAktivneReakcije] = useState({});
 
   useEffect(() => {
+    if (samoPrikaz) return;
     const fetchData = async () => {
       try {
         //console.log(IDucitanidogadjaji);
@@ -122,6 +124,22 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji }) {
   const handleNisamZainteresovanClick = () => {
     handleReactionClick("Nezainteresovan");
   };
+
+  if (samoPrikaz) {
+    return (
+      <div className="dogadjaj-card-reakcije">
+        <span className="dogadjaj-card-reakcija-ro dogadjaj-card-reakcija-da">
+          Zainteresovanih: {brojevi?.da ?? 0}
+        </span>
+        <span className="dogadjaj-card-reakcija-ro dogadjaj-card-reakcija-mozda">
+          Mozda: {brojevi?.mozda ?? 0}
+        </span>
+        <span className="dogadjaj-card-reakcija-ro dogadjaj-card-reakcija-ne">
+          Nezainteresovanih: {brojevi?.ne ?? 0}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="dogadjaj-card-reakcije">

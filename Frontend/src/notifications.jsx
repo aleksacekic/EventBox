@@ -14,7 +14,7 @@
 // ============================================================================
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { HubConnectionBuilder } from '@microsoft/signalr'
-import { api, API_BASE } from './api'
+import { api, API_BASE, ApiError } from './api'
 import { useAuth } from './auth'
 
 const NotificationsContext = createContext(null)
@@ -29,7 +29,11 @@ export function NotificationsProvider({ children }) {
       if (!id) return null
       return await api.get(`/Dogadjaj/VratiDogadjaj/${id}`)
     } catch (error) {
-      console.error('Greska pri dohvatanju dogadjaja:', error)
+      // 404 = dogadjaj je u medjuvremenu obrisan; stara notifikacija i dalje
+      // pokazuje na njega, to nije greska vredna logovanja
+      if (!(error instanceof ApiError && error.status === 404)) {
+        console.error('Greska pri dohvatanju dogadjaja:', error)
+      }
       return null
     }
   }, [])
@@ -57,10 +61,17 @@ export function NotificationsProvider({ children }) {
     if (!userId) return
     try {
       const data = await api.get(`/Korisnik/VratiPetNotifikacijaKorisnika/${userId}`)
+      // Vise notifikacija cesto gadja isti dogadjaj/korisnika - jedan zahtev po id-ju
+      const dogadjaji = new Map()
+      const korisnici = new Map()
+      const jednom = (mapa, id, fetchFn) => {
+        if (!mapa.has(id)) mapa.set(id, fetchFn(id))
+        return mapa.get(id)
+      }
       const mapirane = await Promise.all(
         data.map(async (not) => {
-          const dogadjaj = await fetchDogadjaj(not.dogadjajId)
-          const korisnik = await fetchKorisnik(not.korisnikKojiReagujeId)
+          const dogadjaj = await jednom(dogadjaji, not.dogadjajId, fetchDogadjaj)
+          const korisnik = await jednom(korisnici, not.korisnikKojiReagujeId, fetchKorisnik)
           return {
             reactionType: not.tipReakcije || null,
             commentText: not.sadrzajReakcije || null,
@@ -160,10 +171,16 @@ export function NotificationsProvider({ children }) {
       })
     })
 
-    connect.start().catch((err) => console.error('SignalR konekcija (notifikacije) nije uspela:', err))
+    let ugasena = false
+    connect.start().catch((err) => {
+      // StrictMode (dev) montira efekat dvaput: prvi connect se gasi usred
+      // pregovaranja i baca AbortError - to je ocekivano, ne greska
+      if (!ugasena) console.error('SignalR konekcija (notifikacije) nije uspela:', err)
+    })
     connectionRef.current = connect
 
     return () => {
+      ugasena = true
       connect.off('ReceiveNewReaction')
       connect.off('ReceiveNewComment')
       connect.off('ReceiveEventReport')

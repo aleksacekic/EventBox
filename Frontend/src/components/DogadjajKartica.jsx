@@ -4,6 +4,7 @@ import HideShowMapa from './Hide&ShowMapa';
 import Komentari from './Komentari';
 import Reakcije from './Reakcije';
 import moment from 'moment';
+import { jeZavrsen } from '../utils/dogadjaj';
 
 // Jedna kartica dogadjaja - ceo prikaz (topbar, opis, mapa, reakcije, komentari,
 // prijava sadrzaja) na jednom mestu. Koristi ga i feed (Dogadjaj.jsx, lista) i
@@ -31,6 +32,7 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
   const [opis, setOpis] = useState('');
 
   const jeVlasnik = dogadjaj.iD_Kreatora === korisnik.id;
+  const zavrsen = jeZavrsen(dogadjaj);
 
   const stop = (e) => e.stopPropagation(); // da klik unutar kartice ne otvori i onOpen
 
@@ -106,6 +108,7 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
         <h3 className="dogadjaj-card-title">{dogadjaj.naslov}</h3>
         <div className="dogadjaj-card-meta">
           <span className="dogadjaj-card-badge">{dogadjaj.kategorija}</span>
+          {zavrsen && <span className="dogadjaj-card-badge dogadjaj-card-badge-zavrsen">Zavrsen</span>}
           <span className="dogadjaj-card-when">
             <i className="la la-calendar" />
             {moment(dogadjaj.datum_Dogadjaja).format('DD.MM.YYYY.')} od {dogadjaj.vreme_pocetka}
@@ -116,7 +119,16 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
           <img src={`${API_BASE}/resources/${dogadjaj.dogadjajImage}`} className="dogadjaj-card-image" />
         )}
         <HideShowMapa latitude={dogadjaj.x} longitude={dogadjaj.y} />
-        <Reakcije dogadjaj_Id={dogadjaj.id} IDucitanidogadjaji={idsZaReakcije ?? [dogadjaj.id]} />
+        <Reakcije
+          dogadjaj_Id={dogadjaj.id}
+          IDucitanidogadjaji={idsZaReakcije ?? [dogadjaj.id]}
+          samoPrikaz={zavrsen}
+          brojevi={{
+            da: dogadjaj.broj_Zainteresovanih,
+            mozda: dogadjaj.broj_Mozda,
+            ne: dogadjaj.broj_Nezainteresovanih,
+          }}
+        />
       </div>
 
       <div className="dogadjaj-card-actions">

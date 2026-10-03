@@ -46,13 +46,13 @@ namespace EventBoxApi.Repo.Implementation
 
         public bool DeleteImage(string imageFileName)
         {
-            //var wwwPath = this.environment.WebRootPath;
-            //var path = Path.Combine(wwwPath, "Uploads\", imageFileName);
-            var path = "D:\\OneDrive\\OneDrive - Faculty of Electronic Engineering\\Radna površina\\EventBoxApi\\Uploads\\"+imageFileName;
-            //Console.WriteLine(path);
+            if (string.IsNullOrWhiteSpace(imageFileName))
+                return false;
+
+            // GetFileName: ime fajla ne sme da izadje iz Uploads foldera (npr. "..\..\x")
+            var path = Path.Combine(this.environment.ContentRootPath, "Uploads", Path.GetFileName(imageFileName));
             if (System.IO.File.Exists(path))
             {
-                //Console.WriteLine("PATH PROSAO: "+path);
                 System.IO.File.Delete(path);
                 return true;
             }

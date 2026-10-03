@@ -1,6 +1,6 @@
 import { api, API_BASE } from '../api';
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { useAuth } from "../auth";
 import Footer from "../components/Footer";
@@ -179,6 +179,18 @@ const Chat = () => {
     }, 100);
   };
 
+  // /chat?korisnik=<id> (npr. dugme "Posalji poruku" na profilu) otvara razgovor sa tim korisnikom
+  const [searchParams] = useSearchParams();
+  const ciljniId = searchParams.get("korisnik");
+  const ciljOtvoren = useRef(false);
+  useEffect(() => {
+    if (!ciljniId || ciljOtvoren.current || sviKorisnici.length === 0) return;
+    const cilj = sviKorisnici.find((user) => String(user.id) === ciljniId);
+    if (!cilj) return;
+    ciljOtvoren.current = true;
+    handleUserClick(cilj);
+  }, [ciljniId, sviKorisnici]);
+
   const handleProcitaj = (user) => {
     api.put(`/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`);
   };
@@ -218,11 +230,17 @@ const Chat = () => {
     setNewMessage("");
   };
 
+  // Izabrani korisnik se uvek vidi u sidebar-u, i kad sa njim jos nije bilo poruka
+  const chatKorisnici =
+    selectedUser && !users.some((user) => user.id === selectedUser.id)
+      ? [selectedUser, ...users]
+      : users;
+
   const sortedUsers = [
     ...messageSenders
-      .map((id) => users.find((user) => user.id === id))
+      .map((id) => chatKorisnici.find((user) => user.id === id))
       .filter(Boolean),
-    ...users.filter((user) => !messageSenders.includes(user.id)),
+    ...chatKorisnici.filter((user) => !messageSenders.includes(user.id)),
   ];
 
   const handleMessClick = (index) => {

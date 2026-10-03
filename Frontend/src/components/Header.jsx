@@ -1,45 +1,32 @@
 import { api, API_BASE } from '../api';
 import { useAuth } from '../auth';
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
-import moment from "moment";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 
-import { useNavigate } from "react-router-dom";
+const NAV_STAVKE = [
+  { to: "/pocetna", label: "Pocetna", ikona: "la-home" },
+  { to: "/profil", label: "Profil", ikona: "la-user" },
+  { to: "/chat", label: "Poruke", ikona: "la-envelope" },
+];
 
 function Header() {
   const { userId } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [korisnik, setKorisnik] = useState(null);
-  const [mojdatum, setmojdatum] = useState();
-  const [isActive, setIsActive] = useState(false);
-  const [neprocitanePoruke, setNeprocitanePoruke] = useState(0);
-
   const navigate = useNavigate();
 
-  const toggleActive = () => {
-    setIsActive(!isActive);
-  };
-
-  const prosledi = (id) => {
-    navigate(`/profilkorisnika/${id}`);
-  };
-
-  const handleMenuToggle = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const handleMenuClickOutside = () => {
-    setIsMenuOpen(false);
-  };
+  const [korisnik, setKorisnik] = useState(null);
+  const [meniOtvoren, setMeniOtvoren] = useState(false);
+  const [neprocitanePoruke, setNeprocitanePoruke] = useState(0);
 
   const [searchResults, setSearchResults] = useState([]);
   const [searchValue, setSearchValue] = useState("");
   const searchRef = useRef();
+  const profilRef = useRef();
 
-  function prikaziFormu() {
-    var forma = document.querySelector(".notifikacije-forma");
-    forma.style.display = "flex";
-  }
+  const prosledi = (id) => {
+    setSearchResults([]);
+    setSearchValue("");
+    navigate(`/profilkorisnika/${id}`);
+  };
 
   async function handleSearchSubmit(e) {
     e.preventDefault();
@@ -56,17 +43,28 @@ function Header() {
     }
   }
 
-  function handleClickOutside(event) {
-    if (searchRef.current && !searchRef.current.contains(event.target)) {
-      setSearchResults([]);
-    }
-  }
-
+  // Klik van pretrage zatvara rezultate, klik van profila zatvara padajuci meni
   useEffect(() => {
-    document.addEventListener("click", handleClickOutside);
+    function handleClickOutside(event) {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchResults([]);
+      }
+      if (profilRef.current && !profilRef.current.contains(event.target)) {
+        setMeniOtvoren(false);
+      }
+    }
+    function handleEsc(event) {
+      if (event.key === "Escape") {
+        setMeniOtvoren(false);
+        setSearchResults([]);
+      }
+    }
 
+    document.addEventListener("click", handleClickOutside);
+    document.addEventListener("keydown", handleEsc);
     return () => {
       document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("keydown", handleEsc);
     };
   }, []);
 
@@ -96,22 +94,20 @@ function Header() {
     ucitajKorisnika();
   }, []);
 
-  const formatirajDatum = (datum) => {
-    return moment(datum).format("DD.MM.YYYY");
-  };
-
   const ucitajKorisnika = async () => {
     try {
-      const korisnik_Id = userId;
-      const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
-      const formatiranDatum = formatirajDatum(data.datum_rodjenja);
-      data.datumrodjenja = formatiranDatum;
+      const data = await api.get(`/Korisnik/VratiKorisnika_ID/${userId}`);
       setKorisnik(data);
-      setmojdatum(formatiranDatum);
     } catch (error) {
       console.log(error);
     }
   };
+
+  // Profil.jsx javlja kad se promeni profilna slika, da avatar u headeru ne kasni do refresha
+  useEffect(() => {
+    window.addEventListener("korisnik-azuriran", ucitajKorisnika);
+    return () => window.removeEventListener("korisnik-azuriran", ucitajKorisnika);
+  }, []);
 
   useEffect(() => {
     const korisnik_Id = userId;
@@ -132,167 +128,106 @@ function Header() {
     return () => clearInterval(interval);
   }, []);
 
+  const avatarSrc =
+    korisnik && korisnik.korisnikImage
+      ? `${API_BASE}/resources/${korisnik.korisnikImage}`
+      : "http://via.placeholder.com/50x50";
+
   return (
-    <div>
-      <header>
-        <div className="container">
-          <div className="header-data">
-            <div className="logo">
-              <Link to="/pocetna">
-                <a href="index.html">
-                  <img src="/images/logosajt(4).ico" />
-                </a>
-              </Link>
-            </div>
-            <div className="search-bar" ref={searchRef}>
-              <form onSubmit={handleSearchSubmit}>
-                <input
-                  type="text"
-                  name="search"
-                  placeholder="Pretrazi korisnike..."
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  autoComplete="off"
-                />
-                <button type="submit">
-                  <i className="la la-search" />
-                </button>
-                {/* Prikaz rezultata pretrage */}
-                {searchResults.length > 0 && (
-                  <div className="search-results">
-                    <ul className="search-results-list">
-                      {searchResults.map((result) => (
-                        <li key={result.id} className="search-result-item">
-                          <div
-                            className="search-podaci"
-                            onClick={() => {
-                              prosledi(result.id);
-                            }}
-                          >
-                            <span className="prvispansearch">
-                              @{result.korisnicko_Ime}
-                            </span>
-                            <span>
-                              {result.ime} {result.prezime}
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </form>
-            </div>
-            <nav
-              className={isMenuOpen ? "active" : ""}
-              onClick={handleMenuClickOutside}
-            >
-              <h3 className="odeljcihamburgermenu" style={{ display: "none" }}>
-                Odeljci
-              </h3>
-              <ul>
-                <li>
-                  <a style={{ display: "block" }}>
-                    <span>
-                      <img src="/images/icon1.png" />
-                    </span>
-                    <Link to="/pocetna">Pocetna</Link>
-                  </a>
-                </li>
-                <li>
-                  <a>
-                    <span>
-                      <img src="/images/icon4.png" />
-                    </span>
-                    <Link to="/profil">Profil</Link>
-                  </a>
-                </li>
-                {/* <li class="chat-icon">
-                  <a>
-                    <span>
-                      <img src="/images/icon6.png" />
+    <header className="app-header">
+      <div className="app-header-inner container">
+        <div className="app-header-left">
+          <Link to="/pocetna" className="app-header-logo" aria-label="Pocetna">
+            <img src="/images/logosajt(4).ico" alt="EventBox" />
+          </Link>
 
-                      <div className="notification-badge">
-                        {neprocitanePoruke}
-                      </div>
-                    </span>
-                    <Link to="/chat">Poruke</Link>
-                  </a>
-                </li> */}
-                <li className="chat-icon">
-                  <Link to="/chat" className="chat-link">
-                    <span className="chat-icon-container">
-                      <img src="/images/icon6.png" alt="Poruke" />
-                      {neprocitanePoruke > 0 && (
-                        <div className="notification-badge">
-                          {neprocitanePoruke}
-                        </div>
-                      )}
-                    </span>
-                    Poruke
-                  </Link>
-                </li>
+          <div className="app-header-search" ref={searchRef}>
+            <form onSubmit={handleSearchSubmit}>
+              <i className="la la-search" />
+              <input
+                type="text"
+                name="search"
+                placeholder="Pretrazi korisnike..."
+                aria-label="Pretrazi korisnike"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                autoComplete="off"
+              />
+            </form>
 
-                <li>
-                  <a
-                    href="#"
-                    className="not-box-open notifikacije-u-hederu"
-                    onClick={prikaziFormu}
-                    style={{ display: "none" }}
-                  >
-                    <span>
-                      <img src="/images/icon7.png" />
-                    </span>
-                    Notifikacije
-                  </a>
-                </li>
+            {searchResults.length > 0 && (
+              <ul className="app-header-results">
+                {searchResults.map((result) => (
+                  <li key={result.id}>
+                    <button type="button" onClick={() => prosledi(result.id)}>
+                      <span className="app-header-results-avatar">
+                        {(result.ime || result.korisnicko_Ime || "?").charAt(0)}
+                      </span>
+                      <span className="app-header-results-text">
+                        <strong>{result.ime} {result.prezime}</strong>
+                        <small>@{result.korisnicko_Ime}</small>
+                      </span>
+                    </button>
+                  </li>
+                ))}
               </ul>
-            </nav>
-            <div className="menu-btn">
-              <a href="#" onClick={handleMenuToggle}>
-                <i className="fa fa-bars" />
-              </a>
-            </div>
-            <div className="user-account">
-              {korisnik ? (
-                <>
-                  <div className="user-info">
-                    <img
-                      className="profilnaslikaheader"
-                      src={
-                        korisnik.korisnikImage
-                          ? `${API_BASE}/resources/${korisnik.korisnikImage}`
-                          : "http://via.placeholder.com/50x50"
-                      }
-                    />
-                    <a href="#">{korisnik.ime}</a>
-                    <i
-                      className={`la la-sort-down ${isActive ? "active" : ""}`}
-                      onClick={toggleActive}
-                    />
-                  </div>
-                  {isActive && (
-                    <div className="user-account-settingss active">
-                      {/* <h3>Podesavanja</h3>
-                      <ul className="us-links">
-                        <li><a href="profile-account-setting.html">Podesavanja profila</a></li>
-                      </ul> */}
-                      <h3 className="tc">
-                        <Link to="/">
-                          <a className="odjavise">Odjavi se</a>
-                        </Link>
-                      </h3>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p>Korisnik nije dostupan</p>
-              )}
-            </div>
+            )}
           </div>
         </div>
-      </header>
-    </div>
+
+        <div className="app-header-nav" role="navigation" aria-label="Glavna navigacija">
+          {NAV_STAVKE.map((stavka) => (
+            <NavLink
+              key={stavka.to}
+              to={stavka.to}
+              title={stavka.label}
+              className={({ isActive }) => `app-header-link ${isActive ? "is-active" : ""}`}
+            >
+              <span className="app-header-link-icon">
+                <i className={`la ${stavka.ikona}`} />
+                {stavka.to === "/chat" && neprocitanePoruke > 0 && (
+                  <span className="app-header-badge">
+                    {neprocitanePoruke > 99 ? "99+" : neprocitanePoruke}
+                  </span>
+                )}
+              </span>
+              <span className="app-header-link-label">{stavka.label}</span>
+            </NavLink>
+          ))}
+        </div>
+
+        <div className="app-header-right" ref={profilRef}>
+          {korisnik ? (
+            <>
+              <button
+                type="button"
+                className={`app-header-profile ${meniOtvoren ? "is-open" : ""}`}
+                onClick={() => setMeniOtvoren((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={meniOtvoren}
+              >
+                <img className="app-header-avatar" src={avatarSrc} alt="" />
+                <span className="app-header-profile-name">{korisnik.ime}</span>
+                <i className="la la-angle-down app-header-chevron" />
+              </button>
+
+              {meniOtvoren && (
+                <div className="app-header-menu" role="menu">
+                  <Link to="/profil" role="menuitem" onClick={() => setMeniOtvoren(false)}>
+                    <i className="la la-user" /> Moj profil
+                  </Link>
+                  <Link to="/" role="menuitem" className="is-danger">
+                    <i className="la la-sign-out" /> Odjavi se
+                  </Link>
+                </div>
+              )}
+            </>
+          ) : (
+            <span className="app-header-profile-name">Korisnik nije dostupan</span>
+          )}
+        </div>
+      </div>
+    </header>
   );
 }
 

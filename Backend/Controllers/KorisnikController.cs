@@ -207,6 +207,31 @@ namespace EventBoxApi.Controllers
             return Ok(status);
         }
 
+        [HttpGet]
+        [EnableCors("CORS")]
+        [Route("VratiKategorijeKorisnika/{korisnik_Id}")]
+        public async Task<ActionResult> VratiKategorijeKorisnika(int korisnik_Id)
+        {
+            try
+            {
+                await Validnost.Validiraj(Context, Request);
+
+                var kategorije = await Context.Dogadjaji
+                    .Where(d => d.ID_Kreatora == korisnik_Id)
+                    .GroupBy(d => d.Kategorija)
+                    .Select(g => new { Kategorija = g.Key, Broj = g.Count() })
+                    .OrderByDescending(x => x.Broj)
+                    .ThenBy(x => x.Kategorija)
+                    .ToListAsync();
+
+                return Ok(kategorije);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest("Nije uspelo vracanje kategorija korisnika: " + ex.Message);
+            }
+        }
+
         [HttpDelete]
         [EnableCors("CORS")]
         [Route("IzbrisiSlikuKorisnika/{korisnik_id}")]
@@ -214,16 +239,18 @@ namespace EventBoxApi.Controllers
         {
             try
             {
-                Korisnik k = await Context.Korisnici.FindAsync(korisnik_id);
-                if(_fileService.DeleteImage(k.KorisnikImage))
-                {
-                    k.KorisnikImage = null;
-                    await Context.SaveChangesAsync();
-                    return Ok("Uspesno izbrisana slika");
-                }
-                return BadRequest("Nije uspesno obrisano");
-                                
-                
+                Korisnik k = await Context.Korisnici.Where(p => p.Id == korisnik_id).Include(p => p.Kreirani_Dogadjaji).FirstOrDefaultAsync();
+                if(k == null)
+                    return BadRequest("Korisnik ne postoji");
+
+                // Fajl moze vec da fali na disku - referenca u bazi se svakako cisti
+                _fileService.DeleteImage(k.KorisnikImage);
+                k.KorisnikImage = null;
+                // Dogadjaji cuvaju kopiju slike kreatora (vidi AddImage) - da ne pokazuju na obrisan fajl.
+                // Kolona je NOT NULL, zato prazan string umesto null.
+                k.Kreirani_Dogadjaji.ForEach(d => d.SlikaKorisnika = "");
+                await Context.SaveChangesAsync();
+                return Ok("Uspesno izbrisana slika");
             }
             catch(Exception ex)
             {
