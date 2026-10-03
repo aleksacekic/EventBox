@@ -9,6 +9,8 @@ import Chat from "./Pages/Chat";
 import { AuthProvider, RequireAuth } from "./auth";
 import { NotificationsProvider } from "./notifications";
 import { GoogleMapsProvider } from "./maps";
+import InfoStranica from "./Pages/InfoStranica";
+import { INFO_STRANICE } from "./infoStranice";
 
 function App() {
   return (
@@ -28,6 +30,9 @@ function App() {
             <Route path="/admin" element={<RequireAuth><Admin /></RequireAuth>} />
             <Route path="/objava/:id" element={<RequireAuth><DogadjajZasebno /></RequireAuth>} />
             <Route path="/chat" element={<RequireAuth><Chat /></RequireAuth>} />
+            {INFO_STRANICE.map((s) => (
+              <Route key={s.slug} path={s.putanja} element={<RequireAuth><InfoStranica slug={s.slug} /></RequireAuth>} />
+            ))}
           </Routes>
         </div>
       </Router>

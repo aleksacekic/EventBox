@@ -7,6 +7,11 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace EventBoxApi.Controllers
 {
+    public class KomentarZahtev
+    {
+        public string Tekst { get; set; }
+    }
+
     [ApiController]
     [Route("[controller]")]
     public class KomentarController : ControllerBase
@@ -21,11 +26,16 @@ namespace EventBoxApi.Controllers
 
         [HttpPost]
         [EnableCors("CORS")]
-        [Route("PostaviKomentar/{tekst}/{korisnik_Id}/{dogadjaj_Id}")]
-        public async Task<ActionResult> PostaviKomentar(string tekst, int korisnik_Id, int dogadjaj_Id)
+        [Route("PostaviKomentar/{korisnik_Id}/{dogadjaj_Id}")]
+        public async Task<ActionResult> PostaviKomentar(int korisnik_Id, int dogadjaj_Id, [FromBody] KomentarZahtev zahtev)
         {
             try
             {
+                // Tekst ide u telu zahteva, ne u URL-u - inace znaci poput / ? # kvare rutu
+                string tekst = zahtev?.Tekst;
+                if(string.IsNullOrWhiteSpace(tekst))
+                    return BadRequest("Komentar ne sme biti prazan");
+
 		await Validnost.Validiraj(Context, Request);
                 Korisnik kor = await Context.Korisnici.FindAsync(korisnik_Id);
                 Dogadjaj d = await Context.Dogadjaji.FindAsync(dogadjaj_Id);
@@ -64,12 +74,15 @@ namespace EventBoxApi.Controllers
         [HttpPut]
         [EnableCors("CORS")]
         [Route("IzmeniKomentar")]
-        public async Task<ActionResult> IzmeniKomentar (int id, string tekst)
+        public async Task<ActionResult> IzmeniKomentar (int id, [FromBody] KomentarZahtev zahtev)
         {
             try
             {
+                if(string.IsNullOrWhiteSpace(zahtev?.Tekst))
+                    return BadRequest("Komentar ne sme biti prazan");
+
                 Komentar k = await Context.Komentari.FindAsync(id);
-                k.Tekst = tekst;
+                k.Tekst = zahtev.Tekst;
 
                 Context.Komentari.Update(k);
                 await Context.SaveChangesAsync();

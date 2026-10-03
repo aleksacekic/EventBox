@@ -1,10 +1,39 @@
 import { api, API_BASE } from '../api';
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { useAuth } from "../auth";
-import Footer from "../components/Footer";
 import Header from "../components/Header";
+
+// Server salje vreme bez oznake zone (UTC); lokalne poruke su ISO stringovi.
+const uDatum = (vreme) => {
+  if (!vreme) return null;
+  if (/[zZ]|[+-]\d\d:?\d\d$/.test(vreme)) return new Date(vreme);
+  const d = new Date(vreme + "Z");
+  return isNaN(d) ? new Date(vreme) : d;
+};
+
+const formatVreme = (vreme) => {
+  const d = uDatum(vreme);
+  if (!d || isNaN(d)) return "";
+  return d.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit", hour12: false });
+};
+
+const imePrezime = (u) => `${u.ime ?? ""} ${u.prezime ?? ""}`.trim();
+
+function Avatar({ user, className = "" }) {
+  return user.korisnikImage ? (
+    <img
+      className={`poruke-avatar ${className}`}
+      src={`${API_BASE}/resources/${user.korisnikImage}`}
+      alt=""
+    />
+  ) : (
+    <span className={`poruke-avatar poruke-avatar-inicijal ${className}`}>
+      {(user.ime || user.korisnicko_Ime || "?").charAt(0)}
+    </span>
+  );
+}
 
 const Chat = () => {
   const [selectedUser, setSelectedUser] = useState(null); //trenutno izabrani korisnik za chat
@@ -14,7 +43,6 @@ const Chat = () => {
   const [users, setUsers] = useState([]); //lista korisnika koji su dostupni za chat
   const [messageSenders, setMessageSenders] = useState([]); //korisnici koji su poslali novu poruku
   const [korisnik, setKorisnik] = useState(null); //trenutno ulogovani korisnik
-  const [timeVisibility, setTimeVisibility] = useState({}); //vreme poruke
   const [showSearch, setShowSearch] = useState(false); //bool za prikaz pretrage korisnika za novu poruku
   const [sviKorisnici, setSviKorisnici] = useState([]); //svi korisnici
 
@@ -22,13 +50,19 @@ const Chat = () => {
   const [loading, setLoading] = useState(false); //dal se poruke ucitavaju
   const [hasMore, setHasMore] = useState(true); //dal ima jos poruka za ucitavanje
 
-  //ZA SKROL NA DNO
-  const messagesEndRef = useRef(null);
+  const chatMessagesRef = useRef(null);
+  const prevScrollHeightRef = useRef(0);
 
+  // Posle ucitavanja starijih poruka ostajemo na istom mestu; inace (nova poruka,
+  // otvaranje razgovora) skrolujemo na dno.
   useEffect(() => {
     const chatDiv = chatMessagesRef.current;
-    if (chatDiv && prevScrollHeightRef.current) {
+    if (!chatDiv) return;
+    if (prevScrollHeightRef.current) {
       chatDiv.scrollTop = chatDiv.scrollHeight - prevScrollHeightRef.current;
+      prevScrollHeightRef.current = 0;
+    } else {
+      chatDiv.scrollTop = chatDiv.scrollHeight;
     }
   }, [messages[selectedUser?.id]]);
 
@@ -58,10 +92,6 @@ const Chat = () => {
     try {
       // 1. dohvati ID-jeve korisnika sa kojima je kuminicirano
       const userIds = await api.get(`/Poruka/VratiKorisnikeSaMogChata/${korisnik_Id}`);
-      // console.log(
-      //   "ID-jevi korisnika sa kojima je korisnik komunicirao:",
-      //   userIds
-      // );
 
       if (userIds.length === 0) {
         setUsers([]); // ako nema korisnika, postavi prazan niz, zavrsi funkciju
@@ -72,9 +102,8 @@ const Chat = () => {
       const userPromises = userIds.map((id) => fetchKorisnik(id));
       const usersData = await Promise.all(userPromises);
 
-      // 3. filtracija null vrednosti ako neki poziv nije uspeo (u debagovanju preporuceno!)
+      // 3. filtracija null vrednosti ako neki poziv nije uspeo
       setUsers(usersData.filter((user) => user !== null));
-      //console.log(usersData);
     } catch (error) {
       console.error("Greska pri dohvatanju korisnika:", error);
     }
@@ -86,30 +115,19 @@ const Chat = () => {
     fetchUsers(korisnik_Id);
   }, []);
 
-  // useEffect(() => {
-  //   const fetchUsers = async () => {
-  //     try {
-  //       const response = await fetch(${API_BASE}/Korisnik/VratiKorisnikeSaMogChata/${korisnik_Id});
-  //       if (!response.ok) throw new Error("Greška pri dohvatanju korisnika");
-  //       setUsers(await response.json());
-  //     } catch (error) {
-  //       console.error(error);
-  //     }
-  //   };
-  //   fetchUsers();
-  // }, []);
-
   useEffect(() => {
+    // Lokalna promenljiva (ne state) - cleanup mora da zaustavi bas ovu konekciju.
+    // `ugasena`: StrictMode (dev) montira efekat dvaput, prva konekcija se gasi
+    // usred pregovaranja - to nije greska.
+    let conn = null;
+    let ugasena = false;
+
     const connect = async () => {
-      const connection = new HubConnectionBuilder()
-        .withUrl(
-          `${API_BASE}/chatHub?userId=${encodeURIComponent(
-            korisnik_Id
-          )}`
-        )
+      conn = new HubConnectionBuilder()
+        .withUrl(`${API_BASE}/chatHub?userId=${encodeURIComponent(korisnik_Id)}`)
         .build();
 
-      connection.on("ReceiveMessage", (senderId, message) => {
+      conn.on("ReceiveMessage", (senderId, message) => {
         setMessages((prev) => ({
           ...prev,
           [senderId]: [
@@ -117,7 +135,7 @@ const Chat = () => {
             {
               sadrzaj: message,
               sender: "their",
-              vreme: new Date().toLocaleString(),
+              vreme: new Date().toISOString(),
             },
           ],
         }));
@@ -127,11 +145,19 @@ const Chat = () => {
         );
       });
 
-      await connection.start();
-      setConnection(connection);
+      try {
+        await conn.start();
+        if (!ugasena) setConnection(conn);
+      } catch (err) {
+        if (!ugasena) console.error("SignalR (chat) konekcija nije uspela:", err);
+      }
     };
     connect();
-    return () => connection && connection.stop();
+
+    return () => {
+      ugasena = true;
+      if (conn) conn.stop();
+    };
   }, []);
 
   const fetchMessages = async (userId, pageNumber = 0) => {
@@ -144,7 +170,7 @@ const Chat = () => {
       );
       const chatDiv = chatMessagesRef.current;
 
-      if (chatDiv) {
+      if (chatDiv && pageNumber > 0) {
         prevScrollHeightRef.current = chatDiv.scrollHeight; // Čuvamo prethodnu visinu skrola
       }
 
@@ -164,19 +190,19 @@ const Chat = () => {
   };
 
   const handleUserClick = (user) => {
+    // Klik na vec otvoren razgovor ne sme da ga resetuje (effect za ucitavanje poruka
+    // se ne bi ponovo pokrenuo i ostala bi prazna lista)
+    if (selectedUser?.id === user.id) {
+      setMessageSenders((prev) => prev.filter((id) => id !== user.id));
+      api.put(`/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`);
+      return;
+    }
     setSelectedUser(user);
     setMessages((prev) => ({ ...prev, [user.id]: [] }));
     setPage(0);
     setHasMore(true);
     setMessageSenders((prev) => prev.filter((id) => id !== user.id));
     api.put(`/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`);
-
-    setTimeout(() => {
-      const chatDiv = chatMessagesRef.current;
-      if (chatDiv) {
-        chatDiv.scrollTop = chatDiv.scrollHeight;
-      }
-    }, 100);
   };
 
   // /chat?korisnik=<id> (npr. dugme "Posalji poruku" na profilu) otvara razgovor sa tim korisnikom
@@ -201,36 +227,32 @@ const Chat = () => {
     }
   }, [selectedUser]);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (e) => {
+    e?.preventDefault();
     if (newMessage.trim() === "" || !selectedUser || !connection) return;
 
-    //console.log(Šaljem poruku korisniku ${selectedUser.id} od korisnika ${korisnik.id});
+    const tekst = newMessage;
+    setNewMessage("");
     setMessages((prev) => ({
       ...prev,
       [selectedUser.id]: [
-        ...prev[selectedUser.id],
+        ...(prev[selectedUser.id] || []),
         {
-          sadrzaj: newMessage,
+          sadrzaj: tekst,
           sender: "me",
-          vreme: new Date().toLocaleString(),
+          vreme: new Date().toISOString(),
         },
       ],
     }));
 
-    await connection.invoke(
-      "SendMessage",
-      korisnik.id,
-      selectedUser.id,
-      newMessage
-    );
+    await connection.invoke("SendMessage", korisnik.id, selectedUser.id, tekst);
     await api.post(
-      `/Poruka/PosaljiPoruku/${selectedUser.id}/${korisnik_Id}/${newMessage}`,
-      { poruka: newMessage }
+      `/Poruka/PosaljiPoruku/${selectedUser.id}/${korisnik_Id}`,
+      { poruka: tekst }
     );
-    setNewMessage("");
   };
 
-  // Izabrani korisnik se uvek vidi u sidebar-u, i kad sa njim jos nije bilo poruka
+  // Izabrani korisnik se uvek vidi u listi, i kad sa njim jos nije bilo poruka
   const chatKorisnici =
     selectedUser && !users.some((user) => user.id === selectedUser.id)
       ? [selectedUser, ...users]
@@ -243,31 +265,7 @@ const Chat = () => {
     ...chatKorisnici.filter((user) => !messageSenders.includes(user.id)),
   ];
 
-  const handleMessClick = (index) => {
-    setTimeVisibility((prev) => ({
-      ...prev,
-      [index]: !prev[index], // Prebacuje vidljivost za poruku na tom indeksu
-    }));
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString + "Z");
-    const options = {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    };
-    return date.toLocaleString("sr-RS", options).replace(",", "");
-  };
-
-  //----------------------------ZA SKROL ----------------------------
-  const chatMessagesRef = useRef(null);
-  const prevScrollHeightRef = useRef(0);
-
-  // Uvezi useEffect da se upravlja pozicijom skrola
+  // Ucitavanje starijih poruka kad se skroluje do vrha
   useEffect(() => {
     const chatDiv = chatMessagesRef.current;
     if (!chatDiv) return;
@@ -282,7 +280,6 @@ const Chat = () => {
 
     return () => chatDiv.removeEventListener("scroll", handleScroll);
   }, [loading, hasMore, selectedUser]);
-  //-----------------------------------------------------------------
 
   const toggleSearch = () => {
     setShowSearch((prev) => !prev);
@@ -307,20 +304,6 @@ const Chat = () => {
     }
   }
 
-  function handleClickOutside(event) {
-    if (searchRef.current && !searchRef.current.contains(event.target)) {
-      setSearchResults([]);
-    }
-  }
-
-  useEffect(() => {
-    document.addEventListener("click", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
-  }, []);
-
   useEffect(() => {
     async function searchUsers() {
       if (searchValue === "") {
@@ -344,146 +327,167 @@ const Chat = () => {
   }, [searchValue]);
 
   const otvoriChat = (id) => {
-    console.log(sviKorisnici);
-    setSelectedUser(sviKorisnici.find((user) => user.id === id));
-    console.log(selectedUser);
-    setPage(0);
-    fetchMessages(id, 0);
+    const user = sviKorisnici.find((u) => u.id === id);
+    if (user) handleUserClick(user);
     setSearchResults([]);
-    //setShowChat(true);
+    setSearchValue("");
+    setShowSearch(false);
   };
 
+  const poruke = selectedUser
+    ? [...(messages[selectedUser.id] ?? [])].sort((a, b) => uDatum(a.vreme) - uDatum(b.vreme))
+    : [];
+
   return (
-    <div>
-      <Header></Header>
-      <button onClick={() => navigate(-1)} className="back-btn-chat">
-        <i className="la la-arrow-left ikonicaback"></i>
-      </button>
-      <div className="chat-container">
-        <div className="chat-sidebar">
-          <div className="chat-upper">
-            <h2>Inbox</h2>
-            <button onClick={toggleSearch} className="plus-btn">
-              <i className="la la-plus"></i>
-            </button>
-          </div>
-          {showSearch && (
-            <div className="search-container" ref={searchRef}>
-              <form onSubmit={handleSearchSubmit}>
-                <input
-                  className="search-input"
-                  type="text"
-                  name="search"
-                  placeholder="Pretrazi korisnike..."
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  autoComplete="off"
-                />
-                <button type="submit">
+    <div className="poruke-page">
+      <Header />
+      <div className="container poruke-wrap">
+        <button type="button" onClick={() => navigate(-1)} className="poruke-back">
+          <i className="la la-arrow-left" /> Nazad
+        </button>
+
+        <div className={`poruke-card ${selectedUser ? "has-chat" : ""}`}>
+          <div className="poruke-list">
+            <div className="poruke-list-head">
+              <h2>Poruke</h2>
+              <button
+                type="button"
+                onClick={toggleSearch}
+                className={`poruke-new ${showSearch ? "is-open" : ""}`}
+                aria-label="Nova poruka"
+                title="Nova poruka"
+              >
+                <i className={`la ${showSearch ? "la-times" : "la-plus"}`} />
+              </button>
+            </div>
+
+            {showSearch && (
+              <div className="poruke-search" ref={searchRef}>
+                <form onSubmit={handleSearchSubmit}>
                   <i className="la la-search" />
-                </button>
-                {/* Prikaz rezultata pretrage */}
+                  <input
+                    type="text"
+                    name="search"
+                    placeholder="Pretrazi korisnike..."
+                    aria-label="Pretrazi korisnike"
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    autoComplete="off"
+                    autoFocus
+                  />
+                </form>
                 {searchResults.length > 0 && (
-                  <div className="search-results">
-                    <ul className="search-results-list">
-                      {searchResults.map((result) => (
-                        <li key={result.id} className="search-result-item">
-                          <div
-                            className="search-podaci"
-                            onClick={() => {
-                              otvoriChat(result.id);
-                            }}
-                          >
-                            <span className="prvispansearch">
-                              @{result.korisnicko_Ime}
-                            </span>
-                            <span>
-                              {result.ime} {result.prezime}
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <ul className="poruke-search-results">
+                    {searchResults.map((result) => (
+                      <li key={result.id}>
+                        <button type="button" onClick={() => otvoriChat(result.id)}>
+                          <Avatar user={result} />
+                          <span className="poruke-contact-text">
+                            <strong>{imePrezime(result)}</strong>
+                            <small>@{result.korisnicko_Ime}</small>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 )}
-              </form>
-            </div>
-          )}
+              </div>
+            )}
 
-          {sortedUsers.map((user) => (
-            <div
-              key={user.id}
-              className={`chat-user ${
-                selectedUser?.id === user.id ? "active" : ""
-              }`}
-              onClick={() => handleUserClick(user)}
-            >
-              <span
-                style={{
-                  fontWeight: messageSenders.includes(user.id)
-                    ? "bold"
-                    : "normal",
-                }}
-              >
-                {user.ime}{" "}
-                {messageSenders.includes(user.id) ? "[NOVA PORUKA]" : ""}
-              </span>
+            <div className="poruke-contacts">
+              {sortedUsers.length === 0 && (
+                <p className="poruke-contacts-empty">
+                  Jos nemas razgovora. Klikni + da zapocnes novi.
+                </p>
+              )}
+              {sortedUsers.map((user) => {
+                const nova = messageSenders.includes(user.id);
+                return (
+                  <button
+                    type="button"
+                    key={user.id}
+                    className={`poruke-contact ${selectedUser?.id === user.id ? "is-active" : ""}`}
+                    onClick={() => handleUserClick(user)}
+                  >
+                    <Avatar user={user} />
+                    <span className="poruke-contact-text">
+                      <strong>{imePrezime(user)}</strong>
+                      <small>@{user.korisnicko_Ime}</small>
+                    </span>
+                    {nova && <span className="poruke-nova">Nova</span>}
+                  </button>
+                );
+              })}
             </div>
-          ))}
-        </div>
-        <div className="chat-main">
-          {selectedUser ? (
-            <>
-              <div className="chat-header">{selectedUser.ime}</div>
+          </div>
 
-              <div className="chat-messages" ref={chatMessagesRef}>
-                {loading && <div className="loading">Učitavanje poruka...</div>}
-                {messages[selectedUser.id]
-                  ?.sort((a, b) => new Date(a.vreme) - new Date(b.vreme))
-                  .map((msg, index) => (
-                    <>
-                      <div
-                        key={index}
-                        onClick={() => handleMessClick(index)}
-                        className={`message ${
-                          msg.posiljaocId === korisnik.id || msg.sender === "me"
-                            ? "my-message"
-                            : "their-message"
-                        }`}
-                      >
-                        {msg.sadrzaj}
-                      </div>
-                      <span className="message-time">
-                        {timeVisibility[index] ? formatDate(msg.vreme) : ""}
-                      </span>
-                    </>
+          <div className="poruke-chat">
+            {selectedUser ? (
+              <>
+                <div className="poruke-chat-head">
+                  <button
+                    type="button"
+                    className="poruke-chat-back"
+                    onClick={() => setSelectedUser(null)}
+                    aria-label="Nazad na listu razgovora"
+                  >
+                    <i className="la la-arrow-left" />
+                  </button>
+                  <Link to={`/profilkorisnika/${selectedUser.id}`} className="poruke-chat-user">
+                    <Avatar user={selectedUser} />
+                    <span className="poruke-contact-text">
+                      <strong>{imePrezime(selectedUser)}</strong>
+                      <small>@{selectedUser.korisnicko_Ime}</small>
+                    </span>
+                  </Link>
+                </div>
+
+                <div className="poruke-messages" ref={chatMessagesRef}>
+                  {loading && <div className="poruke-loading">Ucitavanje poruka...</div>}
+                  {!loading && poruke.length === 0 && (
+                    <div className="poruke-messages-empty">
+                      Jos nema poruka. Napisi prvu!
+                    </div>
+                  )}
+                  {poruke.map((msg, index) => (
+                    <div
+                      key={index}
+                      className={`poruke-msg ${
+                        msg.posiljaocId === korisnik?.id || msg.sender === "me"
+                          ? "is-mine"
+                          : "is-theirs"
+                      }`}
+                    >
+                      {msg.sadrzaj}
+                      <span className="poruke-time">{formatVreme(msg.vreme)}</span>
+                    </div>
                   ))}
+                </div>
 
-                <div ref={messagesEndRef} />
+                <form className="poruke-composer" onSubmit={handleSendMessage}>
+                  <input
+                    type="text"
+                    placeholder="Napisi poruku..."
+                    aria-label="Poruka"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onFocus={() => handleProcitaj(selectedUser)}
+                  />
+                  <button type="submit" aria-label="Posalji" disabled={!newMessage.trim()}>
+                    <i className="la la-paper-plane" />
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="poruke-empty">
+                <i className="la la-comments-o" />
+                <h3>Tvoje poruke</h3>
+                <p>Izaberi razgovor sa liste ili zapocni novi.</p>
               </div>
-              <div
-                className="chat-input"
-                onClick={() => handleProcitaj(selectedUser)}
-              >
-                <input
-                  type="text"
-                  placeholder="Napiši poruku..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onClick={() => handleProcitaj(selectedUser)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                />
-                <button onClick={handleSendMessage}>Pošalji</button>
-              </div>
-            </>
-          ) : (
-            <div className="no-chat">
-              Izaberi korisnika da započneš razgovor
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-      {/* <Footer></Footer> */}
     </div>
   );
 };

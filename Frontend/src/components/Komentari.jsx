@@ -44,8 +44,8 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
       const korisnik_Id = userId;
       // 401 (npr. token istekao) -> api klijent sam vraca na /login
       await api.post(
-        `/Komentar/PostaviKomentar/${noviKomentar}/${korisnik_Id}/${dogadjajId}`,
-        undefined,
+        `/Komentar/PostaviKomentar/${korisnik_Id}/${dogadjajId}`,
+        { tekst: noviKomentar },
         { credentials: 'include' }
       );
       fetchKomentari();
@@ -74,7 +74,7 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
 
   const handleUpdateComment = async (commentId) => {
     try {
-      await api.put(`/Komentar/IzmeniKomentar?id=${commentId}&tekst=${izmenjenTekstKomentara}`);
+      await api.put(`/Komentar/IzmeniKomentar?id=${commentId}`, { tekst: izmenjenTekstKomentara });
       fetchKomentari();
       setIzabraniKomentarId(null);
       setIzmenjenTekstKomentara('');

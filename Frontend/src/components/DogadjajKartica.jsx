@@ -54,18 +54,13 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
       return;
     }
 
-    let razlogPath = `/Razlog/KreirajRazlog/${dogadjaj.id}/${selectedOption}/${opis}`;
-    if (selectedOption === 'ostalo' && opis === '') {
-      razlogPath += 'bezOpisa';
-    }
-    if (selectedOption !== 'ostalo') {
-      razlogPath += 'nema'; // "nema" na opis ako je selektovano bilo sta osim OSTALO
-    }
+    // opis: "nema" ako je izabrano bilo sta osim OSTALO, "bezOpisa" ako je OSTALO bez teksta
+    const razlogOpis = selectedOption !== 'ostalo' ? 'nema' : (opis === '' ? 'bezOpisa' : opis);
 
     try {
       // 401 -> api klijent sam vraca na /login
       await api.post(`/Pr_dog/PrijaviDogadjaj/${dogadjaj.id}`, undefined, { credentials: 'include' });
-      await api.post(razlogPath);
+      await api.post(`/Razlog/KreirajRazlog/${dogadjaj.id}/${selectedOption}`, { opis: razlogOpis });
 
       zatvoriPrijavuFormu();
       setPrijavaPoslata(true);

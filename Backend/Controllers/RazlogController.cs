@@ -6,6 +6,11 @@ using Models;
 
 namespace EventBoxApi.Controllers
 {
+    public class RazlogZahtev
+    {
+        public string Opis { get; set; }
+    }
+
     [ApiController]
     [Route("[controller]")]
     public class RazlogController : ControllerBase
@@ -19,8 +24,8 @@ namespace EventBoxApi.Controllers
 
         [HttpPost]
         [EnableCors("CORS")]
-        [Route("KreirajRazlog/{dogadjaj_Id}/{razlog_prijave}/{opis}")]
-        public async Task<ActionResult> KreirajRazlog(int dogadjaj_Id, string razlog_prijave, string opis) 
+        [Route("KreirajRazlog/{dogadjaj_Id}/{razlog_prijave}")]
+        public async Task<ActionResult> KreirajRazlog(int dogadjaj_Id, string razlog_prijave, [FromBody] RazlogZahtev zahtev) 
         {
             try
             {
@@ -28,7 +33,7 @@ namespace EventBoxApi.Controllers
                 Razlog r = new Razlog();
                 r.Prijavljeni_dogadjaj_Id = pr_dog;
                 r.Razlog_prijave = razlog_prijave;
-                r.Opis = opis;
+                r.Opis = zahtev?.Opis ?? "";
 
                 Context.Razlozi.Add(r);
                 await Context.SaveChangesAsync();

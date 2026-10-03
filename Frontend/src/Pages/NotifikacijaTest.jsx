@@ -17,7 +17,7 @@ const NotifikacijaTest = () => {
     const dogadjajID= 31;
 
     try {
-      const data = await api.post(`/Notifikacija/PostaviNotifikaciju/${dogadjajID}/${korisnikReagujeId}/${tipReakcije}/${sadrzajReakcije}/${vreme}/${korisnikId}`);
+      const data = await api.post(`/Notifikacija/PostaviNotifikaciju/${dogadjajID}/${korisnikReagujeId}/${korisnikId}`, { tipReakcije, sadrzajReakcije, vreme });
       alert(data);
     } catch (error) {
       alert("Greška: " + error);

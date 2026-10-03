@@ -6,6 +6,13 @@ using Models;
 
 namespace EventBoxApi.Controllers
 {
+    public class NotifikacijaZahtev
+    {
+        public string TipReakcije { get; set; }
+        public string SadrzajReakcije { get; set; }
+        public string Vreme { get; set; }
+    }
+
     [ApiController]
     [Route("[controller]")]
     public class NotifikacijaController : ControllerBase
@@ -18,11 +25,16 @@ namespace EventBoxApi.Controllers
 
         //[HttpPost]
         [EnableCors("CORS")]
-        [HttpPost("PostaviNotifikaciju/{dogadjaj_Id}/{korisnik_reaguje_Id}/{tip_reakcije}/{sadrzaj_reakcije}/{vreme}/{korisnik_Id}")]
-        public async Task<ActionResult> PostaviNotifikaciju(int dogadjaj_Id, int korisnik_reaguje_Id, string tip_reakcije, string sadrzaj_reakcije, DateTime vreme, int korisnik_Id)
+        [HttpPost("PostaviNotifikaciju/{dogadjaj_Id}/{korisnik_reaguje_Id}/{korisnik_Id}")]
+        public async Task<ActionResult> PostaviNotifikaciju(int dogadjaj_Id, int korisnik_reaguje_Id, int korisnik_Id, [FromBody] NotifikacijaZahtev zahtev)
         {
             try
             {
+                // Tekst (npr. komentar) ide u telu zahteva - u URL-u bi / ? # kvarili rutu
+                string tip_reakcije = zahtev.TipReakcije;
+                string sadrzaj_reakcije = zahtev.SadrzajReakcije;
+                DateTime vreme = DateTime.TryParse(zahtev.Vreme, out var parsirano) ? parsirano : DateTime.Now;
+
                 Korisnik k = await Context.Korisnici.FindAsync(korisnik_Id);
                 if (k == null)
                 {

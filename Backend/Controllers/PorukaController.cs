@@ -6,6 +6,11 @@ using Models;
 
 namespace EventBoxApi.Controllers
 {
+    public class PorukaZahtev
+    {
+        public string Poruka { get; set; }
+    }
+
     [ApiController]
     [Route("[controller]")]
     public class PorukaController : ControllerBase
@@ -18,17 +23,21 @@ namespace EventBoxApi.Controllers
 
         [HttpPost]
         [EnableCors("CORS")]
-        [Route("PosaljiPoruku/{primaoc_id}/{posiljaoc_id}/{sadrzaj}")]
-        public async Task<IActionResult> PosaljiPoruku(int primaoc_id, int posiljaoc_id, string sadrzaj)
+        [Route("PosaljiPoruku/{primaoc_id}/{posiljaoc_id}")]
+        public async Task<IActionResult> PosaljiPoruku(int primaoc_id, int posiljaoc_id, [FromBody] PorukaZahtev zahtev)
         {
             try
             {
+                // Tekst ide u telu zahteva, ne u URL-u - inace znaci poput / ? # kvare rutu
+                if (string.IsNullOrWhiteSpace(zahtev?.Poruka))
+                    return BadRequest("Poruka ne sme biti prazna");
+
                 Poruka p = new Poruka
                 {
                     PrimaocId = primaoc_id,
                     JelProcitano = false,
                     PosiljaocId = posiljaoc_id,
-                    Sadrzaj = sadrzaj,
+                    Sadrzaj = zahtev.Poruka,
                     Vreme = DateTime.UtcNow
                 };
                 Context.Poruke.Add(p);

@@ -20,230 +20,6 @@
 	/* padding-bottom:4px; */
 }
 
-/* IKONICA ZA PORUKE SA BROJEM NEPROCITANIH PORUKA */
-
-/* .chat-icon {
-	position: relative;
-	display: inline-block;
-  }
-  
-  .chat-icon span {
-	position: relative;
-	display: inline-block;
-  } */
-  
-  /* .chat-icon:hover {
-	cursor: pointer;
-	background-color: #1da1f2;
-  } */
-
-  .notification-badge {
-	position: absolute;
-	top: 2px; /* Pomeraj gore */
-	right: 2px; /* Pomeraj udesno */
-	background-color: red;
-	color: white;
-	font-size: 12px;
-	font-weight: bold;
-	width: 18px;
-	height: 18px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: 4px; /* Četvrtasti oblik */
-  }
-  
-
-
-/* CHAT */
-.chat-container {
-	display: flex;
-	height: 80vh;
-	width: 80%;
-	margin: auto;
-	margin-top:25px;
-	border: 1px solid #ddd;
-	border-radius: 10px;
-	overflow: hidden;
-	background: #f9f9f9;
-	margin-bottom: 100px;
-  }
-  
-  /* Leva strana - lista korisnika */
-  .chat-sidebar {
-	width: 30%;
-	background: #ffffff;
-	border-right: 1px solid #ddd;
-	padding: 10px;
-	overflow-y: auto;
-  }
-  
-  /* .chat-sidebar h2 {
-	font-size: 22px;
-  margin-bottom: 10px;
-  display: flex;
-  justify-content: center;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 25px;
-  font-weight: bold;
-  padding-top: 12px;
-  } */
-  
-  .chat-user {
-	padding: 12px;
-	cursor: pointer;
-	border-radius: 5px;
-	margin-bottom: 5px;
-	transition: 0.3s;
-  }
-  
-  .chat-user:hover {
-	background: #f0f0f0;
-  }
-  
-  .chat-user.active {
-	background: #007bff;
-	color: white;
-  }
-  
-  /* Desna strana - aktivni chat */
-  .chat-main {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	background: white;
-  }
-  
-  .chat-header {
-	background: #007bff;
-	color: white;
-	padding: 15px;
-	font-size: 18px;
-	font-weight: bold;
-  }
-  
-  .chat-messages {
-	flex: 1;
-	padding: 10px;
-	overflow-y: auto;
-  }
-  
-  .message {
-	padding: 8px 12px;
-	border-radius: 15px;
-	margin: 5px 0;
-	max-width: 70%;
-  }
-  
-  .my-message {
-	background: #007bff;
-	color: white;
-	align-self: flex-end;
-  }
-  
-  .their-message {
-	background: #f0f0f0;
-	color: black;
-	align-self: flex-start;
-  }
-  
-  /* Input za poruke */
-  .chat-input {
-	display: flex;
-	padding: 10px;
-	border-top: 1px solid #ddd;
-  }
-  
-  .chat-input input {
-	flex: 1;
-	padding: 10px;
-	border: 1px solid #ccc;
-	border-radius: 5px;
-  }
-  
-  .chat-input button {
-	background: #007bff;
-	color: white;
-	border: none;
-	padding: 10px 15px;
-	margin-left: 5px;
-	border-radius: 5px;
-	cursor: pointer;
-  }
-  
-  .no-chat {
-	text-align: center;
-	padding: 20px;
-	color: #888;
-  }
-
-  .chat-upper {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 10px 20px;
-	border-bottom: 1px solid #ddd;
-  }
-  
-  .chat-upper h2 {
-	flex-grow: 2;
-	text-align: center;
-	margin: 0;
-	font-size: 20px;
-	font-weight: bold;
-	white-space: nowrap;
-  }
-  
-  .chat-upper button {
-	padding: 8px 16px;
-	background-color: #007bff;
-	color: white;
-	border: none;
-	border-radius: 5px;
-	cursor: pointer;
-	white-space: nowrap;
-  }
-
-  .search-container {
-	/* width: 95%; */
-	margin-top: 10px;
-	display: flex;
-	justify-content: center;
-	margin-bottom: 15px;
-  }
-  
-  .search-input {
-	width: 95%;
-	padding: 8px;
-	border: 1px solid #ccc;
-	border-radius: 4px;
-  }
-
-  .search-container form button {
-	position: absolute;
-	
-	background-color: #efefef;
-	width: 38px;
-	height: 38px;
-	border: 0;
-}
-  
-  
-
-
-  /* ================================================================================== */
-
-
-
-.back-btn-chat{
-	margin: 10px;
-	margin-top: 91px;
-	margin-left:10%;
-	padding: 5px 10px;
-	border: 1px solid #FFA500;
-	border-radius: 10px;
-}
-
 .profilnaslikahomepageobjava{
 	height: 50px;
 	width: 50px !important;
@@ -3998,6 +3774,686 @@ select {
 	.profil-card,
 	.profil-side-card {
 		margin-bottom: 16px;
+	}
+}
+
+/* ================= app-footer ================= */
+/* Napomena: stari .site-footer/.tags-sec/.cp-sec vise ne koristi Footer.jsx. */
+
+.app-footer {
+	width: 100%;
+	margin-top: auto;
+	background-color: #fff;
+	border-top: 1px solid #eee;
+}
+.app-footer-inner {
+	display: grid;
+	grid-template-columns: 2fr 1fr 1fr;
+	gap: 32px;
+	padding-top: 36px;
+	padding-bottom: 28px;
+}
+.app-footer-brand img {
+	float: none;
+	display: block;
+	height: 26px;
+	width: auto;
+	margin-bottom: 14px;
+}
+.app-footer-brand p {
+	max-width: 300px;
+	margin: 0;
+	color: #777;
+	font-size: 14px;
+	line-height: 1.55;
+}
+.app-footer-col h4 {
+	margin: 0 0 14px;
+	color: #1a1a1a;
+	font-size: 14px;
+	font-weight: 700;
+}
+.app-footer-col ul {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.app-footer-col li {
+	list-style: none;
+}
+.app-footer-col a {
+	color: #777;
+	font-size: 14px;
+	text-decoration: none;
+	transition: color 0.15s ease;
+}
+.app-footer-col a:hover,
+.app-footer-col a:focus-visible {
+	color: var(--eb-orange, #FFA500);
+	text-decoration: none;
+	outline: none;
+}
+.app-footer-bottom {
+	border-top: 1px solid #f0f0f0;
+	background-color: #fafafa;
+}
+.app-footer-bottom .container {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 6px 16px;
+	padding-top: 16px;
+	padding-bottom: 16px;
+	color: #999;
+	font-size: 13px;
+}
+
+@media (max-width: 768px) {
+	.app-footer-inner {
+		grid-template-columns: 1fr 1fr;
+		gap: 24px;
+		padding-top: 28px;
+		padding-bottom: 20px;
+	}
+	.app-footer-brand {
+		grid-column: 1 / -1;
+	}
+}
+@media (max-width: 340px) {
+	.app-footer-inner {
+		grid-template-columns: 1fr;
+	}
+}
+@media (max-width: 480px) {
+	.app-footer-bottom .container {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}
+
+/* ================= info stranice (footer linkovi) ================= */
+
+.info-strana {
+	max-width: 760px;
+	margin: 0 auto;
+}
+.info-nav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+.info-nav-link {
+	padding: 7px 16px;
+	border: 1.5px solid #e4e4e4;
+	border-radius: 999px;
+	background-color: #fff;
+	color: #666;
+	font-size: 13.5px;
+	font-weight: 600;
+	text-decoration: none;
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.info-nav-link:hover {
+	border-color: var(--eb-orange, #FFA500);
+	color: var(--eb-orange, #FFA500);
+	text-decoration: none;
+}
+.info-nav-link.is-active {
+	background-color: var(--eb-orange-tint, #FFF4E0);
+	border-color: var(--eb-orange, #FFA500);
+	color: #d98200;
+}
+.info-card {
+	padding: 32px 36px 36px;
+	background-color: #fff;
+	border-radius: 16px;
+	box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+}
+.info-card h1 {
+	margin: 0 0 8px;
+	color: #1a1a1a;
+	font-size: 28px;
+	font-weight: 700;
+}
+.info-uvod {
+	margin: 0 0 24px;
+	color: #777;
+	font-size: 16px;
+	line-height: 1.55;
+}
+.info-card h2 {
+	margin: 28px 0 10px;
+	color: #1a1a1a;
+	font-size: 18px;
+	font-weight: 700;
+}
+.info-card p {
+	margin: 0 0 10px;
+	color: #444;
+	font-size: 15px;
+	line-height: 1.65;
+}
+.info-card ul {
+	margin: 0 0 10px;
+	padding-left: 20px;
+	list-style: disc;
+}
+.info-card li {
+	margin-bottom: 6px;
+	color: #444;
+	font-size: 15px;
+	line-height: 1.6;
+	list-style: disc;
+}
+.info-kontakt {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin-bottom: 8px;
+	padding: 16px 18px;
+	border-radius: 14px;
+	background-color: var(--eb-orange-tint, #FFF4E0);
+	color: #333;
+	text-decoration: none;
+	transition: background-color 0.15s ease;
+}
+.info-kontakt:hover {
+	background-color: #ffeccc;
+	color: #333;
+	text-decoration: none;
+}
+.info-kontakt i {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 44px;
+	height: 44px;
+	border-radius: 12px;
+	background-color: var(--eb-orange, #FFA500);
+	color: #fff;
+	font-size: 22px;
+}
+.info-kontakt small {
+	display: block;
+	color: #999;
+	font-size: 12.5px;
+}
+.info-kontakt strong {
+	display: block;
+	font-size: 16px;
+	font-weight: 700;
+	word-break: break-all;
+}
+
+@media (max-width: 560px) {
+	.info-card {
+		padding: 22px 20px 26px;
+	}
+	.info-card h1 {
+		font-size: 23px;
+	}
+}
+
+/* ================= poruke-* (moderan chat) ================= */
+
+.poruke-page {
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
+	height: 100dvh;
+	box-sizing: border-box;
+}
+.poruke-wrap {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	padding-top: 16px;
+	padding-bottom: 20px;
+}
+
+.poruke-back {
+	align-self: flex-start;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 14px;
+	padding: 8px 16px;
+	border: 1.5px solid #e8e8e8;
+	border-radius: 999px;
+	background-color: #fff;
+	color: #555;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+.poruke-back i {
+	font-size: 16px;
+}
+.poruke-back:hover {
+	border-color: var(--eb-orange, #FFA500);
+	color: var(--eb-orange, #FFA500);
+	background-color: var(--eb-orange-tint, #FFF4E0);
+}
+
+.poruke-card {
+	flex: 1;
+	display: flex;
+	min-height: 0;
+	overflow: hidden;
+	background-color: #fff;
+	border: 1px solid #e6e6e6;
+	border-radius: 16px;
+	box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* ----- lista razgovora ----- */
+.poruke-list {
+	width: 340px;
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	background-color: #fff;
+	border-right: 1px solid #e6e6e6;
+}
+.poruke-list-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 20px;
+	border-bottom: 1px solid #eee;
+}
+.poruke-list-head h2 {
+	margin: 0;
+	color: #1a1a1a;
+	font-size: 22px;
+	font-weight: 700;
+}
+.poruke-new {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 38px;
+	border: 0;
+	border-radius: 999px;
+	background-color: var(--eb-orange, #FFA500);
+	color: #fff;
+	font-size: 18px;
+	cursor: pointer;
+	box-shadow: 0 4px 10px rgba(255, 165, 0, 0.35);
+	transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.poruke-new:hover {
+	background-color: #ff9800;
+	transform: scale(1.06);
+}
+.poruke-new.is-open {
+	background-color: #8a8f98;
+	box-shadow: none;
+}
+
+.poruke-search {
+	position: relative;
+	padding: 12px 16px;
+	border-bottom: 1px solid #eee;
+	background-color: #fafafa;
+}
+.poruke-search form {
+	position: relative;
+}
+.poruke-search form i {
+	position: absolute;
+	top: 50%;
+	left: 14px;
+	transform: translateY(-50%);
+	color: #b0b0b0;
+	font-size: 18px;
+	pointer-events: none;
+}
+.poruke-search input {
+	width: 100%;
+	height: 40px;
+	padding: 0 14px 0 40px;
+	border: 1.5px solid #e8e8e8;
+	border-radius: 999px;
+	background-color: #fafafa;
+	color: #333;
+	font-size: 14px;
+	box-sizing: border-box;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.poruke-search input:focus {
+	outline: none;
+	background-color: #fff;
+	border-color: var(--eb-orange, #FFA500);
+	box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.15);
+}
+.poruke-search-results {
+	position: absolute;
+	top: calc(100% - 4px);
+	left: 16px;
+	right: 16px;
+	margin: 0;
+	padding: 6px;
+	list-style: none;
+	background-color: #fff;
+	border-radius: 14px;
+	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+	z-index: 5;
+}
+.poruke-search-results li {
+	list-style: none;
+}
+
+.poruke-contacts {
+	flex: 1;
+	overflow-y: auto;
+	padding: 8px 10px 12px;
+}
+.poruke-contacts-empty {
+	margin: 20px 10px;
+	color: #999;
+	font-size: 14px;
+	line-height: 1.5;
+	text-align: center;
+}
+.poruke-contact,
+.poruke-search-results button {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	padding: 10px;
+	border: 0;
+	border-radius: 12px;
+	background: transparent;
+	text-align: left;
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+.poruke-contact:hover,
+.poruke-search-results button:hover {
+	background-color: #f7f7f7;
+}
+.poruke-contact.is-active {
+	background-color: var(--eb-orange-tint, #FFF4E0);
+}
+/* tanka linija izmedju razgovora u listi */
+.poruke-contact:not(:last-child)::after {
+	content: "";
+	position: absolute;
+	left: 64px;
+	right: 10px;
+	bottom: 0;
+	height: 1px;
+	background-color: #e6e6e6;
+}
+.poruke-contact.is-active::after,
+.poruke-contact:hover::after,
+.poruke-contact:has(+ .poruke-contact:hover)::after,
+.poruke-contact:has(+ .poruke-contact.is-active)::after {
+	opacity: 0;
+}
+.poruke-contact-text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	flex: 1;
+}
+.poruke-contact-text strong {
+	color: #1a1a1a;
+	font-size: 14.5px;
+	font-weight: 700;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.poruke-contact-text small {
+	color: #999;
+	font-size: 12.5px;
+}
+.poruke-nova {
+	flex-shrink: 0;
+	padding: 2px 9px;
+	border-radius: 999px;
+	background-color: var(--eb-orange, #FFA500);
+	color: #fff;
+	font-size: 11px;
+	font-weight: 700;
+}
+
+.poruke-avatar {
+	flex-shrink: 0;
+	width: 42px;
+	height: 42px;
+	border-radius: 999px;
+	object-fit: cover;
+	object-position: center;
+}
+.poruke-avatar-inicijal {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--eb-orange-tint, #FFF4E0);
+	color: var(--eb-orange, #FFA500);
+	font-size: 17px;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+
+/* ----- razgovor ----- */
+.poruke-chat {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
+}
+.poruke-chat-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 20px;
+	background-color: #fff;
+	border-bottom: 1px solid #e6e6e6;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+	position: relative;
+	z-index: 1;
+}
+.poruke-chat-back {
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 38px;
+	flex-shrink: 0;
+	border: 0;
+	border-radius: 999px;
+	background-color: #f5f5f5;
+	color: #555;
+	font-size: 18px;
+	cursor: pointer;
+}
+.poruke-chat-user {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+	text-decoration: none;
+}
+.poruke-chat-user:hover .poruke-contact-text strong {
+	color: var(--eb-orange, #FFA500);
+}
+
+.poruke-messages {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-height: 0;
+	padding: 20px;
+	overflow-y: auto;
+	background-color: #f3f4f6;
+}
+.poruke-loading,
+.poruke-messages-empty {
+	margin: auto;
+	color: #999;
+	font-size: 14px;
+	text-align: center;
+}
+.poruke-msg {
+	max-width: 75%;
+	padding: 9px 14px 6px;
+	border-radius: 18px;
+	font-size: 14.5px;
+	line-height: 1.45;
+	word-break: break-word;
+}
+.poruke-msg.is-mine {
+	align-self: flex-end;
+	border-bottom-right-radius: 6px;
+	background: linear-gradient(135deg, #ffb733, var(--eb-orange, #FFA500));
+	color: #fff;
+}
+.poruke-msg.is-theirs {
+	align-self: flex-start;
+	border-bottom-left-radius: 6px;
+	background-color: #fff;
+	border: 1px solid #e8e8e8;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+	color: #333;
+}
+.poruke-time {
+	display: block;
+	margin-top: 2px;
+	font-size: 11px;
+	text-align: right;
+	opacity: 0.7;
+}
+
+.poruke-composer {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 16px;
+	border-top: 1px solid #e6e6e6;
+	background-color: #fff;
+	box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+	position: relative;
+	z-index: 1;
+}
+.poruke-composer input {
+	flex: 1;
+	min-width: 0;
+	height: 44px;
+	padding: 0 18px;
+	border: 1.5px solid #e8e8e8;
+	border-radius: 999px;
+	background-color: #fafafa;
+	color: #333;
+	font-size: 14.5px;
+	box-sizing: border-box;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.poruke-composer input:focus {
+	outline: none;
+	background-color: #fff;
+	border-color: var(--eb-orange, #FFA500);
+	box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.15);
+}
+.poruke-composer button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 44px;
+	height: 44px;
+	border: 0;
+	border-radius: 999px;
+	background-color: var(--eb-orange, #FFA500);
+	color: #fff;
+	font-size: 20px;
+	cursor: pointer;
+	transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+.poruke-composer button:hover:not(:disabled) {
+	background-color: #ff9800;
+}
+.poruke-composer button:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+.poruke-empty {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	text-align: center;
+}
+.poruke-empty i {
+	color: var(--eb-orange, #FFA500);
+	font-size: 64px;
+	opacity: 0.8;
+}
+.poruke-empty h3 {
+	margin: 10px 0 4px;
+	color: #1a1a1a;
+	font-size: 20px;
+	font-weight: 700;
+}
+.poruke-empty p {
+	margin: 0;
+	color: #999;
+	font-size: 14.5px;
+}
+
+/* Mobilni: ili lista ili razgovor (kao u mobilnim aplikacijama) */
+@media (max-width: 768px) {
+	.poruke-page {
+		padding-bottom: 68px;
+	}
+	.poruke-wrap {
+		padding-top: 10px;
+		padding-bottom: 10px;
+	}
+	.poruke-back {
+		display: none;
+	}
+	.poruke-list {
+		width: 100%;
+		border-right: 0;
+	}
+	.poruke-card.has-chat .poruke-list {
+		display: none;
+	}
+	.poruke-card:not(.has-chat) .poruke-chat {
+		display: none;
+	}
+	.poruke-chat-back {
+		display: flex;
+	}
+	.poruke-chat-head {
+		padding: 10px 12px;
+	}
+	.poruke-messages {
+		padding: 14px 12px;
+	}
+	.poruke-msg {
+		max-width: 85%;
 	}
 }
 

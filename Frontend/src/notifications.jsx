@@ -50,7 +50,11 @@ export function NotificationsProvider({ children }) {
 
   const postaviNotifikaciju = useCallback(async (dogadjajId, korisnikReagujeId, tip, sadrzaj, vreme, vlasnikId) => {
     try {
-      return await api.post(`/Notifikacija/PostaviNotifikaciju/${dogadjajId}/${korisnikReagujeId}/${tip}/${sadrzaj}/${vreme}/${vlasnikId}`)
+      return await api.post(`/Notifikacija/PostaviNotifikaciju/${dogadjajId}/${korisnikReagujeId}/${vlasnikId}`, {
+        tipReakcije: tip,
+        sadrzajReakcije: sadrzaj,
+        vreme,
+      })
     } catch (error) {
       console.error('Greska pri cuvanju notifikacije:', error)
       return null
