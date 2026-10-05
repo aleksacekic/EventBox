@@ -27,7 +27,7 @@ function App() {
             <Route path="/pocetna" element={<RequireAuth><HomePage /></RequireAuth>} />
             <Route path="/profil" element={<RequireAuth><Profile /></RequireAuth>} />
             <Route path="/profilkorisnika/:id" element={<RequireAuth><Profile /></RequireAuth>} />
-            <Route path="/admin" element={<RequireAuth><Admin /></RequireAuth>} />
+            <Route path="/admin" element={<RequireAuth admin><Admin /></RequireAuth>} />
             <Route path="/objava/:id" element={<RequireAuth><DogadjajZasebno /></RequireAuth>} />
             <Route path="/chat" element={<RequireAuth><Chat /></RequireAuth>} />
             {INFO_STRANICE.map((s) => (

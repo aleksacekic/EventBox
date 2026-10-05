@@ -16,7 +16,19 @@ namespace Models
 
         public EventBoxContext(DbContextOptions options) : base(options)
         {
-            
-        } 
+
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            // Komentar -> Autor: bez kaskade u bazi. Korisnik -> Dogadjaj -> Komentar je vec
+            // kaskadno, pa bi drugi kaskadni put do Komentara SQL Server odbio ("multiple
+            // cascade paths"). Komentare autora brise IzbrisiKorisnika pre brisanja naloga.
+            modelBuilder.Entity<Komentar>()
+                .HasOne(k => k.Autor)
+                .WithMany()
+                .HasForeignKey(k => k.AutorId)
+                .OnDelete(DeleteBehavior.NoAction);
+        }
     }
 }

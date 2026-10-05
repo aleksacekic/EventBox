@@ -15,8 +15,6 @@ namespace Models
         [Required]
         public string Korisnicko_Ime {get;set;}
         [Required]
-        public string Lozinka {get;set;}
-        [Required]
         public string Lozinka_Hashirana {get;set;}
         [Required]
         public DateTime Datum_rodjenja {get;set;}

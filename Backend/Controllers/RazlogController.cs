@@ -70,6 +70,7 @@ namespace EventBoxApi.Controllers
 
         [HttpDelete]
         [EnableCors("CORS")]
+        [Authorize(Roles = "Admin")]
         [Route("IzbrisiRazlogeDogadjaja/{dogadjaj_ID}")]
         public async Task<ActionResult> IzbrisiRazlogeDogadjaja(int dogadjaj_ID)
         {

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authorization;
+using EventBoxApi.Auth;
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -16,23 +18,42 @@ namespace EventBoxApi.Controllers
             this.Context = context;
         }
 
+        // Pravila (provera je u telu metode, zato nema [Authorize] na akciji):
+        //  - dok u bazi nema nijednog administratora, prvog moze da napravi bilo ko, ali SAMO
+        //    sa lokalnog racunara (npr. iz Swagger-a na localhost) - resava "ko pravi prvog admina"
+        //  - kad postoji bar jedan, nove administratore moze da dodaje samo prijavljen administrator
         [HttpPost]
         [EnableCors("CORS")]
-        [Route("DodajAdministratora/{ime}/{prezime}/{email_adresa}/{korisnicko_ime}/{lozinka}")]
-        public async Task<ActionResult> DodajAdministratora(string ime, string prezime, string email_adresa, 
-                                                            string korisnicko_ime, string lozinka)
+        [Route("DodajAdministratora")]
+        public async Task<ActionResult> DodajAdministratora([FromBody] AdministratorZahtev zahtev)
         {
             try
             {
+                if (await Context.Administratori.AnyAsync())
+                {
+                    if (User.Identity?.IsAuthenticated != true)
+                        return Unauthorized();
+                    if (!User.JeAdmin())
+                        return Forbid();
+                }
+                else if (!System.Net.IPAddress.IsLoopback(HttpContext.Connection.RemoteIpAddress ?? System.Net.IPAddress.None))
+                {
+                    return Forbid(); // prvog administratora moze da napravi samo lokalni zahtev
+                }
+
+                if (zahtev == null || string.IsNullOrWhiteSpace(zahtev.KorisnickoIme)
+                    || string.IsNullOrEmpty(zahtev.Lozinka) || zahtev.Lozinka.Length < 8)
+                    return BadRequest("Korisnicko ime je obavezno, a lozinka mora imati najmanje 8 karaktera");
+
                 Administrator a = new Administrator();
-                a.Ime = ime;
-                a.Prezime = prezime;
-                a.Email_adresa = email_adresa;
-                a.Korisnicko_ime = korisnicko_ime;
-                a.Lozinka  = lozinka;
+                a.Ime = zahtev.Ime;
+                a.Prezime = zahtev.Prezime;
+                a.Email_adresa = zahtev.EmailAdresa;
+                a.Korisnicko_ime = zahtev.KorisnickoIme;
+                a.Lozinka = Lozinke.Hesiraj(zahtev.Lozinka);
                 Context.Administratori.Add(a);
                 await Context.SaveChangesAsync();
-                return Ok("Uspesno ubacen administrator: "+ime+" "+prezime);
+                return Ok("Uspesno ubacen administrator: " + zahtev.Ime + " " + zahtev.Prezime);
             }
             catch(Exception ex)
             {
@@ -42,6 +63,7 @@ namespace EventBoxApi.Controllers
 
         [HttpDelete]
         [EnableCors("CORS")]
+        [Authorize(Roles = "Admin")]
         [Route("IzbrisiAdministratora/{id}")]
         public async Task<ActionResult> IzbrisiAdministratora(int id)
         {
@@ -59,17 +81,29 @@ namespace EventBoxApi.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpPost]
         [EnableCors("CORS")]
-        [Route("LogovanjeAdministrator/{username}/{password}")]
-        public async Task<ActionResult> LogovanjeAdministrator(string username, string password)
+        [Route("LogovanjeAdministrator")]
+        public async Task<ActionResult> LogovanjeAdministrator([FromBody] PrijavaZahtev zahtev)
         {
             try
             {
-                Administrator a  = await Context.Administratori.Where(p => p.Korisnicko_ime == username && p.Lozinka == password).FirstOrDefaultAsync();
-                if(a == null)
+                if (zahtev == null || string.IsNullOrEmpty(zahtev.KorisnickoIme) || string.IsNullOrEmpty(zahtev.Lozinka))
                     return Ok(new {nema="NEMA"});
-                return Ok(a);
+
+                Administrator a = await Context.Administratori.Where(p => p.Korisnicko_ime == zahtev.KorisnickoIme).FirstOrDefaultAsync();
+                if (a == null || !Lozinke.Proveri(a.Lozinka, zahtev.Lozinka, out bool ponovoHesirati))
+                    return Ok(new {nema="NEMA"});
+
+                if (ponovoHesirati)
+                    a.Lozinka = Lozinke.Hesiraj(zahtev.Lozinka);
+
+                // Sesija administratora (isto kao kod korisnika)
+                a.Token = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+                a.Validnost = DateTime.Now.AddMinutes(30);
+                await Context.SaveChangesAsync();
+
+                return Ok(new {token = a.Token, adminID = a.Id});
             }
             catch(Exception ex)
             {

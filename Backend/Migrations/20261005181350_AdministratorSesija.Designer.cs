@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Models;
 
@@ -11,9 +12,11 @@ using Models;
 namespace EventBoxApi.Migrations
 {
     [DbContext(typeof(EventBoxContext))]
-    partial class EventBoxContextModelSnapshot : ModelSnapshot
+    [Migration("20261005181350_AdministratorSesija")]
+    partial class AdministratorSesija
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -138,22 +141,22 @@ namespace EventBoxApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AutorId")
-                        .HasColumnType("int");
-
                     b.Property<int>("Dogadjaj_IdId")
                         .HasColumnType("int");
+
+                    b.Property<string>("SlikaKorisnika")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Tekst")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("Vreme")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("Username_Korisnika")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AutorId");
 
                     b.HasIndex("Dogadjaj_IdId");
 
@@ -362,19 +365,11 @@ namespace EventBoxApi.Migrations
 
             modelBuilder.Entity("Models.Komentar", b =>
                 {
-                    b.HasOne("Models.Korisnik", "Autor")
-                        .WithMany()
-                        .HasForeignKey("AutorId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
                     b.HasOne("Models.Dogadjaj", "Dogadjaj_Id")
                         .WithMany("Lista_Komentara")
                         .HasForeignKey("Dogadjaj_IdId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Autor");
 
                     b.Navigation("Dogadjaj_Id");
                 });

@@ -99,8 +99,8 @@ namespace EventBoxApi.Controllers
                 var dog = await Context.Dogadjaji.FindAsync(id);
                 if(dog == null)
                     return NotFound($"Dogadjaj sa ID-em {id} nije pronadjen");
-                if(dog.ID_Kreatora != User.IdKorisnika())
-                    return Forbid(); // brise samo vlasnik
+                if(dog.ID_Kreatora != User.IdKorisnika() && !User.JeAdmin())
+                    return Forbid(); // brise vlasnik ili administrator
 
                 // Notifikacija cuva samo DogadjajId (bez FK), baza je ne brise sama
                 var notifikacije = Context.Notifikacije.Where(n => n.DogadjajId == id);

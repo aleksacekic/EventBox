@@ -66,6 +66,7 @@ namespace EventBoxApi.Controllers
 
         [HttpGet]
         [EnableCors("CORS")]
+        [Authorize(Roles = "Admin")]
         [Route("VratiPrijavljene_dog/{broj_posiljke}/{ukupno_elemenata}")]
         public async Task<ActionResult> VratiPrijavljene_dog(int broj_posiljke, int ukupno_elemenata) //VRATICE SE FIKSAN BROJ RAZLOGA
         {
@@ -120,6 +121,7 @@ namespace EventBoxApi.Controllers
 
         [HttpDelete]
         [EnableCors("CORS")]
+        [Authorize(Roles = "Admin")]
         [Route("IzbrisiPrijavljeniDogadjaj/{id}")]
         public async Task<ActionResult> IzbrisiPrijavljeniDogadjaj(int id)
         {

@@ -33,54 +33,40 @@ namespace EventBoxApi.Controllers
 
         [EnableCors("CORS")]
         [AllowAnonymous]
-        [Route("DodajKorisnika/{ime}/{prezime}/{korisnicko_ime}/{lozinka}/{datum_rodjenja}/{email_adresa}")]
+        [Route("DodajKorisnika")]
         [HttpPost]
-        public async Task<ActionResult> DodajKorisnika(string ime, string prezime, string korisnicko_ime, 
-                                                        string lozinka, DateTime datum_rodjenja, string email_adresa)
+        public async Task<ActionResult> DodajKorisnika([FromBody] RegistracijaZahtev zahtev)
         {
             try
             {
+                if (zahtev == null || string.IsNullOrWhiteSpace(zahtev.Ime) || string.IsNullOrWhiteSpace(zahtev.Prezime)
+                    || string.IsNullOrWhiteSpace(zahtev.KorisnickoIme) || string.IsNullOrWhiteSpace(zahtev.EmailAdresa)
+                    || string.IsNullOrEmpty(zahtev.Lozinka) || zahtev.Lozinka.Length < 8)
+                    return BadRequest("Sva polja su obavezna, a lozinka mora imati najmanje 8 karaktera");
 
-                //PROVER DATUMA
-                if(DateTime.Compare(new DateTime(2023,1,1), datum_rodjenja) < 0 && 
-                   DateTime.Compare(new DateTime(1900,1,1), datum_rodjenja) > 0)
-                   {    
-                    Console.WriteLine("USO U COMPARE");
-                     return Ok(new {odgovor = "DATUM"});
-                   }
-                   
-                    
-                //--------------------
-                //PROVERA KORISNICKOG IMENA
-                var pom = await Context.Korisnici.Where(p => p.Korisnicko_Ime == korisnicko_ime).FirstOrDefaultAsync();
+                // Datum rodjenja mora biti izmedju 1900. i danas
+                if (zahtev.DatumRodjenja < new DateTime(1900, 1, 1) || zahtev.DatumRodjenja > DateTime.Today)
+                    return Ok(new {odgovor = "DATUM"});
+
+                var pom = await Context.Korisnici.Where(p => p.Korisnicko_Ime == zahtev.KorisnickoIme).FirstOrDefaultAsync();
                 if(pom != null)
-                {    
-                    Console.WriteLine("USO U PROVERU KORISNICKOG IMENA");
-                    return Ok(new {odgovor = "KORISNICKO_IME"});        
-                }  
-                //-------------------------
+                    return Ok(new {odgovor = "KORISNICKO_IME"});
 
                 Korisnik k = new Korisnik();
-                k.Ime = ime;
-                k.Prezime = prezime;
-                k.Korisnicko_Ime = korisnicko_ime;
-                k.Lozinka = lozinka;
-                k.Lozinka_Hashirana = sha256_hash(lozinka);
-
-                var guid = Guid.NewGuid();
-                var token = sha256_hash(guid.ToString());
-                k.Token = token;
+                k.Ime = zahtev.Ime;
+                k.Prezime = zahtev.Prezime;
+                k.Korisnicko_Ime = zahtev.KorisnickoIme;
+                k.Lozinka_Hashirana = Lozinke.Hesiraj(zahtev.Lozinka);
+                k.Token = NoviToken();
                 k.Validnost = DateTime.Now.AddMinutes(10);
-
-                k.Datum_rodjenja = datum_rodjenja;
-                k.Email_Adresa = email_adresa;
+                k.Datum_rodjenja = zahtev.DatumRodjenja;
+                k.Email_Adresa = zahtev.EmailAdresa;
                 k.KorisnikImage = null;
                 k.Blokiran = 0;
 
-
                 Context.Korisnici.Add(k);
                 await Context.SaveChangesAsync();
-                return Ok("Uspesno je upisan korisnik sa korisnickim imenom" + korisnicko_ime);
+                return Ok("Uspesno je upisan korisnik sa korisnickim imenom " + zahtev.KorisnickoIme);
             }
             catch (Exception e)
             {
@@ -97,7 +83,12 @@ namespace EventBoxApi.Controllers
             {
                 if (id != User.IdKorisnika())
                     return Forbid(); // nalog brise samo njegov vlasnik
-                var korisnik = await Context.Korisnici.FindAsync(id);               
+                var korisnik = await Context.Korisnici.FindAsync(id);
+                if (korisnik == null)
+                    return NotFound();
+                // Komentari na tudjim dogadjajima nemaju kaskadu u bazi (vidi EventBoxContext);
+                // oni na sopstvenim dogadjajima se brisu kaskadno zajedno sa dogadjajima
+                Context.Komentari.RemoveRange(Context.Komentari.Where(k => k.AutorId == id));
                 Context.Korisnici.Remove(korisnik);
                 await Context.SaveChangesAsync();
                 return Ok("Uspesno je obrisan korisnik sa id-em " + id);
@@ -111,22 +102,33 @@ namespace EventBoxApi.Controllers
         [EnableCors("CORS")]
         [Route("IzmeniKorisnika")]
         [HttpPut]
-        public async Task<ActionResult> IzmeniKorisnika(int id, string ime, string prezime, string korisnicko_ime,  
-                                                        string lozinka, DateTime datum_rodjenja, string email_adresa)
+        public async Task<ActionResult> IzmeniKorisnika(int id, [FromBody] IzmenaKorisnikaZahtev zahtev)
         {
             try
             {
                 if (id != User.IdKorisnika())
                     return Forbid(); // menja samo svoj nalog
+                if (zahtev == null || string.IsNullOrWhiteSpace(zahtev.Ime) || string.IsNullOrWhiteSpace(zahtev.Prezime)
+                    || string.IsNullOrWhiteSpace(zahtev.KorisnickoIme) || string.IsNullOrWhiteSpace(zahtev.EmailAdresa))
+                    return BadRequest("Sva polja su obavezna");
+                if (!string.IsNullOrEmpty(zahtev.Lozinka) && zahtev.Lozinka.Length < 8)
+                    return BadRequest("Lozinka mora imati najmanje 8 karaktera");
+
                 Korisnik k = await Context.Korisnici.FindAsync(id);
-                k.Ime = ime;
-                k.Prezime = prezime;
-                k.Korisnicko_Ime = korisnicko_ime;
-                k.Lozinka = lozinka;
-                k.Lozinka_Hashirana = sha256_hash(lozinka);
-                k.Datum_rodjenja = datum_rodjenja;
-                k.Email_Adresa = email_adresa;
-                Context.Korisnici.Update(k);
+                if (k == null)
+                    return NotFound();
+
+                if (k.Korisnicko_Ime != zahtev.KorisnickoIme &&
+                    await Context.Korisnici.AnyAsync(p => p.Korisnicko_Ime == zahtev.KorisnickoIme))
+                    return Ok(new {odgovor = "KORISNICKO_IME"});
+
+                k.Ime = zahtev.Ime;
+                k.Prezime = zahtev.Prezime;
+                k.Korisnicko_Ime = zahtev.KorisnickoIme;
+                if (!string.IsNullOrEmpty(zahtev.Lozinka))
+                    k.Lozinka_Hashirana = Lozinke.Hesiraj(zahtev.Lozinka);
+                k.Datum_rodjenja = zahtev.DatumRodjenja;
+                k.Email_Adresa = zahtev.EmailAdresa;
                 await Context.SaveChangesAsync();
                 return Ok("Uspesno su azurirani podaci korisnika");
             }
@@ -134,7 +136,6 @@ namespace EventBoxApi.Controllers
             {
                 return BadRequest("Nije uspesno azuriranje korisnika" + ex.Message);
             }
-
         }
 
         [EnableCors("CORS")]
@@ -275,32 +276,33 @@ namespace EventBoxApi.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpPost]
         [EnableCors("CORS")]
         [AllowAnonymous]
-        [Route("LogovanjeKorisnik/{username}/{password}")]
-        public async Task<ActionResult> LogovanjeKorisnik(string username, string password) //proveriti da li je korisnik blokiran
+        [Route("LogovanjeKorisnik")]
+        public async Task<ActionResult> LogovanjeKorisnik([FromBody] PrijavaZahtev zahtev)
         {
             try
             {
-                string hash_lozinka = sha256_hash(password);
-                Korisnik k  = await Context.Korisnici.Where(p => p.Korisnicko_Ime == username && p.Lozinka_Hashirana == hash_lozinka).FirstOrDefaultAsync();
-
-                if(k == null)
+                if (zahtev == null || string.IsNullOrEmpty(zahtev.KorisnickoIme) || string.IsNullOrEmpty(zahtev.Lozinka))
                     return Ok(new {nema = "NEMA_KORISNIKA"});
-                if(k.Blokiran == -1)
+
+                Korisnik k = await Context.Korisnici.Where(p => p.Korisnicko_Ime == zahtev.KorisnickoIme).FirstOrDefaultAsync();
+
+                // Isti odgovor za nepostojeceg korisnika i pogresnu lozinku
+                if (k == null || !Lozinke.Proveri(k.Lozinka_Hashirana, zahtev.Lozinka, out bool ponovoHesirati))
+                    return Ok(new {nema = "NEMA_KORISNIKA"});
+                if (k.Blokiran == -1)
                     return Ok(new {blokiran = "BLOKIRAN"});
 
-                int korisnikov_id = k.Id;
-                
-                //Dodela tokena
-                var guid = Guid.NewGuid();
-                var token = sha256_hash(guid.ToString());
-                k.Token = token;
-                k.Validnost = DateTime.Now.AddMinutes(30);
-		
+                // Heš sa slabijim podesavanjima (npr. manje iteracija) se pri prijavi osvezava
+                if (ponovoHesirati)
+                    k.Lozinka_Hashirana = Lozinke.Hesiraj(zahtev.Lozinka);
 
-                Context.Korisnici.Update(k);
+                // Dodela tokena
+                k.Token = NoviToken();
+                k.Validnost = DateTime.Now.AddMinutes(30);
+
                 await Context.SaveChangesAsync();
 
                 return Ok(new {token=k.Token, userID = k.Id});
@@ -309,7 +311,6 @@ namespace EventBoxApi.Controllers
             {
                 return BadRequest("Nije uspelo vracanje korisnika "+ex.Message);
             }
-        
         }
 
         [HttpGet]
@@ -411,7 +412,7 @@ namespace EventBoxApi.Controllers
 
         [HttpPut]
         [EnableCors("CORS")]
-        [AllowAnonymous] // TODO: samo admin - dok admin nema svoju autentifikaciju ostaje otvoreno kao i do sada
+        [Authorize(Roles = "Admin")]
         [Route("BlokirajKorisnika/{korisnik_id}")]
         public async Task<ActionResult> BlokirajKorisnika(int korisnik_id)
         {
@@ -472,21 +473,8 @@ namespace EventBoxApi.Controllers
             }
         }
 
-        public static String sha256_hash(string value)
-        {
-            StringBuilder Sb = new StringBuilder();
-
-            using (var hash = SHA256.Create())            
-            {
-                Encoding enc = Encoding.UTF8;
-                byte[] result = hash.ComputeHash(enc.GetBytes(value));
-
-                foreach (byte b in result)
-                    Sb.Append(b.ToString("x2"));
-            }
-
-            return Sb.ToString();
-        }  
+        // Nasumican token od 256 bita (64 hex znaka)
+        private static string NoviToken() => Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
 
         [HttpGet]
         [EnableCors("CORS")]

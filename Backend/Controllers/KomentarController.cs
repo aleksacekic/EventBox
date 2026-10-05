@@ -41,13 +41,14 @@ namespace EventBoxApi.Controllers
                 if(string.IsNullOrWhiteSpace(tekst))
                     return BadRequest("Komentar ne sme biti prazan");
 
-                Korisnik kor = await Context.Korisnici.FindAsync(korisnik_Id);
                 Dogadjaj d = await Context.Dogadjaji.FindAsync(dogadjaj_Id);
+                if(d == null)
+                    return NotFound();
                 Komentar k = new Komentar();
                 k.Tekst = tekst;
-                k.Username_Korisnika = kor.Korisnicko_Ime;
+                k.AutorId = korisnik_Id;
+                k.Vreme = DateTime.UtcNow;
                 k.Dogadjaj_Id = d;
-                k.SlikaKorisnika = kor.KorisnikImage ?? "";   // kolona je NOT NULL, korisnik bez profilne ima null
 
                 Context.Komentari.Add(k);
                 await Context.SaveChangesAsync();
@@ -88,7 +89,7 @@ namespace EventBoxApi.Controllers
                 Komentar k = await Context.Komentari.FindAsync(id);
                 if(k == null)
                     return NotFound();
-                if(k.Username_Korisnika != User.Identity!.Name)
+                if(k.AutorId != User.IdKorisnika())
                     return Forbid(); // menja samo autor
                 k.Tekst = zahtev.Tekst;
 
@@ -112,7 +113,7 @@ namespace EventBoxApi.Controllers
                 Komentar k = await Context.Komentari.FindAsync(id);
                 if(k == null)
                     return NotFound();
-                if(k.Username_Korisnika != User.Identity!.Name)
+                if(k.AutorId != User.IdKorisnika())
                     return Forbid(); // brise samo autor
                 Context.Komentari.Remove(k);
                 await Context.SaveChangesAsync();
@@ -131,21 +132,23 @@ namespace EventBoxApi.Controllers
         {
             try
             {
-                var komentari = Context.Dogadjaji
-                                .Where(p => p.Id == id_dogadjaja)
-                                .Include(p => p.Lista_Komentara);
-
-                var komentar = await komentari.ToListAsync();
-                return Ok(komentar.Select(p => new {
-                    komentari = p.Lista_Komentara.Select(q => new 
+                // Ime i slika autora se citaju preko veze (uvek aktuelni), redosled po vremenu
+                var komentari = await Context.Komentari
+                    .Where(q => q.Dogadjaj_Id.Id == id_dogadjaja)
+                    .OrderBy(q => q.Vreme).ThenBy(q => q.Id)
+                    .Select(q => new
                     {
                         Id = q.Id,
                         Tekst = q.Tekst,
-                        Username_korisnika = q.Username_Korisnika,
-                        SlikaKorisnika = q.SlikaKorisnika
+                        AutorId = q.AutorId,
+                        Username_korisnika = q.Autor.Korisnicko_Ime,
+                        SlikaKorisnika = q.Autor.KorisnikImage,
+                        Vreme = q.Vreme
+                    })
+                    .ToListAsync();
 
-                    }).ToList()
-                })); 
+                // Isti oblik odgovora kao ranije: [{ komentari: [...] }]
+                return Ok(new[] { new { komentari } });
 
             }
             catch(Exception ex)

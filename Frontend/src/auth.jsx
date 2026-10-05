@@ -30,6 +30,7 @@ const SET_COOKIE_OPTS = {
 export function clearAuthCookies() {
   Cookies.remove('token', COOKIE_OPTS)
   Cookies.remove('userID', COOKIE_OPTS)
+  Cookies.remove('role', COOKIE_OPTS)
 }
 
 const AuthContext = createContext(null)
@@ -39,23 +40,29 @@ export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(() => ({
     token: Cookies.get('token') || null,
     userId: Cookies.get('userID') || null,
+    isAdmin: Cookies.get('role') === 'admin',
   }))
 
-  const login = useCallback(({ token, userId }) => {
+  // Administrator nema userId (nije korisnik): login({ token, isAdmin: true })
+  const login = useCallback(({ token, userId = null, isAdmin = false }) => {
     Cookies.set('token', String(token), SET_COOKIE_OPTS)
-    Cookies.set('userID', String(userId), SET_COOKIE_OPTS)
-    setAuth({ token: String(token), userId: String(userId) })
+    if (userId != null) Cookies.set('userID', String(userId), SET_COOKIE_OPTS)
+    else Cookies.remove('userID', COOKIE_OPTS)
+    if (isAdmin) Cookies.set('role', 'admin', SET_COOKIE_OPTS)
+    else Cookies.remove('role', COOKIE_OPTS)
+    setAuth({ token: String(token), userId: userId != null ? String(userId) : null, isAdmin })
   }, [])
 
   const logout = useCallback(() => {
     clearAuthCookies()
-    setAuth({ token: null, userId: null })
+    setAuth({ token: null, userId: null, isAdmin: false })
   }, [])
 
   const value = {
     userId: auth.userId,
     token: auth.token,
     isLoggedIn: Boolean(auth.token),
+    isAdmin: auth.isAdmin,
     login,
     logout,
   }
@@ -74,12 +81,15 @@ export function useAuth() {
 // Kapija za zasticene rute. Ako nema tokena -> redirect na /login PRE nego sto
 // se zasticena strana montira (nema bleska UI-ja, nema bacenih zahteva).
 // `from` cuva gde je korisnik hteo, da ga login vrati tamo posle prijave.
-export function RequireAuth({ children }) {
-  const { isLoggedIn } = useAuth()
+// admin=true: ruta samo za administratore; obicna ruta administratora salje na /admin.
+export function RequireAuth({ children, admin = false }) {
+  const { isLoggedIn, isAdmin } = useAuth()
   const location = useLocation()
 
   if (!isLoggedIn) {
     return <Navigate to="/" replace state={{ from: location }} />
   }
+  if (admin && !isAdmin) return <Navigate to="/pocetna" replace />
+  if (!admin && isAdmin) return <Navigate to="/admin" replace />
   return children
 }

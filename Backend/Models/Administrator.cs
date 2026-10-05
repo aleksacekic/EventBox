@@ -17,6 +17,9 @@ namespace Models
         [Required]
         public string Korisnicko_ime {get;set;}
         [Required]
-        public string Lozinka {get;set;}
+        public string Lozinka {get;set;} // PBKDF2 heš (vidi Auth/Lozinke.cs)
+        // Sesija administratora (isto kao Korisnik.Token / Validnost)
+        public string? Token {get;set;}
+        public DateTime? Validnost {get;set;}
     }
 }

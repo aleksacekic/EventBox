@@ -53,7 +53,7 @@ function LoginRegistracijaKomponenta() {
 
 
     try {
-      const data = await api.get(`/Korisnik/LogovanjeKorisnik/${username}/${password}`);
+      const data = await api.post('/Korisnik/LogovanjeKorisnik', { korisnickoIme: username, lozinka: password });
       if (data.nema !== undefined) {
         // Nije obican korisnik -> probaj kao administrator
         await probajAdmin(username, password);
@@ -71,11 +71,12 @@ function LoginRegistracijaKomponenta() {
 
   const probajAdmin = async (username, password) => {
     try {
-      const data = await api.get(`/Administrator/LogovanjeAdministrator/${username}/${password}`);
+      const data = await api.post('/Administrator/LogovanjeAdministrator', { korisnickoIme: username, lozinka: password });
       if (data.nema !== undefined) {
         alert("Pogresan unos!");
       } else {
-        navigate('/admin');
+        login({ token: data.token, isAdmin: true });
+        navigate('/admin', { replace: true });
       }
     } catch (error) {
       console.error('Greska pri admin prijavi:', error);
@@ -108,11 +109,26 @@ function LoginRegistracijaKomponenta() {
     const ime = poljaForme.ime.value;
     const prezime = poljaForme.prezime.value;
     const korisnickoime = poljaForme.username1.value;
-    const mail = encodeURIComponent(poljaForme.email.value);
+    const mail = poljaForme.email.value;
     const datumrodjenja = poljaForme.date.value;
     const lozinka = poljaForme.password.value;
     try {
-      await api.post(`/Korisnik/DodajKorisnika/${ime}/${prezime}/${korisnickoime}/${lozinka}/${datumrodjenja}/${mail}`);
+      const odgovor = await api.post('/Korisnik/DodajKorisnika', {
+        ime,
+        prezime,
+        korisnickoIme: korisnickoime,
+        lozinka,
+        datumRodjenja: datumrodjenja,
+        emailAdresa: mail,
+      });
+      if (odgovor?.odgovor === 'KORISNICKO_IME') {
+        alert("Korisnicko ime je zauzeto.");
+        return;
+      }
+      if (odgovor?.odgovor === 'DATUM') {
+        alert("Datum rodjenja nije ispravan.");
+        return;
+      }
       alert("Uspesno ste registrovani!");
       window.location.reload();
     } catch (error) {

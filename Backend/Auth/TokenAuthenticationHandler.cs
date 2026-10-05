@@ -8,12 +8,15 @@ using Models;
 namespace EventBoxApi.Auth
 {
     // Autentifikacija po tokenu: klijent salje "Authorization: Bearer <token>", a ovde
-    // se token trazi u bazi (Korisnik.Token). Kad je validan, zahtev dobija ulogovanog
-    // korisnika (User) i [Authorize] ga propusta. Zamenjuje staru rucnu proveru
-    // Validnost.Validiraj() koja se pozivala samo u par metoda i citala kolacice.
+    // se token trazi u bazi - prvo medju korisnicima, pa medju administratorima.
+    // Kad je validan, zahtev dobija ulogovanog (User) i [Authorize] ga propusta:
+    //   - korisnik: claim NameIdentifier = njegov ID, bez uloge
+    //   - administrator: uloga "Admin" (za [Authorize(Roles = "Admin")]), bez NameIdentifier,
+    //     pa User.IdKorisnika() daje -1 i ne moze da se poistoveti sa nekim korisnikom
     public class TokenAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
     {
         public const string Sema = "Token";
+        public const string UlogaAdmin = "Admin";
         private static readonly TimeSpan TrajanjeSesije = TimeSpan.FromMinutes(30);
 
         private readonly EventBoxContext _context;
@@ -38,28 +41,62 @@ namespace EventBoxApi.Auth
                 return AuthenticateResult.NoResult();
 
             var korisnik = await _context.Korisnici.FirstOrDefaultAsync(k => k.Token == token);
-            if (korisnik == null)
-                return AuthenticateResult.Fail("Nevalidan token");
+            if (korisnik != null)
+                return await ProveriKorisnika(korisnik);
+
+            var admin = await _context.Administratori.FirstOrDefaultAsync(a => a.Token == token);
+            if (admin != null)
+                return await ProveriAdmina(admin);
+
+            return AuthenticateResult.Fail("Nevalidan token");
+        }
+
+        private async Task<AuthenticateResult> ProveriKorisnika(Korisnik korisnik)
+        {
             if (korisnik.Blokiran == -1)
                 return AuthenticateResult.Fail("Nalog je blokiran");
 
-            var sada = DateTime.Now;
-            if (sada > korisnik.Validnost)
+            if (!await VazecaSesija(korisnik.Validnost, v => korisnik.Validnost = v))
                 return AuthenticateResult.Fail("Sesija je istekla");
 
-            // Klizna sesija: produzavamo je tek kad je ostalo manje od 25 min, da ne pisemo
-            // u bazu na svaki zahtev (npr. brojac poruka u headeru se osvezava na 3 s).
-            if (korisnik.Validnost - sada < TrajanjeSesije - TimeSpan.FromMinutes(5))
-            {
-                korisnik.Validnost = sada.Add(TrajanjeSesije);
-                await _context.SaveChangesAsync();
-            }
-
-            var claims = new[]
+            return Uspeh(new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, korisnik.Id.ToString()),
                 new Claim(ClaimTypes.Name, korisnik.Korisnicko_Ime),
-            };
+            });
+        }
+
+        private async Task<AuthenticateResult> ProveriAdmina(Administrator admin)
+        {
+            if (admin.Validnost == null || !await VazecaSesija(admin.Validnost.Value, v => admin.Validnost = v))
+                return AuthenticateResult.Fail("Sesija je istekla");
+
+            return Uspeh(new[]
+            {
+                new Claim(ClaimTypes.Role, UlogaAdmin),
+                new Claim(ClaimTypes.Name, admin.Korisnicko_ime),
+                new Claim("admin_id", admin.Id.ToString()),
+            });
+        }
+
+        // Klizna sesija: produzavamo je tek kad je ostalo manje od 25 min, da ne pisemo
+        // u bazu na svaki zahtev (npr. brojac poruka u headeru se osvezava na 3 s).
+        private async Task<bool> VazecaSesija(DateTime validnost, Action<DateTime> postaviValidnost)
+        {
+            var sada = DateTime.Now;
+            if (sada > validnost)
+                return false;
+
+            if (validnost - sada < TrajanjeSesije - TimeSpan.FromMinutes(5))
+            {
+                postaviValidnost(sada.Add(TrajanjeSesije));
+                await _context.SaveChangesAsync();
+            }
+            return true;
+        }
+
+        private AuthenticateResult Uspeh(IEnumerable<Claim> claims)
+        {
             var identitet = new ClaimsIdentity(claims, Scheme.Name);
             var ticket = new AuthenticationTicket(new ClaimsPrincipal(identitet), Scheme.Name);
             return AuthenticateResult.Success(ticket);
@@ -68,8 +105,12 @@ namespace EventBoxApi.Auth
 
     public static class KorisnikClaimsExtensions
     {
-        // ID ulogovanog korisnika iz tokena (u kontroleru: User.IdKorisnika())
+        // ID ulogovanog korisnika iz tokena (u kontroleru: User.IdKorisnika()).
+        // Za administratora (nema NameIdentifier) vraca -1, sto nikad nije ID korisnika.
         public static int IdKorisnika(this ClaimsPrincipal user)
-            => int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            => int.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : -1;
+
+        public static bool JeAdmin(this ClaimsPrincipal user)
+            => user.IsInRole(TokenAuthenticationHandler.UlogaAdmin);
     }
 }

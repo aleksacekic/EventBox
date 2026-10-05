@@ -2,6 +2,10 @@ import { api, API_BASE } from '../api';
 import { useAuth } from '../auth';
 import React from 'react';
 import { useEffect, useState } from 'react';
+import moment from 'moment';
+
+// Vreme komentara stize u UTC (bez oznake zone) -> prikaz u lokalnom vremenu
+const formatVreme = (vreme) => (vreme ? moment.utc(vreme).local().format('DD.MM.YYYY. HH:mm') : '');
 
 
 function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjajIdSubmit}) {
@@ -12,7 +16,6 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
   const [izmenjenKomentar, setIzmenjenKomentar] = useState('');
   const [izabraniKomentarId, setIzabraniKomentarId] = useState(null);
   const [izmenjenTekstKomentara, setIzmenjenTekstKomentara] = useState('');
-  const [korisnik, setKorisnik] = useState(null);
 
 
   // GET KOMENTARA
@@ -84,27 +87,18 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
   };
 
 
-  useEffect(() => {
-    ucitajKorisnika();
-  }, []);
-  const ucitajKorisnika = async () => {
-    try {
-      const korisnik_Id = userId;
-      const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
-      setKorisnik(data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
 
 
+
+  // Odgovor je oblika [{ komentari: [...] }]
+  const listaKomentara = komentari[0]?.komentari ?? [];
 
   return (
     <div className="komentar-wrap">
-      {komentari.length > 0 && dogadjajId === prikazaniDogadjaj ? (
+      {listaKomentara.length > 0 && dogadjajId === prikazaniDogadjaj ? (
         <ul className="komentar-lista">
 
-          {komentari[0].komentari.map((komentar) => (  //MORA komentari[0] jer niz komentari sadrzi samo jedan objekat koji ima svoje polje komentari, a unutar tog polja se nalazi niz nasih komentara
+          {listaKomentara.map((komentar) => (
 
             <li key={komentar.id} className="komentar-item">
               <img
@@ -128,9 +122,9 @@ function Komentari({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, onDogadjaj
                 </div>
                 <div className="komentar-footer">
                   <span className="komentar-vreme">
-                    <i className="la la-clock-o" /> 3 min ago
+                    <i className="la la-clock-o" /> {formatVreme(komentar.vreme)}
                   </span>
-                  {korisnik && korisnik.korisnicko_Ime === komentar.username_korisnika && (
+                  {String(komentar.autorId) === String(userId) && (
                     <div className="komentar-akcije">
                       {izabraniKomentarId === komentar.id ? (
                         <>
