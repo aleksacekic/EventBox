@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -22,12 +23,12 @@ namespace EventBoxApi.Controllers
 
         [HttpPost]
         [EnableCors("CORS")]
+        [Authorize]
         [Route("PrijaviDogadjaj/{dogadjaj_Id}")]
         public async Task<ActionResult> PrijaviDogadjaj(int dogadjaj_Id)
         {
             try
             {
-            await Validnost.Validiraj(Context, Request);
                     Dogadjaj d = await Context.Dogadjaji.FindAsync(dogadjaj_Id);
                     Prijavljeni_dogadjaj pr_dog = await Context.Prijavljeni_dogadjaji.Where(p => p.Dogadjaj_Id == d).FirstOrDefaultAsync();
                     if (pr_dog == null)

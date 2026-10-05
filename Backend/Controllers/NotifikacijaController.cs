@@ -1,3 +1,5 @@
+using EventBoxApi.Auth;
+using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +15,7 @@ namespace EventBoxApi.Controllers
         public string Vreme { get; set; }
     }
 
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class NotifikacijaController : ControllerBase
@@ -30,6 +33,12 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (korisnik_Id != User.IdKorisnika())
+                    return Forbid(); // notifikaciju za svoju objavu snima njen vlasnik
+                var dogadjajNotif = await Context.Dogadjaji.FindAsync(dogadjaj_Id);
+                if (dogadjajNotif == null || dogadjajNotif.ID_Kreatora != korisnik_Id)
+                    return Forbid();
+
                 // Tekst (npr. komentar) ide u telu zahteva - u URL-u bi / ? # kvarili rutu
                 string tip_reakcije = zahtev.TipReakcije;
                 string sadrzaj_reakcije = zahtev.SadrzajReakcije;
@@ -76,6 +85,8 @@ namespace EventBoxApi.Controllers
                 {
                     return NotFound("Notifikacija nije pronađena");
                 }
+                if (n.KorisnikCijaJeObjavaId != User.IdKorisnika())
+                    return Forbid();
 
                 Context.Notifikacije.Remove(n);
                 await Context.SaveChangesAsync();

@@ -1,3 +1,5 @@
+using EventBoxApi.Auth;
+using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +13,7 @@ namespace EventBoxApi.Controllers
         public string Poruka { get; set; }
     }
 
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class PorukaController : ControllerBase
@@ -28,6 +31,9 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (posiljaoc_id != User.IdKorisnika())
+                    return Forbid(); // salje samo u svoje ime
+
                 // Tekst ide u telu zahteva, ne u URL-u - inace znaci poput / ? # kvare rutu
                 if (string.IsNullOrWhiteSpace(zahtev?.Poruka))
                     return BadRequest("Poruka ne sme biti prazna");
@@ -78,6 +84,9 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (user1 != User.IdKorisnika() && user2 != User.IdKorisnika())
+                    return Forbid(); // samo ucesnici razgovora
+
                 if (page < 0 || size <= 0)
                     return BadRequest("Neispravni parametri paginacije.");
 
@@ -107,6 +116,8 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (receiverId != User.IdKorisnika())
+                    return Forbid();
                 var neprocitanePoruke = await Context.Poruke
                     .Where(m => m.PosiljaocId == senderId && m.PrimaocId == receiverId && !m.JelProcitano)
                     .ToListAsync();
@@ -131,6 +142,8 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (userId != User.IdKorisnika())
+                    return Forbid();
                 var brojPoruka = await Context.Poruke
                  .Where(m => m.PrimaocId == userId && !m.JelProcitano)
                  .CountAsync();
@@ -151,6 +164,9 @@ namespace EventBoxApi.Controllers
         [Route("VratiKorisnikeSaMogChata/{userId}")]
         public async Task<IActionResult> VratiKorisnikeSaMogChata(int userId)
         {
+            if (userId != User.IdKorisnika())
+                return Forbid();
+
             var users = await Context.Poruke
                 .Where(m => m.PosiljaocId == userId || m.PrimaocId == userId)
                 .Select(m => m.PosiljaocId == userId ? m.PrimaocId : m.PosiljaocId)
@@ -174,6 +190,8 @@ namespace EventBoxApi.Controllers
                 {
                     return NotFound("Poruka nije pronadjena");
                 }
+                if (poruka.PosiljaocId != User.IdKorisnika())
+                    return Forbid(); // brise samo posiljalac
                 Context.Poruke.Remove(poruka);
                 await Context.SaveChangesAsync();
                 return Ok("Poruka uspesno obrisana");

@@ -1,3 +1,5 @@
+using EventBoxApi.Auth;
+using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +13,7 @@ using System.Text;
 namespace EventBoxApi.Controllers
 {
 
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class KorisnikController : ControllerBase
@@ -29,6 +32,7 @@ namespace EventBoxApi.Controllers
 
 
         [EnableCors("CORS")]
+        [AllowAnonymous]
         [Route("DodajKorisnika/{ime}/{prezime}/{korisnicko_ime}/{lozinka}/{datum_rodjenja}/{email_adresa}")]
         [HttpPost]
         public async Task<ActionResult> DodajKorisnika(string ime, string prezime, string korisnicko_ime, 
@@ -91,6 +95,8 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (id != User.IdKorisnika())
+                    return Forbid(); // nalog brise samo njegov vlasnik
                 var korisnik = await Context.Korisnici.FindAsync(id);               
                 Context.Korisnici.Remove(korisnik);
                 await Context.SaveChangesAsync();
@@ -110,6 +116,8 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (id != User.IdKorisnika())
+                    return Forbid(); // menja samo svoj nalog
                 Korisnik k = await Context.Korisnici.FindAsync(id);
                 k.Ime = ime;
                 k.Prezime = prezime;
@@ -178,6 +186,8 @@ namespace EventBoxApi.Controllers
         [Route("DodajSlikuKorisniku")]
         public IActionResult AddImage(IFormFile fajl, int id_korisnika) //Trebalo bi [FromForm] za fetch
         {
+            if (id_korisnika != User.IdKorisnika())
+                return Forbid();
             Korisnik model = Context.Korisnici.Where(p => p.Id == id_korisnika).Include(p => p.Kreirani_Dogadjaji).First();
             model.ImageFile = fajl;
             var status = new Status();
@@ -220,7 +230,6 @@ namespace EventBoxApi.Controllers
         {
             try
             {
-                await Validnost.Validiraj(Context, Request);
 
                 var kategorije = await Context.Dogadjaji
                     .Where(d => d.ID_Kreatora == korisnik_Id)
@@ -245,6 +254,8 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (korisnik_id != User.IdKorisnika())
+                    return Forbid();
                 Korisnik k = await Context.Korisnici.Where(p => p.Id == korisnik_id).Include(p => p.Kreirani_Dogadjaji).FirstOrDefaultAsync();
                 if(k == null)
                     return BadRequest("Korisnik ne postoji");
@@ -266,6 +277,7 @@ namespace EventBoxApi.Controllers
 
         [HttpGet]
         [EnableCors("CORS")]
+        [AllowAnonymous]
         [Route("LogovanjeKorisnik/{username}/{password}")]
         public async Task<ActionResult> LogovanjeKorisnik(string username, string password) //proveriti da li je korisnik blokiran
         {
@@ -307,7 +319,6 @@ namespace EventBoxApi.Controllers
         {
             try
             {
-		await Validnost.Validiraj(Context, Request);
                 Korisnik k = await Context.Korisnici.Where(p => p.Id == korisnik_Id).Include(p => p.Kreirani_Dogadjaji).FirstOrDefaultAsync();
 
                 int skok = 3; 
@@ -354,7 +365,8 @@ namespace EventBoxApi.Controllers
         [Route("VratiNotifikacijeKorisnika/{korisnik_Id}")]
         public async Task<ActionResult> VratiNotifikacijeKorisnika(int korisnik_Id)
         {
-            //await Validnost.Validiraj(Context, Request);
+            if (korisnik_Id != User.IdKorisnika())
+                return Forbid(); // svoje notifikacije
             Korisnik k = await Context.Korisnici.Where(p => p.Id == korisnik_Id).Include(p => p.Lista_Notifikacija).FirstOrDefaultAsync();
             
             return Ok(k.Lista_Notifikacija);
@@ -365,6 +377,9 @@ namespace EventBoxApi.Controllers
         [Route("VratiPetNotifikacijaKorisnika/{korisnik_Id}")]
         public async Task<ActionResult> VratiPetNotifikacijaKorisnika(int korisnik_Id)
         {
+            if (korisnik_Id != User.IdKorisnika())
+                return Forbid(); // svoje notifikacije
+
             Korisnik k = await Context.Korisnici
                 .Where(p => p.Id == korisnik_Id)
                 .Include(p => p.Lista_Notifikacija)
@@ -396,6 +411,7 @@ namespace EventBoxApi.Controllers
 
         [HttpPut]
         [EnableCors("CORS")]
+        [AllowAnonymous] // TODO: samo admin - dok admin nema svoju autentifikaciju ostaje otvoreno kao i do sada
         [Route("BlokirajKorisnika/{korisnik_id}")]
         public async Task<ActionResult> BlokirajKorisnika(int korisnik_id)
         {
@@ -474,6 +490,7 @@ namespace EventBoxApi.Controllers
 
         [HttpGet]
         [EnableCors("CORS")]
+        [AllowAnonymous]
         [Route("ProveriToken")]
         public async Task<ActionResult> ProveriToken([FromBody] Korisnik k)
         {

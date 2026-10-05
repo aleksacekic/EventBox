@@ -1,3 +1,5 @@
+using EventBoxApi.Auth;
+using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +9,7 @@ using Models;
 
 namespace EventBoxApi.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class ReakcijaController : ControllerBase
@@ -27,7 +30,11 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (korisnik_Id != User.IdKorisnika())
+                    return Forbid(); // reaguje samo u svoje ime
                 Dogadjaj d = await Context.Dogadjaji.FindAsync(dogadjaj_Id);
+                if (d == null)
+                    return NotFound();
                 if (tip == "Mozda")
                     d.Broj_Mozda++;
                 if (tip == "Zainteresovan")
@@ -66,6 +73,8 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (korisnik_id != User.IdKorisnika())
+                    return Forbid();
                 Dogadjaj d = await Context.Dogadjaji.Include(p => p.Lista_Reakcija).FirstAsync(p => p.Id == dogadjaj_id);
                 if (tip_trenutni == "Mozda")
                     d.Broj_Mozda++;
@@ -104,6 +113,8 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (korisnik_id != User.IdKorisnika())
+                    return Forbid();
                 Dogadjaj d = await Context.Dogadjaji.Include(p => p.Lista_Reakcija).FirstAsync(p => p.Id == dogadjaj_id);
                 if (tip == "Mozda")
                     d.Broj_Mozda--;
@@ -161,6 +172,10 @@ namespace EventBoxApi.Controllers
             try
             {
                 Dogadjaj d = await Context.Dogadjaji.Where(p => p.Id == dogadjaj_ID).Include(p => p.Lista_Reakcija).FirstOrDefaultAsync();
+                if (d == null)
+                    return NotFound();
+                if (d.ID_Kreatora != User.IdKorisnika())
+                    return Forbid();
 
                 if (d.Lista_Reakcija.Count() > 0)
                 {
@@ -185,6 +200,8 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (id_korisnika != User.IdKorisnika())
+                    return Forbid();
                 List<Object> reakcije = new List<Object>();
                 Dogadjaj d = new Dogadjaj();
                 List<int> lista = ID_dogadjaja.Split(',').Select(int.Parse).ToList();

@@ -1,3 +1,5 @@
+using EventBoxApi.Auth;
+using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +10,7 @@ using EventBoxApi.Repo.Abstract;
 
 namespace EventBoxApi.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class DogadjajController : ControllerBase
@@ -53,6 +56,9 @@ namespace EventBoxApi.Controllers
         {
            try
             {
+                if(kreator != User.IdKorisnika())
+                    return Forbid(); // dogadjaj moze da napravi samo za sebe
+
                 Korisnik k = new Korisnik();
                 k = await Context.Korisnici.FindAsync(kreator);
                 Dogadjaj dog = new Dogadjaj();
@@ -93,6 +99,8 @@ namespace EventBoxApi.Controllers
                 var dog = await Context.Dogadjaji.FindAsync(id);
                 if(dog == null)
                     return NotFound($"Dogadjaj sa ID-em {id} nije pronadjen");
+                if(dog.ID_Kreatora != User.IdKorisnika())
+                    return Forbid(); // brise samo vlasnik
 
                 // Notifikacija cuva samo DogadjajId (bez FK), baza je ne brise sama
                 var notifikacije = Context.Notifikacije.Where(n => n.DogadjajId == id);
@@ -120,6 +128,10 @@ namespace EventBoxApi.Controllers
             {
 
                 Dogadjaj dog = await Context.Dogadjaji.FindAsync(dogadjajID);
+                if(dog == null)
+                    return NotFound();
+                if(dog.ID_Kreatora != User.IdKorisnika())
+                    return Forbid();
                 Korisnik k = await Context.Korisnici.FindAsync(dog.ID_Kreatora);
                 dog.Datum_Objave = datum_objave;
                 dog.UserName_Kreatora = k.Korisnicko_Ime;
@@ -149,6 +161,10 @@ namespace EventBoxApi.Controllers
         {
             Console.WriteLine("Uso sam u funkciju");
             Dogadjaj model = Context.Dogadjaji.FirstOrDefault(p => p.Id == dogadjaj_id);
+            if(model == null)
+                return NotFound();
+            if(model.ID_Kreatora != User.IdKorisnika())
+                return Forbid();
             model.ImageFile = fajl;
             Console.WriteLine("Ucitao sam dogadjaj" + model.Id);
 
@@ -190,6 +206,10 @@ namespace EventBoxApi.Controllers
             try
             {
                 Dogadjaj d = await Context.Dogadjaji.FindAsync(dogadjaj_id);
+                if(d == null)
+                    return NotFound();
+                if(d.ID_Kreatora != User.IdKorisnika())
+                    return Forbid();
                 if(_fileService.DeleteImage(d.DogadjajImage))
                 {
                     d.DogadjajImage = null;
@@ -213,7 +233,6 @@ namespace EventBoxApi.Controllers
         {                                                                                                 //Salje se inicijalno 0 za prvi poziv funkcije u sesiji
             try
             {
-                await Validnost.Validiraj(Context, Request);
                 
                 DateTime danas = DateTime.Today;
                 DateTime danas_norm = new DateTime(danas.Year,danas.Month,danas.Day); //Normalizovan danasnji datum
@@ -254,10 +273,6 @@ namespace EventBoxApi.Controllers
 
                 return Ok(odgovor);
             }
-            catch(AUTHException)
-            {
-                return StatusCode(401);
-            }
             catch(Exception ex)
             {
                 return BadRequest($"Nije uspelo vracanje posiljke: {broj_posiljke}, ukupno elementa: {ukupno_elemenata} "+ex.Message);
@@ -271,7 +286,6 @@ namespace EventBoxApi.Controllers
         {
             try
             {
-                await Validnost.Validiraj(Context, Request);
                 int skok = 3; //Broj objekta koji se vraca
                 int ukupno = ukupno_elemenata;
 
@@ -319,7 +333,6 @@ namespace EventBoxApi.Controllers
         {
             try
             {
-                await Validnost.Validiraj(Context, Request);
                 DateTime danas = DateTime.Today;
                 DateTime danas_norm = new DateTime(danas.Year,danas.Month,danas.Day); //Normalizovan danasnji datum
 

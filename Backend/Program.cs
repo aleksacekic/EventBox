@@ -4,6 +4,9 @@ using EventBoxApi.Repo.Abstract;
 using EventBoxApi.Repo.Implementation;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.OpenApi.Models;
+using EventBoxApi.Auth;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -91,7 +94,28 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    // Dugme "Authorize" u Swagger-u: nalepi token dobijen pri prijavi
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        Description = "Token dobijen od /Korisnik/LogovanjeKorisnik"
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
+            new string[] { }
+        }
+    });
+});
+
+// Autentifikacija po tokenu (vidi Auth/TokenAuthenticationHandler.cs)
+builder.Services.AddAuthentication(TokenAuthenticationHandler.Sema)
+    .AddScheme<AuthenticationSchemeOptions, TokenAuthenticationHandler>(TokenAuthenticationHandler.Sema, null);
+builder.Services.AddAuthorization();
 builder.Services.AddTransient<IFileService, FileService>();
 builder.Services.AddTransient<IDogadjajRepo, DogadjajRepo>();
 builder.Services.AddTransient<IKorisnikRepo, KorisnikRepo>();
@@ -127,6 +151,8 @@ app.MapControllers();
 // Postavi rute za SignalR
 app.UseRouting();
 app.UseCors("CORS");
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapHub<NotificationHub>("/notificationHub");
 app.MapHub<ChatHub>("/chatHub");
 

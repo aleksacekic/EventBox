@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,7 @@ namespace EventBoxApi.Controllers
 
         [HttpPost]
         [EnableCors("CORS")]
+        [Authorize]
         [Route("KreirajRazlog/{dogadjaj_Id}/{razlog_prijave}")]
         public async Task<ActionResult> KreirajRazlog(int dogadjaj_Id, string razlog_prijave, [FromBody] RazlogZahtev zahtev) 
         {

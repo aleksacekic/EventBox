@@ -1,3 +1,5 @@
+using EventBoxApi.Auth;
+using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +14,7 @@ namespace EventBoxApi.Controllers
         public string Tekst { get; set; }
     }
 
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class KomentarController : ControllerBase
@@ -32,11 +35,12 @@ namespace EventBoxApi.Controllers
             try
             {
                 // Tekst ide u telu zahteva, ne u URL-u - inace znaci poput / ? # kvare rutu
+                if(korisnik_Id != User.IdKorisnika())
+                    return Forbid(); // komentarise samo u svoje ime
                 string tekst = zahtev?.Tekst;
                 if(string.IsNullOrWhiteSpace(tekst))
                     return BadRequest("Komentar ne sme biti prazan");
 
-		await Validnost.Validiraj(Context, Request);
                 Korisnik kor = await Context.Korisnici.FindAsync(korisnik_Id);
                 Dogadjaj d = await Context.Dogadjaji.FindAsync(dogadjaj_Id);
                 Komentar k = new Komentar();
@@ -82,6 +86,10 @@ namespace EventBoxApi.Controllers
                     return BadRequest("Komentar ne sme biti prazan");
 
                 Komentar k = await Context.Komentari.FindAsync(id);
+                if(k == null)
+                    return NotFound();
+                if(k.Username_Korisnika != User.Identity!.Name)
+                    return Forbid(); // menja samo autor
                 k.Tekst = zahtev.Tekst;
 
                 Context.Komentari.Update(k);
@@ -102,6 +110,10 @@ namespace EventBoxApi.Controllers
             try
             {
                 Komentar k = await Context.Komentari.FindAsync(id);
+                if(k == null)
+                    return NotFound();
+                if(k.Username_Korisnika != User.Identity!.Name)
+                    return Forbid(); // brise samo autor
                 Context.Komentari.Remove(k);
                 await Context.SaveChangesAsync();
                 return Ok("Uspesno je izbrisan komentar sa ID-em: "+id);
@@ -150,6 +162,10 @@ namespace EventBoxApi.Controllers
             try
             {
                 Dogadjaj d = await Context.Dogadjaji.Where(p => p.Id == dogadjaj_ID).Include(p => p.Lista_Komentara).FirstOrDefaultAsync();
+                if(d == null)
+                    return NotFound();
+                if(d.ID_Kreatora != User.IdKorisnika())
+                    return Forbid();
 
                 if(d.Lista_Komentara.Count() > 0)
                 {
