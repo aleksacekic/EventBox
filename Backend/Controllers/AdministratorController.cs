@@ -45,6 +45,13 @@ namespace EventBoxApi.Controllers
                     || string.IsNullOrEmpty(zahtev.Lozinka) || zahtev.Lozinka.Length < 8)
                     return BadRequest("Korisnicko ime je obavezno, a lozinka mora imati najmanje 8 karaktera");
 
+                zahtev.KorisnickoIme = KorisnickoIme.Normalizuj(zahtev.KorisnickoIme);
+                var greskaImena = KorisnickoIme.Proveri(zahtev.KorisnickoIme);
+                if (greskaImena != null)
+                    return BadRequest(greskaImena);
+                if (await Context.Administratori.AnyAsync(p => p.Korisnicko_ime == zahtev.KorisnickoIme))
+                    return Conflict("Administrator sa tim korisnickim imenom vec postoji");
+
                 Administrator a = new Administrator();
                 a.Ime = zahtev.Ime;
                 a.Prezime = zahtev.Prezime;
@@ -52,7 +59,14 @@ namespace EventBoxApi.Controllers
                 a.Korisnicko_ime = zahtev.KorisnickoIme;
                 a.Lozinka = Lozinke.Hesiraj(zahtev.Lozinka);
                 Context.Administratori.Add(a);
-                await Context.SaveChangesAsync();
+                try
+                {
+                    await Context.SaveChangesAsync();
+                }
+                catch (DbUpdateException e) when (KorisnickoIme.JeDuplikat(e))
+                {
+                    return Conflict("Administrator sa tim korisnickim imenom vec postoji");
+                }
                 return Ok("Uspesno ubacen administrator: " + zahtev.Ime + " " + zahtev.Prezime);
             }
             catch(Exception ex)
@@ -91,7 +105,8 @@ namespace EventBoxApi.Controllers
                 if (zahtev == null || string.IsNullOrEmpty(zahtev.KorisnickoIme) || string.IsNullOrEmpty(zahtev.Lozinka))
                     return Ok(new {nema="NEMA"});
 
-                Administrator a = await Context.Administratori.Where(p => p.Korisnicko_ime == zahtev.KorisnickoIme).FirstOrDefaultAsync();
+                string ime = KorisnickoIme.Normalizuj(zahtev.KorisnickoIme);
+                Administrator a = await Context.Administratori.Where(p => p.Korisnicko_ime == ime).FirstOrDefaultAsync();
                 if (a == null || !Lozinke.Proveri(a.Lozinka, zahtev.Lozinka, out bool ponovoHesirati))
                     return Ok(new {nema="NEMA"});
 

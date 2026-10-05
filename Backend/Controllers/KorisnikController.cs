@@ -44,6 +44,11 @@ namespace EventBoxApi.Controllers
                     || string.IsNullOrEmpty(zahtev.Lozinka) || zahtev.Lozinka.Length < 8)
                     return BadRequest("Sva polja su obavezna, a lozinka mora imati najmanje 8 karaktera");
 
+                zahtev.KorisnickoIme = KorisnickoIme.Normalizuj(zahtev.KorisnickoIme);
+                var greskaImena = KorisnickoIme.Proveri(zahtev.KorisnickoIme);
+                if (greskaImena != null)
+                    return BadRequest(greskaImena);
+
                 // Datum rodjenja mora biti izmedju 1900. i danas
                 if (zahtev.DatumRodjenja < new DateTime(1900, 1, 1) || zahtev.DatumRodjenja > DateTime.Today)
                     return Ok(new {odgovor = "DATUM"});
@@ -65,7 +70,15 @@ namespace EventBoxApi.Controllers
                 k.Blokiran = 0;
 
                 Context.Korisnici.Add(k);
-                await Context.SaveChangesAsync();
+                try
+                {
+                    await Context.SaveChangesAsync();
+                }
+                catch (DbUpdateException e) when (KorisnickoIme.JeDuplikat(e))
+                {
+                    // Neko je isto ime zauzeo izmedju provere gore i upisa
+                    return Ok(new {odgovor = "KORISNICKO_IME"});
+                }
                 return Ok("Uspesno je upisan korisnik sa korisnickim imenom " + zahtev.KorisnickoIme);
             }
             catch (Exception e)
@@ -89,8 +102,15 @@ namespace EventBoxApi.Controllers
                 // Komentari na tudjim dogadjajima nemaju kaskadu u bazi (vidi EventBoxContext);
                 // oni na sopstvenim dogadjajima se brisu kaskadno zajedno sa dogadjajima
                 Context.Komentari.RemoveRange(Context.Komentari.Where(k => k.AutorId == id));
+                // Isto za reakcije; posle brisanja se brojaci tih tudjih dogadjaja ponovo racunaju
+                var reagovaoNa = await Context.Reakcije
+                    .Where(r => r.Korisnik_ID == id && r.Dogadjaj_ID.ID_Kreatora != id)
+                    .Select(r => r.Dogadjaj_ID.Id)
+                    .ToArrayAsync();
+                Context.Reakcije.RemoveRange(Context.Reakcije.Where(r => r.Korisnik_ID == id));
                 Context.Korisnici.Remove(korisnik);
                 await Context.SaveChangesAsync();
+                await BrojaciReakcija.OsveziAsync(Context, reagovaoNa);
                 return Ok("Uspesno je obrisan korisnik sa id-em " + id);
             }
             catch(Exception e)
@@ -114,6 +134,11 @@ namespace EventBoxApi.Controllers
                 if (!string.IsNullOrEmpty(zahtev.Lozinka) && zahtev.Lozinka.Length < 8)
                     return BadRequest("Lozinka mora imati najmanje 8 karaktera");
 
+                zahtev.KorisnickoIme = KorisnickoIme.Normalizuj(zahtev.KorisnickoIme);
+                var greskaImena = KorisnickoIme.Proveri(zahtev.KorisnickoIme);
+                if (greskaImena != null)
+                    return BadRequest(greskaImena);
+
                 Korisnik k = await Context.Korisnici.FindAsync(id);
                 if (k == null)
                     return NotFound();
@@ -129,7 +154,14 @@ namespace EventBoxApi.Controllers
                     k.Lozinka_Hashirana = Lozinke.Hesiraj(zahtev.Lozinka);
                 k.Datum_rodjenja = zahtev.DatumRodjenja;
                 k.Email_Adresa = zahtev.EmailAdresa;
-                await Context.SaveChangesAsync();
+                try
+                {
+                    await Context.SaveChangesAsync();
+                }
+                catch (DbUpdateException e) when (KorisnickoIme.JeDuplikat(e))
+                {
+                    return Ok(new {odgovor = "KORISNICKO_IME"});
+                }
                 return Ok("Uspesno su azurirani podaci korisnika");
             }
             catch(Exception ex)
@@ -287,7 +319,8 @@ namespace EventBoxApi.Controllers
                 if (zahtev == null || string.IsNullOrEmpty(zahtev.KorisnickoIme) || string.IsNullOrEmpty(zahtev.Lozinka))
                     return Ok(new {nema = "NEMA_KORISNIKA"});
 
-                Korisnik k = await Context.Korisnici.Where(p => p.Korisnicko_Ime == zahtev.KorisnickoIme).FirstOrDefaultAsync();
+                string ime = KorisnickoIme.Normalizuj(zahtev.KorisnickoIme);
+                Korisnik k = await Context.Korisnici.Where(p => p.Korisnicko_Ime == ime).FirstOrDefaultAsync();
 
                 // Isti odgovor za nepostojeceg korisnika i pogresnu lozinku
                 if (k == null || !Lozinke.Proveri(k.Lozinka_Hashirana, zahtev.Lozinka, out bool ponovoHesirati))

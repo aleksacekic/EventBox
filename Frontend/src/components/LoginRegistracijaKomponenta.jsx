@@ -1,4 +1,4 @@
-import { api } from '../api';
+import { api, ApiError } from '../api';
 import { useAuth } from '../auth';
 
 import React, { useState, useEffect } from 'react';
@@ -101,6 +101,13 @@ function LoginRegistracijaKomponenta() {
       }
     }
 
+    // Ista pravila kao na serveru (Backend/Models/KorisnickoIme.cs)
+    const korisnickoime = poljaForme.username1.value.trim();
+    if (!noveGreske.username1 && !/^[A-Za-z0-9._-]{3,30}$/.test(korisnickoime)) {
+      isGreska = true;
+      noveGreske.username1 = 'Od 3 do 30 karaktera: slova bez kvačica, cifre, tačka, crta i donja crta.';
+    }
+
     if (isGreska) {
       setErrors(noveGreske);
       return;
@@ -108,7 +115,6 @@ function LoginRegistracijaKomponenta() {
 
     const ime = poljaForme.ime.value;
     const prezime = poljaForme.prezime.value;
-    const korisnickoime = poljaForme.username1.value;
     const mail = poljaForme.email.value;
     const datumrodjenja = poljaForme.date.value;
     const lozinka = poljaForme.password.value;
@@ -133,7 +139,10 @@ function LoginRegistracijaKomponenta() {
       window.location.reload();
     } catch (error) {
       console.error('Greska:', error);
-      alert('Došlo je do greške prilikom registracije.');
+      // 400 sa servera nosi konkretnu poruku (npr. pravila za korisnicko ime)
+      alert(error instanceof ApiError && error.status === 400
+        ? error.message
+        : 'Došlo je do greške prilikom registracije.');
     }
   };
 
@@ -206,7 +215,7 @@ function LoginRegistracijaKomponenta() {
 
                 <div className="auth-field">
                   <i className="la la-at" />
-                  <input type="text" name="username1" placeholder="Korisnicko ime" autoComplete="off" className="auth-input" />
+                  <input type="text" name="username1" placeholder="Korisnicko ime" autoComplete="off" maxLength={30} className="auth-input" />
                 </div>
                 {errors.username1 && <span className="error-message">{errors.username1}</span>}
 

@@ -23,6 +23,8 @@ namespace EventBoxApi.Controllers
             _hubContext = hubContext;
         }
 
+        // Postavlja reakciju korisnika na dogadjaj. Ako korisnik vec ima reakciju na tom
+        // dogadjaju, samo joj menja tip (nikad dve reakcije istog korisnika na jednom dogadjaju).
         [HttpPost]
         [EnableCors("CORS")]
         [Route("PostaviReakciju/{tip}/{korisnik_Id}/{dogadjaj_Id}")]
@@ -30,33 +32,37 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (!Reakcija.Tipovi.Contains(tip))
+                    return BadRequest("Nepoznat tip reakcije: " + tip);
                 if (korisnik_Id != User.IdKorisnika())
                     return Forbid(); // reaguje samo u svoje ime
                 Dogadjaj d = await Context.Dogadjaji.FindAsync(dogadjaj_Id);
                 if (d == null)
                     return NotFound();
-                if (tip == "Mozda")
-                    d.Broj_Mozda++;
-                if (tip == "Zainteresovan")
-                    d.Broj_Zainteresovanih++;
-                if (tip == "Nezainteresovan")
-                    d.Broj_Nezainteresovanih++;
 
-                Reakcija r = new Reakcija();
+                Reakcija r = await Context.Reakcije
+                    .FirstOrDefaultAsync(p => p.Korisnik_ID == korisnik_Id && p.Dogadjaj_ID.Id == dogadjaj_Id);
+                if (r == null)
+                {
+                    r = new Reakcija();
+                    r.Korisnik_ID = korisnik_Id;
+                    r.Dogadjaj_ID = d;
+                    Context.Reakcije.Add(r);
+                }
                 r.Tip = tip;
-                r.Korisnik_ID = korisnik_Id;
-                r.Dogadjaj_ID = d;
-                //Console.WriteLine("SACEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
-                //Console.WriteLine(d.ID_Kreatora);
-                Context.Reakcije.Add(r);
-                Context.Dogadjaji.Update(d);
-                await Context.SaveChangesAsync();
-                Console.WriteLine("SACEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
-                Console.WriteLine(tip, dogadjaj_Id, korisnik_Id);
+
+                try
+                {
+                    await Context.SaveChangesAsync();
+                }
+                catch (DbUpdateException)
+                {
+                    // Dva istovremena zahteva istog korisnika: drugi udara u jedinstven indeks
+                    return Conflict("Reakcija je vec postavljena");
+                }
+                await BrojaciReakcija.OsveziAsync(Context, dogadjaj_Id);
+
                 await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewReaction", tip, dogadjaj_Id, korisnik_Id);
-                //await _hubContext.Clients.All.SendAsync("ReceiveNewReaction", tip, dogadjaj_Id);
-
-
 
                 return Ok("Uspesno je dodata rekcija");
             }
@@ -66,6 +72,8 @@ namespace EventBoxApi.Controllers
             }
         }
 
+        // tip_prethodni ostaje u ruti zbog kompatibilnosti, ali se ne koristi: prethodni tip
+        // se cita iz baze, a brojaci se racunaju iz reakcija
         [HttpPut]
         [EnableCors("CORS")]
         [Route("PromeniReakciju/{tip_prethodni}/{tip_trenutni}/{korisnik_id}/{dogadjaj_id}")]
@@ -73,31 +81,23 @@ namespace EventBoxApi.Controllers
         {
             try
             {
+                if (!Reakcija.Tipovi.Contains(tip_trenutni))
+                    return BadRequest("Nepoznat tip reakcije: " + tip_trenutni);
                 if (korisnik_id != User.IdKorisnika())
                     return Forbid();
-                Dogadjaj d = await Context.Dogadjaji.Include(p => p.Lista_Reakcija).FirstAsync(p => p.Id == dogadjaj_id);
-                if (tip_trenutni == "Mozda")
-                    d.Broj_Mozda++;
-                if (tip_trenutni == "Zainteresovan")
-                    d.Broj_Zainteresovanih++;
-                if (tip_trenutni == "Nezainteresovan")
-                    d.Broj_Nezainteresovanih++;
-                if (tip_prethodni == "Mozda")
-                    d.Broj_Mozda--;
-                if (tip_prethodni == "Zainteresovan")
-                    d.Broj_Zainteresovanih--;
-                if (tip_prethodni == "Nezainteresovan")
-                    d.Broj_Nezainteresovanih--;
+                Dogadjaj d = await Context.Dogadjaji.FindAsync(dogadjaj_id);
+                if (d == null)
+                    return NotFound();
+                Reakcija r = await Context.Reakcije
+                    .FirstOrDefaultAsync(p => p.Korisnik_ID == korisnik_id && p.Dogadjaj_ID.Id == dogadjaj_id);
+                if (r == null)
+                    return NotFound("Korisnik nema reakciju na ovaj dogadjaj");
 
-                Reakcija r = d.Lista_Reakcija.FirstOrDefault(p => p.Korisnik_ID == korisnik_id);
                 r.Tip = tip_trenutni;
-                Context.Reakcije.Update(r);
-                Context.Dogadjaji.Update(d);
                 await Context.SaveChangesAsync();
-                //if(d.ID_Kreatora != korisnik_id)
-                //{
+                await BrojaciReakcija.OsveziAsync(Context, dogadjaj_id);
+
                 await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewReaction", tip_trenutni, dogadjaj_id, korisnik_id);
-                //}
                 return Ok($"Uspesno je promenjena reakcija korisnika sa ID-em: {korisnik_id} na dogadjaj: {d.Naslov}");
 
             }
@@ -106,6 +106,8 @@ namespace EventBoxApi.Controllers
                 return BadRequest("Nije uspesno azurirana reakcija " + ex.Message);
             }
         }
+
+        // tip ostaje u ruti zbog kompatibilnosti; brise se reakcija korisnika, kog god tipa bila
         [HttpDelete]
         [EnableCors("CORS")]
         [Route("IzbrisiReakciju/{tip}/{korisnik_id}/{dogadjaj_id}")]
@@ -115,18 +117,13 @@ namespace EventBoxApi.Controllers
             {
                 if (korisnik_id != User.IdKorisnika())
                     return Forbid();
-                Dogadjaj d = await Context.Dogadjaji.Include(p => p.Lista_Reakcija).FirstAsync(p => p.Id == dogadjaj_id);
-                if (tip == "Mozda")
-                    d.Broj_Mozda--;
-                if (tip == "Zainteresovan")
-                    d.Broj_Zainteresovanih--;
-                if (tip == "Nezainteresovan")
-                    d.Broj_Nezainteresovanih--;
-
-                Reakcija r = d.Lista_Reakcija.FirstOrDefault(p => p.Korisnik_ID == korisnik_id);
-                Context.Dogadjaji.Update(d);
+                Reakcija r = await Context.Reakcije
+                    .FirstOrDefaultAsync(p => p.Korisnik_ID == korisnik_id && p.Dogadjaj_ID.Id == dogadjaj_id);
+                if (r == null)
+                    return NotFound();
                 Context.Reakcije.Remove(r);
                 await Context.SaveChangesAsync();
+                await BrojaciReakcija.OsveziAsync(Context, dogadjaj_id);
                 return Ok("Uspesno je obrisana reakcija");
             }
             catch (Exception ex)
@@ -135,35 +132,6 @@ namespace EventBoxApi.Controllers
             }
         }
 
-        //PRETHODNA VERZIJA FUNKCIJE VRATI_REAKCIJE
-        /*[HttpPost] //Alternativa: POST
-        [EnableCors("CORS")]
-        [Route("VratiReakcije/{id_korisnika}")] 
-        public async Task<ActionResult> VratiReakcije([FromForm] int[] ID_dogadjaja, int id_korisnika)
-        {
-            try
-            {
-                List<Object> reakcije = new List<Object>();
-                Dogadjaj d = new Dogadjaj();
-                List<int> lista = ID_dogadjaja.ToList();
-                lista.ForEach(p => {
-                    d = Context.Dogadjaji.Where(q => q.Id == p).Include(q => q.Lista_Reakcija).FirstOrDefault();
-                    if(d.Lista_Reakcija.Count() > 0)
-                    {
-                        Reakcija reakcija = d.Lista_Reakcija.Where(q => q.Korisnik_ID == id_korisnika).FirstOrDefault();
-                        if(reakcija != null)
-                            reakcije.Add(new {dogadjaj_ID = d.Id, reakcija_ID = reakcija.Id,tip = reakcija.Tip});
-                    }
-                });
-                await Context.SaveChangesAsync();
-                return Ok(reakcije);
-            }
-            catch(Exception ex)
-            {
-                return BadRequest("Nije uspesno vracanje reakcija! "+ex.Message);
-            }
-        }*/
-
         [HttpDelete]
         [EnableCors("CORS")]
         [Route("IzbrisiReakcijeDogadjaja/{dogadjaj_ID}")]
@@ -171,20 +139,14 @@ namespace EventBoxApi.Controllers
         {
             try
             {
-                Dogadjaj d = await Context.Dogadjaji.Where(p => p.Id == dogadjaj_ID).Include(p => p.Lista_Reakcija).FirstOrDefaultAsync();
+                Dogadjaj d = await Context.Dogadjaji.FindAsync(dogadjaj_ID);
                 if (d == null)
                     return NotFound();
                 if (d.ID_Kreatora != User.IdKorisnika())
                     return Forbid();
 
-                if (d.Lista_Reakcija.Count() > 0)
-                {
-                    d.Lista_Reakcija.ForEach(p =>
-                    {
-                        Context.Reakcije.Remove(p);
-                    });
-                }
-                await Context.SaveChangesAsync();
+                await Context.Reakcije.Where(r => r.Dogadjaj_ID.Id == dogadjaj_ID).ExecuteDeleteAsync();
+                await BrojaciReakcija.OsveziAsync(Context, dogadjaj_ID);
                 return Ok("Uspesno su obrisane reakije dogadjaja");
             }
             catch (Exception ex)
@@ -193,6 +155,7 @@ namespace EventBoxApi.Controllers
             }
         }
 
+        // Reakcije korisnika na zadatim dogadjajima (ID-jevi odvojeni zarezom), jednim upitom
         [HttpGet]
         [EnableCors("CORS")]
         [Route("VratiReakcije/{id_korisnika}/{ID_dogadjaja}")]
@@ -202,20 +165,11 @@ namespace EventBoxApi.Controllers
             {
                 if (id_korisnika != User.IdKorisnika())
                     return Forbid();
-                List<Object> reakcije = new List<Object>();
-                Dogadjaj d = new Dogadjaj();
-                List<int> lista = ID_dogadjaja.Split(',').Select(int.Parse).ToList();
-                lista.ForEach(p =>
-                {
-                    d = Context.Dogadjaji.Where(q => q.Id == p).Include(q => q.Lista_Reakcija).FirstOrDefault();
-                    if (d.Lista_Reakcija.Count() > 0)
-                    {
-                        Reakcija reakcija = d.Lista_Reakcija.Where(q => q.Korisnik_ID == id_korisnika).FirstOrDefault();
-                        if (reakcija != null)
-                            reakcije.Add(new { dogadjaj_ID = d.Id, reakcija_ID = reakcija.Id, tip = reakcija.Tip });
-                    }
-                });
-                await Context.SaveChangesAsync();
+                List<int> lista = ID_dogadjaja.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();
+                var reakcije = await Context.Reakcije
+                    .Where(r => r.Korisnik_ID == id_korisnika && lista.Contains(r.Dogadjaj_ID.Id))
+                    .Select(r => new { dogadjaj_ID = r.Dogadjaj_ID.Id, reakcija_ID = r.Id, tip = r.Tip })
+                    .ToListAsync();
                 return Ok(reakcije);
             }
             catch (Exception ex)

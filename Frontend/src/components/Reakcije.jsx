@@ -5,11 +5,12 @@ import React, { useState, useEffect } from "react";
 // samoPrikaz: zavrsen dogadjaj - bez reagovanja, samo brojevi (prosledjuju se u `brojevi`)
 function Reakcije({ dogadjaj_Id, IDucitanidogadjaji, samoPrikaz = false, brojevi }) {
   const { userId } = useAuth();
-  const [zainteresovanActive, setZainteresovanActive] = useState(false);
-  const [mozdaActive, setMozdaActive] = useState(false);
-  const [nisamZainteresovanActive, setNisamZainteresovanActive] =
-    useState(false);
+  // dogadjaj_ID -> tip reakcije ulogovanog korisnika ("Zainteresovan" | "Mozda" | "Nezainteresovan")
   const [aktivneReakcije, setAktivneReakcije] = useState({});
+  const aktivniTip = aktivneReakcije[dogadjaj_Id];
+  const zainteresovanActive = aktivniTip === "Zainteresovan";
+  const mozdaActive = aktivniTip === "Mozda";
+  const nisamZainteresovanActive = aktivniTip === "Nezainteresovan";
 
   useEffect(() => {
     if (samoPrikaz) return;
@@ -23,46 +24,11 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji, samoPrikaz = false, brojevi
         const reakcije = await api.get(`/Reakcija/VratiReakcije/${idKorisnika}/${queryString}`);
 
         if (reakcije) {
-          //console.log(reakcije);
-          // Inicijalizacija objekta za praćenje aktivnih reakcija
-          const activeReakcije = {};
-
-          // Postavljanje aktivnih reakcija na osnovu vraćenih podataka
-          reakcije.forEach((reakcija) => {
-            const { dogadjaj_ID, tip } = reakcija;
-            if (!activeReakcije[dogadjaj_ID]) {
-              activeReakcije[dogadjaj_ID] = {
-                zainteresovan: false,
-                mozda: false,
-                nezainteresovan: false,
-              };
-            }
-
-            if (tip === "Zainteresovan") {
-              activeReakcije[dogadjaj_ID].zainteresovan = true;
-            } else if (tip === "Mozda") {
-              activeReakcije[dogadjaj_ID].mozda = true;
-            } else if (tip === "Nezainteresovan") {
-              activeReakcije[dogadjaj_ID].nezainteresovan = true;
-            }
+          const aktivne = {};
+          reakcije.forEach(({ dogadjaj_ID, tip }) => {
+            aktivne[dogadjaj_ID] = tip;
           });
-
-          // Azuriranje stanja komponente
-          setAktivneReakcije(activeReakcije);
-
-          // Provera za trenutni događaj_Id i ažuriranje stanja dugmića
-          if (activeReakcije[dogadjaj_Id]) {
-            const { zainteresovan, mozda, nezainteresovan } =
-              activeReakcije[dogadjaj_Id];
-            setZainteresovanActive(zainteresovan);
-            setMozdaActive(mozda);
-            setNisamZainteresovanActive(nezainteresovan);
-          } else {
-            // Ako ne postoji reakcija za trenutni događaj_Id, resetujte stanje dugmića
-            setZainteresovanActive(false);
-            setMozdaActive(false);
-            setNisamZainteresovanActive(false);
-          }
+          setAktivneReakcije(aktivne);
         }
       } catch (error) {
         console.log("Greška prilikom dohvatanja reakcija:", error);
@@ -72,42 +38,16 @@ function Reakcije({ dogadjaj_Id, IDucitanidogadjaji, samoPrikaz = false, brojevi
     fetchData();
   }, [dogadjaj_Id]);
 
-  // Postavi koje je dugme aktivno (samo jedno moze biti)
-  const postaviAktivnoDugme = (tip) => {
-    setZainteresovanActive(tip === "Zainteresovan");
-    setMozdaActive(tip === "Mozda");
-    setNisamZainteresovanActive(tip === "Nezainteresovan");
-  };
-
   const handleReactionClick = async (tip) => {
     try {
-      const korisnik_Id = userId;
-      const dogadjaj_id = dogadjaj_Id; // ID događaja
-
-      // Provera da li postoji prethodno označena reakcija
-      if (aktivneReakcije[dogadjaj_id]) {
-        const prethodnaReakcija = Object.keys(
-          aktivneReakcije[dogadjaj_id]
-        ).find((reakcija) => aktivneReakcije[dogadjaj_id][reakcija]);
-
-        // Ako postoji prethodna reakcija, koristi PUT metodu
-        await api.put(`/Reakcija/PromeniReakciju/${prethodnaReakcija}/${tip}/${korisnik_Id}/${dogadjaj_id}`);
-
-        setAktivneReakcije({
-          ...aktivneReakcije,
-          [dogadjaj_id]: { [prethodnaReakcija]: false, [tip]: true },
-        });
-        postaviAktivnoDugme(tip);
+      const prethodniTip = aktivneReakcije[dogadjaj_Id];
+      if (prethodniTip) {
+        // Server sam zna prethodni tip; salje se samo zbog oblika rute
+        await api.put(`/Reakcija/PromeniReakciju/${prethodniTip}/${tip}/${userId}/${dogadjaj_Id}`);
       } else {
-        // Ako ne postoji prethodno označena reakcija, koristi POST metodu
-        await api.post(`/Reakcija/PostaviReakciju/${tip}/${korisnik_Id}/${dogadjaj_id}`);
-
-        setAktivneReakcije({
-          ...aktivneReakcije,
-          [dogadjaj_id]: { [tip]: true },
-        });
-        postaviAktivnoDugme(tip);
+        await api.post(`/Reakcija/PostaviReakciju/${tip}/${userId}/${dogadjaj_Id}`);
       }
+      setAktivneReakcije((prev) => ({ ...prev, [dogadjaj_Id]: tip }));
     } catch (error) {
       console.log("Greška prilikom promene reakcije:", error);
     }

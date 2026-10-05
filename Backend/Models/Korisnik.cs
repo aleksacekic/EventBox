@@ -13,6 +13,7 @@ namespace Models
         [Required]
         public string Prezime {get;set;}
         [Required]
+        [MaxLength(KorisnickoIme.MaxDuzina)] // jedinstveno (indeks u EventBoxContext)
         public string Korisnicko_Ime {get;set;}
         [Required]
         public string Lozinka_Hashirana {get;set;}
@@ -25,6 +26,7 @@ namespace Models
         public int Blokiran {get;set;}
 
         [Required]
+        [MaxLength(64)] // 32 nasumicna bajta kao hex; jedinstveno (indeks u EventBoxContext)
         public string Token {get;set;}
         [Required]
         public DateTime Validnost {get;set;}

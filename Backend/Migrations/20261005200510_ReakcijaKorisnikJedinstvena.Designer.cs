@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Models;
 
@@ -11,9 +12,11 @@ using Models;
 namespace EventBoxApi.Migrations
 {
     [DbContext(typeof(EventBoxContext))]
-    partial class EventBoxContextModelSnapshot : ModelSnapshot
+    [Migration("20261005200510_ReakcijaKorisnikJedinstvena")]
+    partial class ReakcijaKorisnikJedinstvena
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -40,8 +43,7 @@ namespace EventBoxApi.Migrations
 
                     b.Property<string>("Korisnicko_ime")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Lozinka")
                         .IsRequired()
@@ -52,20 +54,12 @@ namespace EventBoxApi.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Token")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("Validnost")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Korisnicko_ime")
-                        .IsUnique();
-
-                    b.HasIndex("Token")
-                        .IsUnique()
-                        .HasFilter("[Token] IS NOT NULL");
 
                     b.ToTable("Administrator");
                 });
@@ -193,8 +187,7 @@ namespace EventBoxApi.Migrations
 
                     b.Property<string>("Korisnicko_Ime")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("KorisnikImage")
                         .HasColumnType("nvarchar(max)");
@@ -209,19 +202,12 @@ namespace EventBoxApi.Migrations
 
                     b.Property<string>("Token")
                         .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("Validnost")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Korisnicko_Ime")
-                        .IsUnique();
-
-                    b.HasIndex("Token")
-                        .IsUnique();
 
                     b.ToTable("Korisnik");
                 });
