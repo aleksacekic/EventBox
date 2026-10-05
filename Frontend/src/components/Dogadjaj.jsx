@@ -5,12 +5,14 @@ import DogadjajKartica from './DogadjajKartica';
 import moment from 'moment';
 import { format } from 'date-fns';
 import { useAuth } from '../auth';
+import { useNotifications } from '../notifications';
 import { useNavigate } from 'react-router-dom';
 
 
 function Dogadjaj({ primljenDatum, primljenNaziv, noviDogadjaj }) {
   const navigate = useNavigate();
   const { userId } = useAuth();
+  const { ucitajNotifikacije } = useNotifications();
 
   const [dogadjaji, setDogadjaji] = useState([]);
   const [brojPosiljke, setBrojPosiljke] = useState(1);
@@ -161,6 +163,7 @@ function Dogadjaj({ primljenDatum, primljenNaziv, noviDogadjaj }) {
     try {
       await api.del(`/Dogadjaj/IzbrisiDogadjaj/${id}`);
       setDogadjaji(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
+      ucitajNotifikacije(); // backend je obrisao i notifikacije tog dogadjaja
     } catch (error) {
       console.log('Doslo je do greske prilikom brisanja objave:', error);
     }

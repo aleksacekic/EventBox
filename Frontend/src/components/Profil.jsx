@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import moment from 'moment';
 import { useAuth } from '../auth';
+import { useNotifications } from '../notifications';
 import DogadjajKartica from './DogadjajKartica';
 import { jeZavrsen } from '../utils/dogadjaj';
 
@@ -11,6 +12,7 @@ import { jeZavrsen } from '../utils/dogadjaj';
 function Profil() {
   const { id: routeId } = useParams();      // definisan samo na /profilkorisnika/:id
   const { userId } = useAuth();             // ulogovani korisnik
+  const { ucitajNotifikacije } = useNotifications();
   const navigate = useNavigate();
   const profileId = routeId || userId;      // koji profil gledamo
   const isOwnProfile = String(profileId) === String(userId);
@@ -161,6 +163,7 @@ function Profil() {
       await api.del(`/Dogadjaj/IzbrisiDogadjaj/${id}`);
       setDogadjaji(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
       setUkupnoElemenata(n => n - 1);
+      ucitajNotifikacije(); // backend je obrisao i notifikacije tog dogadjaja
     } catch (error) {
       console.log('Doslo je do greske prilikom brisanja objave:', error);
     }

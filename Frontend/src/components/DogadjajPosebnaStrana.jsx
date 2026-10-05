@@ -5,6 +5,7 @@ import React from 'react'
 import DogadjajKartica from './DogadjajKartica';
 import moment from 'moment';
 import { useAuth } from '../auth';
+import { useNotifications } from '../notifications';
 
 // Deep-link strana za jedan dogadjaj (/objava/:id) - otvara se i direktnim
 // linkom / iz chata / refreshom, ne samo klikom iz feeda. Zato NE zavisi od
@@ -14,6 +15,7 @@ function DogadjajPosebnaStrana() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { userId } = useAuth();
+  const { ucitajNotifikacije } = useNotifications();
 
   const [dogadjaj, setDogadjaj] = useState(null);
   const [ucitavaSe, setUcitavaSe] = useState(true);
@@ -70,6 +72,7 @@ function DogadjajPosebnaStrana() {
   const obrisiObjavu = async (dogadjajId) => {
     try {
       await api.del(`/Dogadjaj/IzbrisiDogadjaj/${dogadjajId}`);
+      ucitajNotifikacije(); // backend je obrisao i notifikacije tog dogadjaja
       navigate('/pocetna');
     } catch (error) {
       console.log('Doslo je do greske prilikom brisanja objave:', error);

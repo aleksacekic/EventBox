@@ -136,7 +136,13 @@ namespace EventBoxApi.Controllers
         {
             try
             {   
-                var k = await Context.Korisnici.FindAsync(id);
+                // Samo javna polja - bez lozinke, heša i tokena (vidi KorisnikJavniDto)
+                var k = await Context.Korisnici
+                    .Where(p => p.Id == id)
+                    .Select(KorisnikJavniDto.Projekcija)
+                    .FirstOrDefaultAsync();
+                if(k == null)
+                    return NotFound($"Korisnik sa ID-em {id} nije pronadjen");
                 return Ok(k);
             }
             catch (Exception e)
@@ -152,11 +158,11 @@ namespace EventBoxApi.Controllers
         {
             try
             {
-                //dohvata sve korisnike iz baze
-                var sviKorisnici = await Context.Korisnici.ToListAsync();
-
-                //od svih korisnika izbacuje korisnika koji je trenutno ulogovan(preko ID-a)
-                var korisniciBezUlogovanog = sviKorisnici.Where(k => k.Id != id).ToList();
+                //svi korisnici osim ulogovanog (preko ID-a), samo javna polja
+                var korisniciBezUlogovanog = await Context.Korisnici
+                    .Where(k => k.Id != id)
+                    .Select(KorisnikJavniDto.Projekcija)
+                    .ToListAsync();
 
                 return Ok(korisniciBezUlogovanog);
             }
@@ -369,8 +375,16 @@ namespace EventBoxApi.Controllers
                 return NotFound("Korisnik nije pronađen");
             }
 
+            // Preskacemo notifikacije ciji je dogadjaj obrisan (stari podaci)
+            var idjeviDogadjaja = k.Lista_Notifikacija.Select(n => n.DogadjajId).Distinct().ToList();
+            var postojeciDogadjaji = await Context.Dogadjaji
+                .Where(d => idjeviDogadjaja.Contains(d.Id))
+                .Select(d => d.Id)
+                .ToListAsync();
+
             //sortirano po vremenu
             var poslednjihPetNotifikacija = k.Lista_Notifikacija
+                .Where(n => postojeciDogadjaji.Contains(n.DogadjajId))
                 .OrderByDescending(n => n.Vreme)
                 .Take(5)
                 .ToList();

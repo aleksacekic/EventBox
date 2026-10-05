@@ -91,6 +91,13 @@ namespace EventBoxApi.Controllers
             try
             {
                 var dog = await Context.Dogadjaji.FindAsync(id);
+                if(dog == null)
+                    return NotFound($"Dogadjaj sa ID-em {id} nije pronadjen");
+
+                // Notifikacija cuva samo DogadjajId (bez FK), baza je ne brise sama
+                var notifikacije = Context.Notifikacije.Where(n => n.DogadjajId == id);
+                Context.Notifikacije.RemoveRange(notifikacije);
+
                 Context.Dogadjaji.Remove(dog);
                 await Context.SaveChangesAsync();
                 return Ok($"Uspesno je izbrisan dogadjaj sa ID-em {id}");
