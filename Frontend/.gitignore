@@ -27,3 +27,5 @@ yarn-error.log*
 
 # vite build output
 /dist
+
+.claude/
