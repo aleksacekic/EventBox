@@ -6,6 +6,8 @@ import moment from 'moment';
 import { useAuth } from '../auth';
 import { useNotifications } from '../notifications';
 import DogadjajKartica from './DogadjajKartica';
+import KrajListe from './KrajListe';
+import { useBeskonacnaLista } from '../useBeskonacnaLista';
 import { jeZavrsen } from '../utils/dogadjaj';
 
 
@@ -20,10 +22,13 @@ function Profil() {
   const [profileTab, setProfileTab] = useState('feed-dd'); // 'feed-dd' | 'info-dd'
   const [statusFilter, setStatusFilter] = useState('svi'); // 'svi' | 'predstojeci' | 'zavrseni'
 
-  const [dogadjaji, setDogadjaji] = useState([]);
-  const [brojPosiljke, setBrojPosiljke] = useState(1);
-  const [ukupnoElemenata, setUkupnoElemenata] = useState(0);
-  const [ucitavaDogadjaje, setUcitavaDogadjaje] = useState(true);
+  // Dogadjaji profila se ucitavaju 3 po 3 kako korisnik skroluje (vidi useBeskonacnaLista)
+  const lista = useBeskonacnaLista(
+    profileId ? `/Korisnik/VratiDogadjajeKorisnika/${profileId}` : null,
+    { mapiraj: (d) => ({ ...d, formattedDatum: moment(d.datum_Objave).format("DD.MM.YYYY") }) }
+  );
+  const dogadjaji = lista.stavke;
+  const ukupnoElemenata = lista.ukupno ?? 0;
   const [korisnik, setKorisnik] = useState(null);       // ciji profil gledamo
   const [ulogovani, setUlogovani] = useState(null);     // ko gleda (treba kartici)
   const [mojdatum, setmojdatum] = useState();
@@ -91,37 +96,6 @@ function Profil() {
   };
 
   useEffect(() => {
-    ucitajDogadjaje();
-  }, [brojPosiljke, profileId]); // ponovo ucitaj kad se promeni profil
-
-  const UcitajDalje = () => {
-    setBrojPosiljke(prevBrojPosiljke => prevBrojPosiljke + 1);
-  }
-
-  const ucitajDogadjaje = async () => {
-    try {
-      // 401 -> api klijent sam vraca na /login
-      const data = await api.get(
-        `/Korisnik/VratiDogadjajeKorisnika/${profileId}/${brojPosiljke}/${ukupnoElemenata}`,
-        { credentials: 'include' }
-      );
-      if (data.kraj === undefined) {
-        // backend vraca posiljku od starijeg ka novijem - okrecemo da novije bude prvo
-        const mapirani = data.dogadjaji.map(d => ({
-          ...d,
-          formattedDatum: moment(d.datum_Objave).format("DD.MM.YYYY"),
-        })).reverse();
-        setDogadjaji(prev => (brojPosiljke === 1 ? mapirani : [...prev, ...mapirani]));
-        setUkupnoElemenata(data.ukupno_elemenata);
-      }
-    } catch (error) {
-      console.log("ucitajDogadjaje:", error);
-    } finally {
-      setUcitavaDogadjaje(false);
-    }
-  };
-
-  useEffect(() => {
     ucitajKorisnika();
   }, [profileId]); // ponovo ucitaj kad se promeni profil
 
@@ -161,8 +135,8 @@ function Profil() {
   const obrisiObjavu = async (id) => {
     try {
       await api.del(`/Dogadjaj/IzbrisiDogadjaj/${id}`);
-      setDogadjaji(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
-      setUkupnoElemenata(n => n - 1);
+      lista.setStavke(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
+      lista.setUkupno(n => (n ?? 1) - 1);
       ucitajNotifikacije(); // backend je obrisao i notifikacije tog dogadjaja
     } catch (error) {
       console.log('Doslo je do greske prilikom brisanja objave:', error);
@@ -175,8 +149,6 @@ function Profil() {
     if (statusFilter === 'svi') return true;
     return statusFilter === 'zavrseni' ? jeZavrsen(d) : !jeZavrsen(d);
   });
-  const imaJos = ukupnoElemenata > brojPosiljke * 3;
-  const idsZaReakcije = dogadjaji.map((d) => d.id);
 
   const avatarSrc = korisnik?.korisnikImage
     ? `${API_BASE}/resources/${korisnik.korisnikImage}`
@@ -310,7 +282,7 @@ function Profil() {
                     ))}
                   </div>
 
-                  {ucitavaDogadjaje || !ulogovaniKorisnik ? (
+                  {lista.pocetno || !ulogovaniKorisnik ? (
                     <div className="profil-skeleton profil-skeleton-card" />
                   ) : prikazani.length === 0 ? (
                     <div className="profil-empty">Nema dogadjaja za prikaz.</div>
@@ -322,16 +294,11 @@ function Profil() {
                         korisnik={ulogovaniKorisnik}
                         onOpen={(d) => navigate(`/objava/${d.id}`)}
                         onObrisi={obrisiObjavu}
-                        idsZaReakcije={idsZaReakcije}
                       />
                     ))
                   )}
 
-                  {imaJos && (
-                    <button type="button" className="profil-load-more" onClick={UcitajDalje}>
-                      Ucitaj jos dogadjaja
-                    </button>
-                  )}
+                  <KrajListe lista={lista} />
                 </div>
               )}
 

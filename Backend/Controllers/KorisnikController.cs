@@ -343,51 +343,25 @@ namespace EventBoxApi.Controllers
             }
         }
 
+        // Dogadjaji korisnika za profil: najnoviji prvi, stranicenje kursorom (vidi DogadjajController)
         [HttpGet]
         [EnableCors("CORS")]
-        [Route("VratiDogadjajeKorisnika/{korisnik_Id}/{broj_posiljke}/{ukupno_elemenata}")]
-        public async Task<ActionResult> VratiDogadjajeKorisnika(int korisnik_Id, int broj_posiljke, int ukupno_elemenata)
+        [Route("VratiDogadjajeKorisnika/{korisnik_Id}")]
+        public async Task<ActionResult> VratiDogadjajeKorisnika(int korisnik_Id, [FromQuery] int limit = Paginacija.PodrazumevanaVelicina, [FromQuery] string? cursor = null)
         {
             try
             {
-                Korisnik k = await Context.Korisnici.Where(p => p.Id == korisnik_Id).Include(p => p.Kreirani_Dogadjaji).FirstOrDefaultAsync();
+                if (!Paginacija.TryDekodiraj(cursor, out int? posle))
+                    return BadRequest("Neispravan kursor");
+                if (!await Context.Korisnici.AnyAsync(k => k.Id == korisnik_Id))
+                    return NotFound();
 
-                int skok = 3; 
-                int ukupno = ukupno_elemenata;
-
-                if(ukupno == 0)
-                    ukupno = k.Kreirani_Dogadjaji.Count();
-
-                int pom = ukupno - broj_posiljke * skok;
-
-                if(pom <= skok * (-1))
-                    return Ok(new {kraj="KRAJ"});
-
-                if(pom < 0 && pom > skok * (-1))
-                {
-                    var dogadjaji2 = k.Kreirani_Dogadjaji.Take(skok + pom).ToList();
-                    var odgovor2 = new {
-                        Ukupno_elemenata = ukupno,
-                        Broj_posiljke = broj_posiljke,
-                        Dogadjaji = dogadjaji2
-                    };
-
-                return Ok(odgovor2); //odgovor2
-                }
-                    
-                var dogadjaji = k.Kreirani_Dogadjaji.Skip(pom).Take(skok).ToList();
-
-                var odgovor = new {
-                    Ukupno_elemenata = ukupno,
-                    Broj_posiljke = broj_posiljke,
-                    Dogadjaji = dogadjaji
-                };
-
-                return Ok(odgovor);
+                var upit = Context.Dogadjaji.Include(d => d.KreatorId).Where(d => d.ID_Kreatora == korisnik_Id);
+                return Ok(await Paginacija.UzmiAsync(upit, posle, limit));
             }
             catch(Exception ex)
             {
-                return BadRequest($"Nije uspelo vracanje posiljke: {broj_posiljke}, ukupno elementa: {ukupno_elemenata} "+ex.Message);
+                return BadRequest("Nije uspelo vracanje dogadjaja korisnika: " + ex.Message);
             }
         }
 

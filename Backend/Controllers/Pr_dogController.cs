@@ -96,58 +96,29 @@ namespace EventBoxApi.Controllers
             }
         }
 
+        // Lista prijavljenih dogadjaja za admina: najnovija prijava prva, stranicenje kursorom
+        // (vidi DogadjajController). Uz svaku prijavu najvise 5 razloga.
         [HttpGet]
         [EnableCors("CORS")]
         [Authorize(Roles = "Admin")]
-        [Route("VratiPrijavljene_dog/{broj_posiljke}/{ukupno_elemenata}")]
-        public async Task<ActionResult> VratiPrijavljene_dog(int broj_posiljke, int ukupno_elemenata) //VRATICE SE FIKSAN BROJ RAZLOGA
+        [Route("VratiPrijavljene_dog")]
+        public async Task<ActionResult> VratiPrijavljene_dog([FromQuery] int limit = 4, [FromQuery] string? cursor = null)
         {
             try
             {
-                int skok = 4; 
-                int ukupno = ukupno_elemenata;
+                if (!Paginacija.TryDekodiraj(cursor, out int? posle))
+                    return BadRequest("Neispravan kursor");
 
-                if(ukupno == 0)
-                    ukupno = Context.Prijavljeni_dogadjaji.Count();
-
-                int pom = ukupno - broj_posiljke * skok;
-
-                if(pom <= skok * (-1))
-                    return Ok(new {kraj="KRAJ"});
-
-                if(pom < 0 && pom > skok * (-1))
-                {
-                    var pr_dogadjaji2 = await Context.Prijavljeni_dogadjaji.Include(p => p.Dogadjaj_Id).ThenInclude(d => d.KreatorId).Include(p => p.Razlozi).OrderBy(p => p.Id).Take(skok + pom).ToListAsync();
-                    pr_dogadjaji2.ForEach(p => {
-                        if(p.Razlozi.Count() > 5)
-                            p.Razlozi = p.Razlozi.Take(5).ToList();
-                    });
-                    var odgovor2 = new {
-                        Ukupno_elemenata = ukupno,
-                        Broj_posiljke = broj_posiljke,
-                        Dogadjaji = pr_dogadjaji2
-                    };
-
-                return Ok(odgovor2);
-                }
-                    
-                var pr_dogadjaji = await Context.Prijavljeni_dogadjaji.Include(p => p.Dogadjaj_Id).ThenInclude(d => d.KreatorId).Include(p => p.Razlozi).OrderBy(p => p.Id).Skip(pom).Take(skok).ToListAsync();
-                pr_dogadjaji.ForEach(p => {
-                        if(p.Razlozi.Count() > 5)
-                            p.Razlozi = p.Razlozi.Take(5).ToList();
-                    });
-
-                var odgovor = new {
-                    Ukupno_elemenata = ukupno,
-                    Broj_posiljke = broj_posiljke,
-                    Dogadjaji = pr_dogadjaji
-                };
-
-                return Ok(odgovor);
+                var upit = Context.Prijavljeni_dogadjaji
+                    .Include(p => p.Dogadjaj_Id).ThenInclude(d => d.KreatorId)
+                    .Include(p => p.Razlozi);
+                var strana = await Paginacija.UzmiAsync(upit, posle, limit);
+                strana.Stavke.ForEach(p => p.Razlozi = p.Razlozi.Take(5).ToList());
+                return Ok(strana);
             }
             catch(Exception ex)
             {
-                return BadRequest($"Nije uspelo vracanje posiljke: {broj_posiljke}, ukupno elementa: {ukupno_elemenata} "+ex.Message);
+                return BadRequest("Nije uspelo vracanje prijavljenih dogadjaja: " + ex.Message);
             }
         }
 

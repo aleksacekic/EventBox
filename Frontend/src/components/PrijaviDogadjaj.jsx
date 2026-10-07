@@ -8,6 +8,8 @@ import { format } from 'date-fns';
 import Main from './Main';
 import moment from 'moment';
 import Razlog from './Razlog';
+import KrajListe from './KrajListe';
+import { useBeskonacnaLista } from '../useBeskonacnaLista';
 
 function Pr_Dog() {
 
@@ -53,38 +55,11 @@ function Pr_Dog() {
   }
   
 
-   const [dogadjaji, setDogadjaji] = useState([]);
-    const [brojPosiljke, setBrojPosiljke] = useState(1);
-    const [ukupnoElemenata, setUkupnoElemenata] = useState(0);
+    // Prijave se ucitavaju 4 po 4 kako admin skroluje (vidi useBeskonacnaLista)
+    const lista = useBeskonacnaLista('/Pr_dog/VratiPrijavljene_dog', { limit: 4 });
+    const dogadjaji = lista.stavke;
+    const setDogadjaji = lista.setStavke;
 
-    
-  
-
-    const UcitajDalje = () => {
-        setBrojPosiljke(prevBrojPosiljke => prevBrojPosiljke + 1);
-    }
-    
-    useEffect(() => {
-      fetchDogadjaji();
-    }, [brojPosiljke]);
-
-     
-
-    const fetchDogadjaji = async () => {
-      try {
-        const data = await api.get(`/Pr_dog/VratiPrijavljene_dog/${brojPosiljke}/${ukupnoElemenata}`);
-        if (data.kraj === undefined) {
-          if (brojPosiljke === 1)
-            setDogadjaji(data.dogadjaji);
-          else
-            setDogadjaji(prevDogadjaji => [...prevDogadjaji, ...data.dogadjaji]);
-          setUkupnoElemenata(data.ukupno_elemenata);
-        }
-      } catch (error) {
-        console.error("fetchDogadjaji (prijave):", error);
-      }
-    };
-  
     return (
       <div className='pr_dog_klasa' onClick={(e) => { e.stopPropagation(); }}>
         <div className='job_descp2'>
@@ -148,7 +123,7 @@ function Pr_Dog() {
               <Razlog jedan_dog={dogadjaj} />
             </div>
           </div>))}
-        <button className='ucitajjosdogadjaja' onClick={() => UcitajDalje()}>Ucitaj jos dogadjaja...</button>
+        <KrajListe lista={lista} />
       </div>
     );
   

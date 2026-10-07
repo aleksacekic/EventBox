@@ -221,157 +221,52 @@ namespace EventBoxApi.Controllers
             }
         }
         
-        [HttpGet]
-        [EnableCors("CORS")]
-        [Route("VratiDogadjajeZaHomePage/{broj_posiljke}/{ukupno_elemenata}")]
-        public async Task<ActionResult> VratiDogadjajeZaHomePage(int broj_posiljke, int ukupno_elemenata) //Broj posiljke uvek krece od 1
-        {                                                                                                 //Salje se inicijalno 0 za prvi poziv funkcije u sesiji
-            try
-            {
-                
-                DateTime danas = DateTime.Today;
-                DateTime danas_norm = new DateTime(danas.Year,danas.Month,danas.Day); //Normalizovan danasnji datum
-
-                IQueryable<Dogadjaj> _query = Context.Dogadjaji.Include(d => d.KreatorId).Where(d => d.Datum_Dogadjaja >= danas_norm); //Filtriran Context
-                
-                int skok = 3; //Broj objekta koji se vraca
-                int ukupno = ukupno_elemenata;
-
-                if(ukupno == 0)
-                    ukupno = _query.Count();
-
-                int pom = ukupno - broj_posiljke * skok;
-
-                if(pom <= skok * (-1))
-                    return Ok(new {kraj = "KRAJ"});
-
-                if(pom < 0 && pom > skok * (-1))
-                {                 
-                    var dogadjaji2 = await _query.Take(skok + pom).ToListAsync();
-                    
-                    var odgovor2 = new {
-                        Ukupno_elemenata = ukupno,
-                        Broj_posiljke = broj_posiljke,
-                        Dogadjaji = dogadjaji2
-                    };
-
-                return Ok(odgovor2);
-                }
-
-                var dogadjaji = await  _query.Skip(pom).Take(skok).ToListAsync();
-
-                var odgovor = new {
-                    Ukupno_elemenata = ukupno,
-                    Broj_posiljke = broj_posiljke,
-                    Dogadjaji = dogadjaji
-                };
-
-                return Ok(odgovor);
-            }
-            catch(Exception ex)
-            {
-                return BadRequest($"Nije uspelo vracanje posiljke: {broj_posiljke}, ukupno elementa: {ukupno_elemenata} "+ex.Message);
-            }
-        }
-      
-        [HttpGet]
-        [EnableCors("CORS")]
-        [Route("VratiDogadjajePoDatumu/{datum}/{broj_posiljke}/{ukupno_elemenata}")]
-        public async Task<ActionResult> VratiDogadjajePoDatumu(DateTime datum, int broj_posiljke, int ukupno_elemenata)
+        // Liste dogadjaja: najnoviji prvi, stranicenje kursorom (Models/Paginacija.cs).
+        //   ?limit=3                -> prva strana
+        //   ?limit=3&cursor=<kursor> -> sledeca (kursor = sledeciKursor iz prethodnog odgovora)
+        // Odgovor: { stavke, sledeciKursor, imaJos, ukupno }  (ukupno samo uz prvu stranu)
+        private async Task<ActionResult> StranaDogadjaja(IQueryable<Dogadjaj> upit, int limit, string? cursor)
         {
             try
             {
-                int skok = 3; //Broj objekta koji se vraca
-                int ukupno = ukupno_elemenata;
-
-                if(ukupno == 0)
-                    ukupno = Context.Dogadjaji.Where(p => p.Datum_Dogadjaja == datum).Count();
-
-                int pom = ukupno - broj_posiljke * skok;
-
-                if(pom <= skok * (-1))
-                    return Ok(new {kraj = "KRAJ"});
-
-                if(pom < 0 && pom > skok * (-1))
-                {
-                    var dogadjaji2 = await Context.Dogadjaji.Include(d => d.KreatorId).Where(p => p.Datum_Dogadjaja == datum).Take(skok + pom).ToListAsync();
-                    var odgovor2 = new {
-                        Ukupno_elemenata = ukupno,
-                        Broj_posiljke = broj_posiljke,
-                        Dogadjaji = dogadjaji2
-                    };
-
-                return Ok(odgovor2);
-                }
-                    
-                var dogadjaji = await Context.Dogadjaji.Include(d => d.KreatorId).Where(p => p.Datum_Dogadjaja == datum).Skip(pom).Take(skok).ToListAsync();
-
-                var odgovor = new {
-                    Ukupno_elemenata = ukupno,
-                    Broj_posiljke = broj_posiljke,
-                    Dogadjaji = dogadjaji
-                };
-
-                return Ok(odgovor);
-                
+                if (!Paginacija.TryDekodiraj(cursor, out int? posle))
+                    return BadRequest("Neispravan kursor");
+                return Ok(await Paginacija.UzmiAsync(upit.Include(d => d.KreatorId), posle, limit));
             }
             catch(Exception ex)
             {
-                return BadRequest($"Nije uspelo vracanje posiljke: {broj_posiljke}, ukupno elementa: {ukupno_elemenata} "+ex.Message);
+                return BadRequest("Nije uspelo vracanje dogadjaja: " + ex.Message);
             }
         }
 
         [HttpGet]
         [EnableCors("CORS")]
-        [Route("VratiDogadjajePoNazivu/{naziv}/{broj_posiljke}/{ukupno_elemenata}")]
-        public async Task<ActionResult> VratiDogadjajePoNazivu(string naziv, int broj_posiljke, int ukupno_elemenata)
+        [Route("VratiDogadjajeZaHomePage")]
+        public Task<ActionResult> VratiDogadjajeZaHomePage([FromQuery] int limit = Paginacija.PodrazumevanaVelicina, [FromQuery] string? cursor = null)
         {
-            try
-            {
-                DateTime danas = DateTime.Today;
-                DateTime danas_norm = new DateTime(danas.Year,danas.Month,danas.Day); //Normalizovan danasnji datum
+            DateTime danas = DateTime.Today;
+            return StranaDogadjaja(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= danas), limit, cursor);
+        }
 
-                IQueryable<Dogadjaj> _query = Context.Dogadjaji.Include(d => d.KreatorId).Where(d => d.Datum_Dogadjaja >= danas_norm); //Filtriran Context
+        [HttpGet]
+        [EnableCors("CORS")]
+        [Route("VratiDogadjajePoDatumu")]
+        public Task<ActionResult> VratiDogadjajePoDatumu([FromQuery] DateTime datum, [FromQuery] int limit = Paginacija.PodrazumevanaVelicina, [FromQuery] string? cursor = null)
+        {
+            DateTime od = datum.Date;
+            DateTime do_ = od.AddDays(1);
+            return StranaDogadjaja(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= od && d.Datum_Dogadjaja < do_), limit, cursor);
+        }
 
-                int skok = 3; //Broj objekta koji se vraca
-                int ukupno = ukupno_elemenata;
-
-                if(ukupno == 0)
-                    ukupno = _query.Where(p => p.Naslov.Contains(naziv)).Count();
-
-                int pom = ukupno - broj_posiljke * skok;
-
-                if(pom <= skok * (-1))
-                    return Ok(new {kraj = "KRAJ"});
-
-                if(pom < 0 && pom > skok * (-1))
-                {
-                    var dogadjaji2 = await _query.Where(p => p.Naslov.Contains(naziv)).Take(skok + pom).ToListAsync();
-
-                    var odgovor2 = new {
-                        Ukupno_elemenata = ukupno,
-                        Broj_posiljke = broj_posiljke,
-                        Dogadjaji = dogadjaji2
-                    };
-
-                return Ok(odgovor2);
-                }
-                    
-                var dogadjaji = await _query.Where(p => p.Naslov.Contains(naziv)).Skip(pom).Take(skok).ToListAsync();
-
-                var odgovor = new {
-                    Ukupno_elemenata = ukupno,
-                    Broj_posiljke = broj_posiljke,
-                    Dogadjaji = dogadjaji
-                };
-
-                return Ok(odgovor);
-                
-            }
-            catch(Exception ex)
-            {
-                return BadRequest($"Nije uspelo vracanje posiljke: {broj_posiljke}, ukupno elementa: {ukupno_elemenata} "+ex.Message);
-            }
+        [HttpGet]
+        [EnableCors("CORS")]
+        [Route("VratiDogadjajePoNazivu")]
+        public async Task<ActionResult> VratiDogadjajePoNazivu([FromQuery] string naziv, [FromQuery] int limit = Paginacija.PodrazumevanaVelicina, [FromQuery] string? cursor = null)
+        {
+            if (string.IsNullOrWhiteSpace(naziv))
+                return BadRequest("Naziv je obavezan");
+            DateTime danas = DateTime.Today;
+            return await StranaDogadjaja(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= danas && d.Naslov.Contains(naziv)), limit, cursor);
         }
     }
 }

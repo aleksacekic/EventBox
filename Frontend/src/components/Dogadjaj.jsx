@@ -2,6 +2,8 @@ import { api } from '../api';
 import React from 'react'
 import { useState, useEffect } from 'react';
 import DogadjajKartica from './DogadjajKartica';
+import KrajListe from './KrajListe';
+import { useBeskonacnaLista } from '../useBeskonacnaLista';
 import moment from 'moment';
 import { format } from 'date-fns';
 import { useAuth } from '../auth';
@@ -9,160 +11,53 @@ import { useNotifications } from '../notifications';
 import { useNavigate } from 'react-router-dom';
 
 
+// Main.jsx koristi ovaj datum kao "datum nije izabran"
+const NEMA_DATUMA = new Date("2000-01-01").getTime();
+
+const dodajFormatiranDatum = (d) => ({
+  ...d,
+  formattedDatum: moment(d.datum_Objave).format("DD.MM.YYYY"),
+});
+
 function Dogadjaj({ primljenDatum, primljenNaziv, noviDogadjaj }) {
   const navigate = useNavigate();
   const { userId } = useAuth();
   const { ucitajNotifikacije } = useNotifications();
 
-  const [dogadjaji, setDogadjaji] = useState([]);
-  const [brojPosiljke, setBrojPosiljke] = useState(1);
-  const [ukupnoElemenata, setUkupnoElemenata] = useState(0);
+  // Koji filter je aktivan: poslednji koji je korisnik primenio (Main.jsx drzi oba, "nije izabran"
+  // je datum 2000-01-01 odnosno naziv "default")
+  const imaDatum = primljenDatum.getTime() !== NEMA_DATUMA;
+  const imaNaziv = primljenNaziv !== "default";
+  const [nacin, setNacin] = useState(imaNaziv ? 'naziv' : imaDatum ? 'datum' : 'sve');
+  useEffect(() => { if (imaDatum) setNacin('datum'); }, [primljenDatum]);
+  useEffect(() => { if (imaNaziv) setNacin('naziv'); }, [primljenNaziv]);
 
-  const [brojPosiljkeDatum, setBrojPosiljkeDatum] = useState(1);
-  const [ukupnoElemenataDatum, setUkupnoElemenataDatum] = useState(0);
+  const putanja =
+    nacin === 'naziv' && imaNaziv ? `/Dogadjaj/VratiDogadjajePoNazivu?naziv=${encodeURIComponent(primljenNaziv)}`
+    : nacin === 'datum' && imaDatum ? `/Dogadjaj/VratiDogadjajePoDatumu?datum=${format(primljenDatum, 'yyyy-MM-dd')}`
+    : '/Dogadjaj/VratiDogadjajeZaHomePage';
 
-  const [brojPosiljkeNaziv, setBrojPosiljkeNaziv] = useState(1);
-  const [ukupnoElemenataNaziv, setUkupnoElemenataNaziv] = useState(0);
-  const [trenutno, setTrenutno] = useState(0); //0 - HomePage  1 - Datum   2 - Naziv
-
-  const [IDucitanidogadjaji, setIDucitanidogadjaji] = useState([]); // ZA POTREBE PROSLEDJIVANJA ID-JEVA DOGADJAJA u Reakcije.js
+  // Dogadjaji se ucitavaju 3 po 3 kako korisnik skroluje (vidi useBeskonacnaLista)
+  const lista = useBeskonacnaLista(putanja, { mapiraj: dodajFormatiranDatum });
 
   const [korisnik, setKorisnik] = useState(null);
   const [korisnik_Id, setKorisnikId] = useState(null);
   const [ucitavaSe, setUcitavaSe] = useState(true); // indikator ucitavanja
-
-  const UcitajDalje = () => {
-    if (trenutno === 0)
-      setBrojPosiljke(prevBrojPosiljke => prevBrojPosiljke + 1);
-    else if (trenutno === 1)
-      setBrojPosiljkeDatum(prevBrojPosiljkeDatum => prevBrojPosiljkeDatum + 1);
-    else if (trenutno === 2)
-      setBrojPosiljkeNaziv(prevBrojPosiljkeNaziv => prevBrojPosiljkeNaziv + 1);
-  }
-
-  const refresujSve = async () => {
-    await Promise.all([
-      setBrojPosiljkeDatum(1),
-      setUkupnoElemenataDatum(0),
-      setBrojPosiljkeNaziv(1),
-      setUkupnoElemenataNaziv(0),
-      setDogadjaji([]),
-    ]);
-  };
-
-
-  useEffect(() => {
-    fetchDogadjaji();
-  }, [brojPosiljke]);
 
   // Novokreiran dogadjaj (iz NapraviDogadjaj -> HomePage -> Main -> ovde) se
   // zalepi na vrh liste bez novog fetch-a. `_isNovi` flag samo javlja kartici
   // da odigra kratku "evo tvog posta" animaciju - ne ide na backend.
   useEffect(() => {
     if (!noviDogadjaj) return;
-    setDogadjaji(prev => [
-      { ...noviDogadjaj, formattedDatum: moment(noviDogadjaj.datum_Objave).format("DD.MM.YYYY"), _isNovi: true },
-      ...prev,
-    ]);
-    setIDucitanidogadjaji(prev => [noviDogadjaj.id, ...prev]);
+    lista.setStavke(prev => [{ ...dodajFormatiranDatum(noviDogadjaj), _isNovi: true }, ...prev]);
   }, [noviDogadjaj]);
 
-
-  useEffect(() => {
-    const fetchDatum = async () => {
-      await refresujSve();
-      fetchDogPoDatum(primljenDatum);
-    };
-
-    fetchDatum();
-  }, [primljenDatum]);
-
-
-  useEffect(() => {
-    const fetchNaziv = async () => {
-      await refresujSve();
-      fetchDogPoNaziv(primljenNaziv);
-    };
-
-    fetchNaziv();
-  }, [primljenNaziv]);
-
-  useEffect(() => {
-    fetchDogPoDatum(primljenDatum);
-  }, [brojPosiljkeDatum])
-
-  useEffect(() => {
-    fetchDogPoNaziv(primljenNaziv);
-  }, [brojPosiljkeNaziv])
-
-
-  const fetchDogadjaji = async () => {
-    try {
-      // 401 -> api klijent sam vraca na /login
-      const data = await api.get(
-        `/Dogadjaj/VratiDogadjajeZaHomePage/${brojPosiljke}/${ukupnoElemenata}`,
-        { credentials: 'include' }
-      );
-      if (data.kraj === undefined) {
-        const mapirani = data.dogadjaji.map(d => ({
-          ...d,
-          formattedDatum: moment(d.datum_Objave).format("DD.MM.YYYY"),
-        }));
-        setDogadjaji(prev => (brojPosiljke === 1 ? mapirani : [...prev, ...mapirani]));
-        setUkupnoElemenata(data.ukupno_elemenata);
-        setIDucitanidogadjaji(prevIds => [...prevIds, ...data.dogadjaji.map(d => d.id)]);
-      }
-    } catch (error) {
-      console.log("fetchDogadjaji:", error);
-    }
-    setTrenutno(0);
-  };
-
-  const fetchDogPoDatum = async (prosledjenDatum) => {
-    if (primljenDatum.getTime() === (new Date("2000-01-01")).getTime()) return;
-    try {
-      const formattedDate = format(prosledjenDatum, 'yyyy-MM-dd');
-      const data = await api.get(
-        `/Dogadjaj/VratiDogadjajePoDatumu/${formattedDate}/${brojPosiljkeDatum}/${ukupnoElemenataDatum}`,
-        { credentials: 'include' }
-      );
-      if (data.kraj === undefined) {
-        const mapirani = data.dogadjaji.map(d => ({
-          ...d,
-          formattedDatum: moment(d.datum_Objave).format("DD.MM.YYYY"),
-        }));
-        setDogadjaji(prev => (brojPosiljkeDatum === 1 ? mapirani : [...prev, ...mapirani]));
-        setUkupnoElemenataDatum(data.ukupno_elemenata);
-        setIDucitanidogadjaji(prevIds => [...prevIds, ...data.dogadjaji.map(d => d.id)]);
-      }
-    } catch (error) {
-      console.log("fetchDogPoDatum:", error);
-    }
-    setTrenutno(1);
-  }
-
-  const fetchDogPoNaziv = async (prosledjenNaziv) => {
-    if (primljenNaziv === "default") return;
-    try {
-      const data = await api.get(
-        `/Dogadjaj/VratiDogadjajePoNazivu/${prosledjenNaziv}/${brojPosiljkeNaziv}/${ukupnoElemenataNaziv}`,
-        { credentials: 'include' }
-      );
-      if (data.kraj === undefined) {
-        setDogadjaji(prev => (brojPosiljkeNaziv === 1 ? data.dogadjaji : [...prev, ...data.dogadjaji]));
-        setUkupnoElemenataNaziv(data.ukupno_elemenata);
-      }
-    } catch (error) {
-      console.log("fetchDogPoNaziv:", error);
-    }
-    setTrenutno(2);
-  }
 
   // BRISANJE OBJAVE - u feedu samo uklonimo iz liste
   const obrisiObjavu = async (id) => {
     try {
       await api.del(`/Dogadjaj/IzbrisiDogadjaj/${id}`);
-      setDogadjaji(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
+      lista.setStavke(prevDogadjaji => prevDogadjaji.filter(dogadjaj => dogadjaj.id !== id));
       ucitajNotifikacije(); // backend je obrisao i notifikacije tog dogadjaja
     } catch (error) {
       console.log('Doslo je do greske prilikom brisanja objave:', error);
@@ -216,17 +111,19 @@ function Dogadjaj({ primljenDatum, primljenNaziv, noviDogadjaj }) {
 
   return (
     <div>
-      {dogadjaji.map((dogadjaj) => (
+      {lista.stavke.map((dogadjaj) => (
         <DogadjajKartica
           key={dogadjaj.id}
           dogadjaj={dogadjaj}
           korisnik={korisnik}
           onOpen={handleClickObjava}
           onObrisi={obrisiObjavu}
-          idsZaReakcije={IDucitanidogadjaji}
         />
       ))}
-      <button className='ucitajjosdogadjaja' onClick={() => UcitajDalje()}>Ucitaj jos dogadjaja...</button>
+      {!lista.pocetno && !lista.greska && lista.stavke.length === 0 && (
+        <div className="lista-prazno">Nema dogadjaja za prikaz.</div>
+      )}
+      <KrajListe lista={lista} />
     </div>
   );
 }

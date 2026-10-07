@@ -5103,3 +5103,43 @@ a:hover {
     transform: scale(1.0);
   }
 }
+
+/* Beskonacni skrol (useBeskonacnaLista + KrajListe) */
+.lista-cuvar {
+	height: 1px;
+}
+
+.lista-loader,
+.lista-greska,
+.lista-prazno {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	padding: 20px 16px;
+	color: #888;
+	font-size: 14px;
+	text-align: center;
+}
+
+.lista-loader-spinner {
+	width: 20px;
+	height: 20px;
+	border: 3px solid #eee;
+	border-top-color: #ffa500;
+	border-radius: 50%;
+	animation: lista-spin 0.8s linear infinite;
+}
+
+@keyframes lista-spin {
+	to { transform: rotate(360deg); }
+}
+
+.lista-greska button {
+	border: none;
+	border-radius: 6px;
+	background: #ffa500;
+	color: #fff;
+	padding: 6px 12px;
+	cursor: pointer;
+}
