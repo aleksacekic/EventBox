@@ -108,6 +108,12 @@ namespace EventBoxApi.Controllers
                     .Select(r => r.Dogadjaj_ID.Id)
                     .ToArrayAsync();
                 Context.Reakcije.RemoveRange(Context.Reakcije.Where(r => r.Korisnik_ID == id));
+                // Poruke (poslate i primljene) i notifikacije koje je izazvao na tudjim objavama
+                // Njegove prijave ostaju (moderaciji treba razlog), samo gube podatak ko je prijavio
+                foreach (var razlog in await Context.Razlozi.Where(r => r.PrijavioId == id).ToListAsync())
+                    razlog.PrijavioId = null;
+                Context.Poruke.RemoveRange(Context.Poruke.Where(m => m.PosiljaocId == id || m.PrimaocId == id));
+                Context.Notifikacije.RemoveRange(Context.Notifikacije.Where(n => n.KorisnikKojiReagujeId == id));
                 Context.Korisnici.Remove(korisnik);
                 await Context.SaveChangesAsync();
                 await BrojaciReakcija.OsveziAsync(Context, reagovaoNa);
@@ -221,7 +227,7 @@ namespace EventBoxApi.Controllers
         {
             if (id_korisnika != User.IdKorisnika())
                 return Forbid();
-            Korisnik model = Context.Korisnici.Where(p => p.Id == id_korisnika).Include(p => p.Kreirani_Dogadjaji).First();
+            Korisnik model = Context.Korisnici.Where(p => p.Id == id_korisnika).First();
             model.ImageFile = fajl;
             var status = new Status();
             string pom = "";
@@ -239,12 +245,6 @@ namespace EventBoxApi.Controllers
                     pom = model.KorisnikImage;
                     status.StatusCode = 1;
                     status.Message = pom;
-		    model.Kreirani_Dogadjaji.ForEach(elem => {
-			elem.SlikaKorisnika = pom;			
-			});
-		Context.Korisnici.Update(model);
-		Context.SaveChanges();
-		
                 }
                 else
                 {
@@ -289,16 +289,13 @@ namespace EventBoxApi.Controllers
             {
                 if (korisnik_id != User.IdKorisnika())
                     return Forbid();
-                Korisnik k = await Context.Korisnici.Where(p => p.Id == korisnik_id).Include(p => p.Kreirani_Dogadjaji).FirstOrDefaultAsync();
+                Korisnik k = await Context.Korisnici.FindAsync(korisnik_id);
                 if(k == null)
                     return BadRequest("Korisnik ne postoji");
 
                 // Fajl moze vec da fali na disku - referenca u bazi se svakako cisti
                 _fileService.DeleteImage(k.KorisnikImage);
                 k.KorisnikImage = null;
-                // Dogadjaji cuvaju kopiju slike kreatora (vidi AddImage) - da ne pokazuju na obrisan fajl.
-                // Kolona je NOT NULL, zato prazan string umesto null.
-                k.Kreirani_Dogadjaji.ForEach(d => d.SlikaKorisnika = "");
                 await Context.SaveChangesAsync();
                 return Ok("Uspesno izbrisana slika");
             }

@@ -32,7 +32,7 @@ namespace EventBoxApi.Controllers
         {
             try
             {
-                var dogadjaj = await Context.Dogadjaji.FindAsync(id);
+                var dogadjaj = await Context.Dogadjaji.Include(d => d.KreatorId).FirstOrDefaultAsync(d => d.Id == id);
                 if (dogadjaj == null)
                 {
                     return NotFound($"Događaj sa ID-em {id} nije pronađen.");
@@ -64,8 +64,6 @@ namespace EventBoxApi.Controllers
                 Dogadjaj dog = new Dogadjaj();
                 dog.KreatorId = k;
                 dog.ID_Kreatora = k.Id;
-                dog.UserName_Kreatora = k.Korisnicko_Ime;
-                dog.SlikaKorisnika = k.KorisnikImage ?? "";   // kolona je NOT NULL, korisnik bez profilne ima null
                 dog.Datum_Objave = datum_objave;
                 dog.Naslov = naslov;
                 dog.Datum_Dogadjaja = datum_dogadjaja;
@@ -132,10 +130,7 @@ namespace EventBoxApi.Controllers
                     return NotFound();
                 if(dog.ID_Kreatora != User.IdKorisnika())
                     return Forbid();
-                Korisnik k = await Context.Korisnici.FindAsync(dog.ID_Kreatora);
                 dog.Datum_Objave = datum_objave;
-                dog.UserName_Kreatora = k.Korisnicko_Ime;
-                dog.SlikaKorisnika = k.KorisnikImage ?? "";   // kolona je NOT NULL
                 dog.Naslov = naslov;
                 dog.Datum_Dogadjaja = datum_dogadjaja;
                 dog.Vreme_pocetka = vreme_pocetka;
@@ -237,7 +232,7 @@ namespace EventBoxApi.Controllers
                 DateTime danas = DateTime.Today;
                 DateTime danas_norm = new DateTime(danas.Year,danas.Month,danas.Day); //Normalizovan danasnji datum
 
-                IQueryable<Dogadjaj> _query = Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= danas_norm); //Filtriran Context
+                IQueryable<Dogadjaj> _query = Context.Dogadjaji.Include(d => d.KreatorId).Where(d => d.Datum_Dogadjaja >= danas_norm); //Filtriran Context
                 
                 int skok = 3; //Broj objekta koji se vraca
                 int ukupno = ukupno_elemenata;
@@ -299,7 +294,7 @@ namespace EventBoxApi.Controllers
 
                 if(pom < 0 && pom > skok * (-1))
                 {
-                    var dogadjaji2 = await Context.Dogadjaji.Where(p => p.Datum_Dogadjaja == datum).Take(skok + pom).ToListAsync();
+                    var dogadjaji2 = await Context.Dogadjaji.Include(d => d.KreatorId).Where(p => p.Datum_Dogadjaja == datum).Take(skok + pom).ToListAsync();
                     var odgovor2 = new {
                         Ukupno_elemenata = ukupno,
                         Broj_posiljke = broj_posiljke,
@@ -309,7 +304,7 @@ namespace EventBoxApi.Controllers
                 return Ok(odgovor2);
                 }
                     
-                var dogadjaji = await Context.Dogadjaji.Where(p => p.Datum_Dogadjaja == datum).Skip(pom).Take(skok).ToListAsync();
+                var dogadjaji = await Context.Dogadjaji.Include(d => d.KreatorId).Where(p => p.Datum_Dogadjaja == datum).Skip(pom).Take(skok).ToListAsync();
 
                 var odgovor = new {
                     Ukupno_elemenata = ukupno,
@@ -336,7 +331,7 @@ namespace EventBoxApi.Controllers
                 DateTime danas = DateTime.Today;
                 DateTime danas_norm = new DateTime(danas.Year,danas.Month,danas.Day); //Normalizovan danasnji datum
 
-                IQueryable<Dogadjaj> _query = Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= danas_norm); //Filtriran Context
+                IQueryable<Dogadjaj> _query = Context.Dogadjaji.Include(d => d.KreatorId).Where(d => d.Datum_Dogadjaja >= danas_norm); //Filtriran Context
 
                 int skok = 3; //Broj objekta koji se vraca
                 int ukupno = ukupno_elemenata;

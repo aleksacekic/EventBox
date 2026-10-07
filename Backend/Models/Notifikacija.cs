@@ -11,11 +11,12 @@ namespace Models
     [Key]
     public int Id { get; set; }
 
+    // FK na Dogadjaj (bez kaskade, vidi EventBoxContext); obrisan dogadjaj brise i svoje notifikacije
     [Required]
     public int DogadjajId { get; set; }
 
-    [Required]
-    public int KorisnikKojiReagujeId { get; set; }
+    // FK na Korisnik; null = ne pamti se ko je reagovao (npr. prijava dogadjaja je anonimna)
+    public int? KorisnikKojiReagujeId { get; set; }
 
     [Required]
     public string TipReakcije { get; set; }
@@ -25,12 +26,13 @@ namespace Models
     [Required]
     public DateTime Vreme { get; set; } = DateTime.Now;
     
-    [Required]
-    [JsonIgnore]
-    public virtual Korisnik Korisnik { get; set; }
-
+    // Vlasnik objave kojoj notifikacija pripada (FK na Korisnik) - jedna kolona
     [Required]
     public int KorisnikCijaJeObjavaId {get; set;}
+
+    [ForeignKey(nameof(KorisnikCijaJeObjavaId))]
+    [JsonIgnore]
+    public virtual Korisnik Korisnik { get; set; }
 
     }
 }

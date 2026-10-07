@@ -9,16 +9,23 @@ namespace Models
     {
         [Key]
         public int Id {get; set;}
-        [Required]
-        [JsonIgnore]
-        public virtual Korisnik KreatorId {get; set;} //REFERENCA
+        // Kreator po ID-u (FK na Korisnik) - jedna kolona, bez duple "sene" kolone
         [Required]
         public int ID_Kreatora {get; set;}
-        [Required]
-        public string UserName_Kreatora {get; set;}
+        [ForeignKey(nameof(ID_Kreatora))]
+        [JsonIgnore]
+        public virtual Korisnik KreatorId {get; set;} //REFERENCA
+
+        // Ime i slika kreatora se ne cuvaju u Dogadjaju (kopija bi zastarela pri promeni imena
+        // ili slike), nego se citaju preko veze. Zato upiti koji vracaju dogadjaje rade
+        // Include(d => d.KreatorId). JSON ostaje isti kao ranije.
+        [NotMapped]
+        public string UserName_Kreatora => KreatorId?.Korisnicko_Ime;
+        [NotMapped]
+        public string SlikaKorisnika => KreatorId?.KorisnikImage;
+
         [Required]
         public DateTime Datum_Objave {get; set;}
-	public string SlikaKorisnika {get; set;}
         [Required] 
         public string Naslov {get;set;}
         [Required]

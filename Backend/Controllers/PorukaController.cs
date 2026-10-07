@@ -37,6 +37,12 @@ namespace EventBoxApi.Controllers
                 // Tekst ide u telu zahteva, ne u URL-u - inace znaci poput / ? # kvare rutu
                 if (string.IsNullOrWhiteSpace(zahtev?.Poruka))
                     return BadRequest("Poruka ne sme biti prazna");
+                if (zahtev.Poruka.Length > 1000)
+                    return BadRequest("Poruka moze imati najvise 1000 karaktera");
+                if (primaoc_id == posiljaoc_id)
+                    return BadRequest("Ne moze se slati poruka samom sebi");
+                if (!await Context.Korisnici.AnyAsync(k => k.Id == primaoc_id))
+                    return NotFound("Primalac ne postoji");
 
                 Poruka p = new Poruka
                 {

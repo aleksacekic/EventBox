@@ -50,15 +50,19 @@ namespace EventBoxApi.Controllers
                     return NotFound("Korisnik nije pronađen");
                 }
                
+                // 0 = anonimno (npr. prijava dogadjaja), cuva se kao null; inace korisnik mora da postoji
+                int? reaguje = korisnik_reaguje_Id > 0 ? korisnik_reaguje_Id : null;
+                if (reaguje != null && !await Context.Korisnici.AnyAsync(p => p.Id == reaguje))
+                    return NotFound("Korisnik koji reaguje nije pronadjen");
+
                 Notifikacija n = new Notifikacija
                 {
                     DogadjajId = dogadjaj_Id,
-                    KorisnikKojiReagujeId = korisnik_reaguje_Id,
+                    KorisnikKojiReagujeId = reaguje,
                     TipReakcije = tip_reakcije,
                     SadrzajReakcije = sadrzaj_reakcije,
                     Vreme = vreme,
-                    KorisnikCijaJeObjavaId = korisnik_Id,
-                    Korisnik = k
+                    KorisnikCijaJeObjavaId = korisnik_Id
                 };
 
                 Context.Notifikacije.Add(n);

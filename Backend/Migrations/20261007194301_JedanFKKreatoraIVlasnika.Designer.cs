@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Models;
 
@@ -11,9 +12,11 @@ using Models;
 namespace EventBoxApi.Migrations
 {
     [DbContext(typeof(EventBoxContext))]
-    partial class EventBoxContextModelSnapshot : ModelSnapshot
+    [Migration("20261007194301_JedanFKKreatoraIVlasnika")]
+    partial class JedanFKKreatoraIVlasnika
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -229,7 +232,7 @@ namespace EventBoxApi.Migrations
                     b.Property<int>("KorisnikCijaJeObjavaId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("KorisnikKojiReagujeId")
+                    b.Property<int>("KorisnikKojiReagujeId")
                         .HasColumnType("int");
 
                     b.Property<string>("SadrzajReakcije")
@@ -245,11 +248,7 @@ namespace EventBoxApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DogadjajId");
-
                     b.HasIndex("KorisnikCijaJeObjavaId");
-
-                    b.HasIndex("KorisnikKojiReagujeId");
 
                     b.ToTable("Notifikacija");
                 });
@@ -281,10 +280,6 @@ namespace EventBoxApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PosiljaocId");
-
-                    b.HasIndex("PrimaocId");
-
                     b.ToTable("Poruka");
                 });
 
@@ -304,8 +299,7 @@ namespace EventBoxApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Dogadjaj_IdId")
-                        .IsUnique();
+                    b.HasIndex("Dogadjaj_IdId");
 
                     b.ToTable("Prijavljeni_dogadjaj");
                 });
@@ -320,32 +314,20 @@ namespace EventBoxApi.Migrations
 
                     b.Property<string>("Opis")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int?>("PrijavioId")
-                        .HasColumnType("int");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Prijavljeni_dogadjaj_IdId")
                         .HasColumnType("int");
 
                     b.Property<string>("Razlog_prijave")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Prijavljeni_dogadjaj_IdId");
 
-                    b.HasIndex("PrijavioId", "Prijavljeni_dogadjaj_IdId")
-                        .IsUnique()
-                        .HasFilter("[PrijavioId] IS NOT NULL");
-
-                    b.ToTable("Razlog", t =>
-                        {
-                            t.HasCheckConstraint("CK_Razlog_Razlog_prijave", "[Razlog_prijave] IN (N'nepozeljan', N'nasilje', N'terorizam', N'govor_mrznje', N'lazne_informacije', N'uznemiravanje', N'ostalo')");
-                        });
+                    b.ToTable("Razlog");
                 });
 
             modelBuilder.Entity("Models.Reakcija", b =>
@@ -412,39 +394,13 @@ namespace EventBoxApi.Migrations
 
             modelBuilder.Entity("Models.Notifikacija", b =>
                 {
-                    b.HasOne("Models.Dogadjaj", null)
-                        .WithMany()
-                        .HasForeignKey("DogadjajId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
                     b.HasOne("Models.Korisnik", "Korisnik")
                         .WithMany("Lista_Notifikacija")
                         .HasForeignKey("KorisnikCijaJeObjavaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Models.Korisnik", null)
-                        .WithMany()
-                        .HasForeignKey("KorisnikKojiReagujeId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.Navigation("Korisnik");
-                });
-
-            modelBuilder.Entity("Models.Poruka", b =>
-                {
-                    b.HasOne("Models.Korisnik", null)
-                        .WithMany()
-                        .HasForeignKey("PosiljaocId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Models.Korisnik", null)
-                        .WithMany()
-                        .HasForeignKey("PrimaocId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Models.Prijavljeni_dogadjaj", b =>
@@ -460,18 +416,11 @@ namespace EventBoxApi.Migrations
 
             modelBuilder.Entity("Models.Razlog", b =>
                 {
-                    b.HasOne("Models.Korisnik", "Prijavio")
-                        .WithMany()
-                        .HasForeignKey("PrijavioId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.HasOne("Models.Prijavljeni_dogadjaj", "Prijavljeni_dogadjaj_Id")
                         .WithMany("Razlozi")
                         .HasForeignKey("Prijavljeni_dogadjaj_IdId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Prijavio");
 
                     b.Navigation("Prijavljeni_dogadjaj_Id");
                 });

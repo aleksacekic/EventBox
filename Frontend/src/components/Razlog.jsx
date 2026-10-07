@@ -8,10 +8,10 @@ function Razlog({jedan_dog}) {
           <li>
           {jedan_dog.razlozi.map(jedan_razlog => {
                 return (
-            <div className="comment-list">
+            <div className="comment-list" key={jedan_razlog.id}>
             <div className="comment">
               <h3>{jedan_razlog.razlog_prijave}</h3>
-              <p>{jedan_razlog.opis}</p>
+              {jedan_razlog.opis && <p>{jedan_razlog.opis}</p>}
             </div>
             </div>
                  )

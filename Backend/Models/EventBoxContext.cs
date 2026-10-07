@@ -47,6 +47,45 @@ namespace Models
                 .ToTable(t => t.HasCheckConstraint("CK_Reakcija_Tip",
                     "[Tip] IN (N'Zainteresovan', N'Mozda', N'Nezainteresovan')"));
 
+            // Notifikacija i Poruka imaju vise veza ka Korisniku/Dogadjaju, a Korisnik -> Dogadjaj
+            // i Korisnik -> Notifikacija su vec kaskadni; SQL Server ne dozvoljava vise kaskadnih
+            // puteva do iste tabele. Zato su sve ove veze NoAction, a zavisne redove brisu
+            // IzbrisiKorisnika i IzbrisiDogadjaj (u istoj transakciji).
+            modelBuilder.Entity<Notifikacija>()
+                .HasOne<Dogadjaj>().WithMany()
+                .HasForeignKey(n => n.DogadjajId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<Notifikacija>()
+                .HasOne<Korisnik>().WithMany()
+                .HasForeignKey(n => n.KorisnikKojiReagujeId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<Poruka>()
+                .HasOne<Korisnik>().WithMany()
+                .HasForeignKey(m => m.PosiljaocId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<Poruka>()
+                .HasOne<Korisnik>().WithMany()
+                .HasForeignKey(m => m.PrimaocId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Prijave: jedan red Prijavljeni_dogadjaj po dogadjaju, a jedan korisnik moze isti
+            // dogadjaj da prijavi samo jednom. Filtrirani indeks jer PrijavioId moze biti NULL
+            // (SQL Server inace tretira vise NULL-ova kao duplikate).
+            modelBuilder.Entity<Prijavljeni_dogadjaj>()
+                .HasIndex("Dogadjaj_IdId")
+                .IsUnique();
+            modelBuilder.Entity<Razlog>()
+                .HasOne(r => r.Prijavio).WithMany()
+                .HasForeignKey(r => r.PrijavioId)
+                .OnDelete(DeleteBehavior.NoAction); // Korisnik -> Dogadjaj -> Prijava -> Razlog je vec kaskadno
+            modelBuilder.Entity<Razlog>()
+                .HasIndex("PrijavioId", "Prijavljeni_dogadjaj_IdId")
+                .IsUnique()
+                .HasFilter("[PrijavioId] IS NOT NULL");
+            modelBuilder.Entity<Razlog>()
+                .ToTable(t => t.HasCheckConstraint("CK_Razlog_Razlog_prijave",
+                    "[Razlog_prijave] IN (N'nepozeljan', N'nasilje', N'terorizam', N'govor_mrznje', N'lazne_informacije', N'uznemiravanje', N'ostalo')"));
+
             // Jedinstvena korisnicka imena. Indeks ujedno ubrzava prijavu (trazenje po imenu).
             modelBuilder.Entity<Korisnik>().HasIndex(k => k.Korisnicko_Ime).IsUnique();
             modelBuilder.Entity<Administrator>().HasIndex(a => a.Korisnicko_ime).IsUnique();

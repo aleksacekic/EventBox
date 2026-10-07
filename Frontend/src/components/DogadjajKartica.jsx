@@ -1,4 +1,4 @@
-import { api, API_BASE } from '../api';
+import { api, API_BASE, ApiError } from '../api';
 import React, { useState } from 'react';
 import HideShowMapa from './Hide&ShowMapa';
 import Komentari from './Komentari';
@@ -54,17 +54,23 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
       return;
     }
 
-    // opis: "nema" ako je izabrano bilo sta osim OSTALO, "bezOpisa" ako je OSTALO bez teksta
-    const razlogOpis = selectedOption !== 'ostalo' ? 'nema' : (opis === '' ? 'bezOpisa' : opis);
-
     try {
-      // 401 -> api klijent sam vraca na /login
-      await api.post(`/Pr_dog/PrijaviDogadjaj/${dogadjaj.id}`, undefined, { credentials: 'include' });
-      await api.post(`/Razlog/KreirajRazlog/${dogadjaj.id}/${selectedOption}`, { opis: razlogOpis });
+      // Jedan zahtev: razlog (i opis samo uz "ostalo"). 401 -> api klijent sam vraca na /login
+      await api.post(`/Pr_dog/PrijaviDogadjaj/${dogadjaj.id}`, {
+        razlog: selectedOption,
+        opis: selectedOption === 'ostalo' ? opis.trim() : '',
+      });
 
       zatvoriPrijavuFormu();
       setPrijavaPoslata(true);
     } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        // Server pamti ko je prijavio: isti dogadjaj se ne prijavljuje dvaput
+        alert('Vec ste prijavili ovaj dogadjaj.');
+        zatvoriPrijavuFormu();
+        setPrijavaPoslata(true);
+        return;
+      }
       console.error('Greska prilikom prijave objave:', error);
     }
   };

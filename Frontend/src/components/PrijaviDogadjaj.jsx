@@ -37,8 +37,7 @@ function Pr_Dog() {
 
   const ObrisiFunc = async (ID_PR, ID_DOG) => {
 
-      await api.del(`/Razlog/IzbrisiRazlogeDogadjaja/${ID_DOG}`);
-      await api.del(`/Pr_dog/IzbrisiPrijavljeniDogadjaj/${ID_PR}`);
+      // Brisanje dogadjaja kaskadno brise i njegovu prijavu sa razlozima
       await api.del(`/Dogadjaj/IzbrisiDogadjaj/${ID_DOG}`);
       setDogadjaji(prevDogadjaji => prevDogadjaji.filter(d => d.id !== ID_PR))
       alert("Dogadjaj je izbacen iz polja ");
@@ -47,7 +46,7 @@ function Pr_Dog() {
 
   const IgnorisiFunc = async (ID_PR, ID_DOG) => {
 
-      await api.del(`/Razlog/IzbrisiRazlogeDogadjaja/${ID_DOG}`);
+      // Razlozi se brisu kaskadno zajedno sa prijavom
       await api.del(`/Pr_dog/IzbrisiPrijavljeniDogadjaj/${ID_PR}`);
       setDogadjaji(prevDogadjaji => prevDogadjaji.filter(d => d.id !== ID_PR))
       alert("Dogadjaj je izbacen iz polja ");
