@@ -62,58 +62,31 @@ namespace EventBoxApi.Controllers
             }
         }
 
-        // [HttpGet]
-        // [EnableCors("CORS")]
-        // [Route("VratiPoruke/{user1}/{user2}")]
-        // public async Task<IActionResult> VratiPoruke(int user1, int user2)
-        // {
-        //     try
-        //     {
-
-        //         var poruke = await Context.Poruke
-        //         .Where(m => (m.PosiljaocId == user1 && m.PrimaocId == user2) ||
-        //                 (m.PosiljaocId == user2 && m.PrimaocId == user1))
-        //     .   OrderBy(m => m.Vreme)
-        //         .ToListAsync();
-        //         return Ok(poruke);
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         return BadRequest("Nije uspesno vracen spisak poruka " + ex.Message);
-        //     }
-        // }
-
+        // Razgovor dvoje korisnika, najnovije poruke prve, stranicenje kursorom (Models/Paginacija.cs):
+        //   ?limit=20                 -> najnovijih 20
+        //   ?limit=20&cursor=<kursor> -> sledecih 20 starijih (kursor = sledeciKursor iz prethodnog odgovora)
+        // Odgovor: { stavke, sledeciKursor, imaJos }
         [HttpGet]
         [EnableCors("CORS")]
         [Route("VratiPoruke/{user1}/{user2}")]
-        public async Task<IActionResult> VratiPoruke(int user1, int user2, int page = 0, int size = 20)
+        public async Task<IActionResult> VratiPoruke(int user1, int user2, [FromQuery] int limit = 20, [FromQuery] string? cursor = null)
         {
             try
             {
                 if (user1 != User.IdKorisnika() && user2 != User.IdKorisnika())
                     return Forbid(); // samo ucesnici razgovora
+                if (!Paginacija.TryDekodiraj(cursor, out int? posle))
+                    return BadRequest("Neispravan kursor");
 
-                if (page < 0 || size <= 0)
-                    return BadRequest("Neispravni parametri paginacije.");
-
-                var poruke = await Context.Poruke
-                    .Where(m => (m.PosiljaocId == user1 && m.PrimaocId == user2) ||
-                                (m.PosiljaocId == user2 && m.PrimaocId == user1))
-                    .OrderByDescending(m => m.Vreme) // Najnovije poruke prve
-                    .Skip(page * size)  // Preskoči prethodne stranice
-                    .Take(size)         // Uzmi sledećih `size` poruka
-                    .ToListAsync();
-
-                return Ok(poruke);
+                var upit = Context.Poruke.Where(m => (m.PosiljaocId == user1 && m.PrimaocId == user2) ||
+                                                     (m.PosiljaocId == user2 && m.PrimaocId == user1));
+                return Ok(await Paginacija.UzmiAsync(upit, posle, limit, saUkupno: false));
             }
             catch (Exception ex)
             {
                 return BadRequest("Greška pri vraćanju poruka: " + ex.Message);
             }
         }
-
-
-
 
         [HttpPut]
         [EnableCors("CORS")]

@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 namespace Models
 {
     [Table("Poruka")]
-    public class Poruka
+    public class Poruka : IImaId
     {
         [Key]
         public int Id { get; set; }

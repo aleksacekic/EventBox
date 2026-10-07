@@ -5143,3 +5143,37 @@ a:hover {
 	padding: 6px 12px;
 	cursor: pointer;
 }
+
+/* Cet: ucitavanje starijih poruka skrolom nagore */
+.poruke-messages {
+	overflow-anchor: none; /* skrol pri dodavanju starijih poruka podesava Chat.jsx */
+}
+
+.lista-cuvar-gore {
+	/* nevidljiva zona na vrhu: starije poruke se pocinju ucitavati ~150px pre vrha */
+	height: 150px;
+	margin-bottom: -150px;
+	flex-shrink: 0;
+	pointer-events: none;
+}
+
+.lista-loader-gore {
+	position: sticky;
+	top: 0;
+	height: 0;
+	padding: 0;
+	overflow: visible;
+	z-index: 2;
+	align-items: flex-start;
+	flex-shrink: 0;
+}
+
+.lista-loader-gore .lista-loader-sadrzaj {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 14px;
+	border-radius: 16px;
+	background: #fff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}

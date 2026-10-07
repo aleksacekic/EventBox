@@ -1,9 +1,11 @@
 import { api, API_BASE } from '../api';
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { useAuth } from "../auth";
 import Header from "../components/Header";
+import KrajListe from "../components/KrajListe";
+import { useBeskonacnaLista } from "../useBeskonacnaLista";
 
 // Server salje vreme bez oznake zone (UTC); lokalne poruke su ISO stringovi.
 const uDatum = (vreme) => {
@@ -37,7 +39,6 @@ function Avatar({ user, className = "" }) {
 
 const Chat = () => {
   const [selectedUser, setSelectedUser] = useState(null); //trenutno izabrani korisnik za chat
-  const [messages, setMessages] = useState({}); //lista poruka za trenutnog korisnika
   const [newMessage, setNewMessage] = useState(""); //nasa poruka u input polju
   const [connection, setConnection] = useState(null); //singlaR konekcija
   const [users, setUsers] = useState([]); //lista korisnika koji su dostupni za chat
@@ -46,29 +47,60 @@ const Chat = () => {
   const [showSearch, setShowSearch] = useState(false); //bool za prikaz pretrage korisnika za novu poruku
   const [sviKorisnici, setSviKorisnici] = useState([]); //svi korisnici
 
-  const [page, setPage] = useState(0); //trenutna strana-ovo je za paginaciju
-  const [loading, setLoading] = useState(false); //dal se poruke ucitavaju
-  const [hasMore, setHasMore] = useState(true); //dal ima jos poruka za ucitavanje
-
   const chatMessagesRef = useRef(null);
-  const prevScrollHeightRef = useRef(0);
-
-  // Posle ucitavanja starijih poruka ostajemo na istom mestu; inace (nova poruka,
-  // otvaranje razgovora) skrolujemo na dno.
-  useEffect(() => {
-    const chatDiv = chatMessagesRef.current;
-    if (!chatDiv) return;
-    if (prevScrollHeightRef.current) {
-      chatDiv.scrollTop = chatDiv.scrollHeight - prevScrollHeightRef.current;
-      prevScrollHeightRef.current = 0;
-    } else {
-      chatDiv.scrollTop = chatDiv.scrollHeight;
-    }
-  }, [messages[selectedUser?.id]]);
 
   const navigate = useNavigate();
   const { userId } = useAuth();
   const korisnik_Id = userId;
+
+  // Poruke izabranog razgovora: ucitava se najnovijih 20, a starije kad se skroluje nagore
+  // (vidi useBeskonacnaLista, smer 'gore'). Lista je od starijih ka novijim.
+  const lista = useBeskonacnaLista(
+    selectedUser ? `/Poruka/VratiPoruke/${korisnik_Id}/${selectedUser.id}` : null,
+    { limit: 20, smer: 'gore' }
+  );
+  const poruke = selectedUser ? lista.stavke : [];
+
+  const izabraniIdRef = useRef(null);
+  izabraniIdRef.current = selectedUser?.id ?? null;
+
+  // Skrol: otvaranje razgovora -> na dno; starije poruke -> ostajemo na istom mestu;
+  // nova poruka -> na dno ako je moja ili ako smo vec bili pri dnu (inace ne cupamo korisnika
+  // iz istorije koju cita).
+  const skrolRef = useRef({ prvi: null, zadnji: null, visina: 0 });
+  const priDnuRef = useRef(true);
+  const kljucPoruke = (m) => (m ? (m.id ?? m.lokalniId) : null);
+
+  useLayoutEffect(() => {
+    const el = chatMessagesRef.current;
+    if (!el) return;
+    const p = skrolRef.current;
+    const prvi = kljucPoruke(poruke[0]);
+    const zadnji = kljucPoruke(poruke[poruke.length - 1]);
+    if (prvi === null) {
+      skrolRef.current = { prvi: null, zadnji: null, visina: 0 };
+      priDnuRef.current = true;
+      return;
+    }
+    if (p.prvi === null) {
+      el.scrollTop = el.scrollHeight;
+    } else if (prvi !== p.prvi && zadnji === p.zadnji) {
+      el.scrollTop += el.scrollHeight - p.visina;
+    } else if (zadnji !== p.zadnji && (priDnuRef.current || poruke[poruke.length - 1].sender === 'me')) {
+      el.scrollTop = el.scrollHeight;
+    }
+    skrolRef.current = { prvi, zadnji, visina: el.scrollHeight };
+  }, [lista.stavke]);
+
+  useEffect(() => {
+    const el = chatMessagesRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      priDnuRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    };
+    el.addEventListener('scroll', onScroll);
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [selectedUser?.id]);
   async function fetchKorisnik(korisnik_Id) {
     try {
       if (!korisnik_Id) return null;
@@ -128,17 +160,18 @@ const Chat = () => {
         .build();
 
       conn.on("ReceiveMessage", (senderId, message) => {
-        setMessages((prev) => ({
-          ...prev,
-          [senderId]: [
-            ...(prev[senderId] || []),
+        // Poruka za razgovor koji nije otvoren se ne cuva ovde: cim se otvori, ucitava se sa servera
+        if (String(senderId) === String(izabraniIdRef.current)) {
+          lista.setStavke((prev) => [
+            ...prev,
             {
+              lokalniId: `l${Date.now()}${Math.random()}`,
               sadrzaj: message,
               sender: "their",
               vreme: new Date().toISOString(),
             },
-          ],
-        }));
+          ]);
+        }
 
         setMessageSenders((prev) =>
           prev.includes(senderId) ? prev : [senderId, ...prev]
@@ -160,35 +193,6 @@ const Chat = () => {
     };
   }, []);
 
-  const fetchMessages = async (userId, pageNumber = 0) => {
-    if (loading || !hasMore) return;
-    setLoading(true);
-
-    try {
-      const messagesData = await api.get(
-        `/Poruka/VratiPoruke/${korisnik_Id}/${userId}?page=${pageNumber}&size=20`
-      );
-      const chatDiv = chatMessagesRef.current;
-
-      if (chatDiv && pageNumber > 0) {
-        prevScrollHeightRef.current = chatDiv.scrollHeight; // Čuvamo prethodnu visinu skrola
-      }
-
-      setMessages((prev) => ({
-        ...prev,
-        [userId]:
-          pageNumber === 0 ? messagesData : [...messagesData, ...prev[userId]], // Dodajemo poruke na početak
-      }));
-
-      setHasMore(messagesData.length === 20);
-      setPage(pageNumber);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleUserClick = (user) => {
     // Klik na vec otvoren razgovor ne sme da ga resetuje (effect za ucitavanje poruka
     // se ne bi ponovo pokrenuo i ostala bi prazna lista)
@@ -198,9 +202,6 @@ const Chat = () => {
       return;
     }
     setSelectedUser(user);
-    setMessages((prev) => ({ ...prev, [user.id]: [] }));
-    setPage(0);
-    setHasMore(true);
     setMessageSenders((prev) => prev.filter((id) => id !== user.id));
     api.put(`/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`);
   };
@@ -221,29 +222,21 @@ const Chat = () => {
     api.put(`/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`);
   };
 
-  useEffect(() => {
-    if (selectedUser) {
-      fetchMessages(selectedUser.id, 0);
-    }
-  }, [selectedUser]);
-
   const handleSendMessage = async (e) => {
     e?.preventDefault();
     if (newMessage.trim() === "" || !selectedUser || !connection) return;
 
     const tekst = newMessage;
     setNewMessage("");
-    setMessages((prev) => ({
+    lista.setStavke((prev) => [
       ...prev,
-      [selectedUser.id]: [
-        ...(prev[selectedUser.id] || []),
-        {
-          sadrzaj: tekst,
-          sender: "me",
-          vreme: new Date().toISOString(),
-        },
-      ],
-    }));
+      {
+        lokalniId: `l${Date.now()}${Math.random()}`,
+        sadrzaj: tekst,
+        sender: "me",
+        vreme: new Date().toISOString(),
+      },
+    ]);
 
     await connection.invoke("SendMessage", korisnik.id, selectedUser.id, tekst);
     await api.post(
@@ -264,22 +257,6 @@ const Chat = () => {
       .filter(Boolean),
     ...chatKorisnici.filter((user) => !messageSenders.includes(user.id)),
   ];
-
-  // Ucitavanje starijih poruka kad se skroluje do vrha
-  useEffect(() => {
-    const chatDiv = chatMessagesRef.current;
-    if (!chatDiv) return;
-
-    const handleScroll = () => {
-      if (!loading && hasMore && chatDiv.scrollTop === 0) {
-        fetchMessages(selectedUser.id, page + 1);
-      }
-    };
-
-    chatDiv.addEventListener("scroll", handleScroll);
-
-    return () => chatDiv.removeEventListener("scroll", handleScroll);
-  }, [loading, hasMore, selectedUser]);
 
   const toggleSearch = () => {
     setShowSearch((prev) => !prev);
@@ -333,10 +310,6 @@ const Chat = () => {
     setSearchValue("");
     setShowSearch(false);
   };
-
-  const poruke = selectedUser
-    ? [...(messages[selectedUser.id] ?? [])].sort((a, b) => uDatum(a.vreme) - uDatum(b.vreme))
-    : [];
 
   return (
     <div className="poruke-page">
@@ -443,15 +416,15 @@ const Chat = () => {
                 </div>
 
                 <div className="poruke-messages" ref={chatMessagesRef}>
-                  {loading && <div className="poruke-loading">Ucitavanje poruka...</div>}
-                  {!loading && poruke.length === 0 && (
+                  <KrajListe lista={lista} gore />
+                  {!lista.pocetno && !lista.ucitava && !lista.greska && poruke.length === 0 && (
                     <div className="poruke-messages-empty">
                       Jos nema poruka. Napisi prvu!
                     </div>
                   )}
-                  {poruke.map((msg, index) => (
+                  {poruke.map((msg) => (
                     <div
-                      key={index}
+                      key={kljucPoruke(msg)}
                       className={`poruke-msg ${
                         msg.posiljaocId === korisnik?.id || msg.sender === "me"
                           ? "is-mine"

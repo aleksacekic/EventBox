@@ -12,12 +12,14 @@
 //
 //  - putanja = null/'' -> nista se ne ucitava
 //  - mapiraj(stavka) -> dopuna svake stavke posle ucitavanja (npr. formatiran datum)
+//  - smer: 'dole' (podrazumevano) nove strane se dodaju na kraj; 'gore' (cet) backend vraca
+//    najnovije prvo, a lista se cuva od starijih ka novijim: starije strane se dodaju na POCETAK
 //  - odgovor za staru putanju (korisnik je u medjuvremenu promenio filter) se odbacuje
 // ============================================================================
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from './api'
 
-export function useBeskonacnaLista(putanja, { limit = 3, mapiraj } = {}) {
+export function useBeskonacnaLista(putanja, { limit = 3, mapiraj, smer = 'dole' } = {}) {
   const [stavke, setStavke] = useState([])
   const [ukupno, setUkupno] = useState(null)   // stize samo uz prvu stranu
   const [imaJos, setImaJos] = useState(false)
@@ -34,6 +36,23 @@ export function useBeskonacnaLista(putanja, { limit = 3, mapiraj } = {}) {
   const mapirajRef = useRef(mapiraj)
   mapirajRef.current = mapiraj
 
+  // Nova putanja: lista se prazni ODMAH u istom renderu (a ne tek u efektu), da se ni na jedan
+  // frejm ne vide stavke prethodne putanje (npr. poruke drugog razgovora)
+  const [trenutnaPutanja, setTrenutnaPutanja] = useState(putanja)
+  if (trenutnaPutanja !== putanja) {
+    setTrenutnaPutanja(putanja)
+    setStavke([])
+    setUkupno(null)
+    setImaJos(false)
+    setGreska(null)
+    setPocetno(true)
+    setUcitava(false)
+    generacija.current += 1 // odgovori za staru putanju se odbacuju
+    uToku.current = false
+    kursorRef.current = null
+    imaJosRef.current = false
+  }
+
   const ucitajStranu = useCallback(async (prva) => {
     if (!putanja) return
     if (!prva && (uToku.current || !imaJosRef.current)) return
@@ -49,11 +68,12 @@ export function useBeskonacnaLista(putanja, { limit = 3, mapiraj } = {}) {
         `${putanja}${sep}limit=${limit}${kursor ? `&cursor=${encodeURIComponent(kursor)}` : ''}`
       )
       if (gen !== generacija.current) return
-      const nove = mapirajRef.current ? data.stavke.map(mapirajRef.current) : data.stavke
+      let nove = mapirajRef.current ? data.stavke.map(mapirajRef.current) : data.stavke
+      if (smer === 'gore') nove = [...nove].reverse()
       kursorRef.current = data.sledeciKursor
       imaJosRef.current = data.imaJos
       prvaNeuspela.current = false
-      setStavke((prev) => (prva ? nove : [...prev, ...nove]))
+      setStavke((prev) => (prva ? nove : smer === 'gore' ? [...nove, ...prev] : [...prev, ...nove]))
       setImaJos(data.imaJos)
       if (data.ukupno != null) setUkupno(data.ukupno)
     } catch (error) {
@@ -69,7 +89,7 @@ export function useBeskonacnaLista(putanja, { limit = 3, mapiraj } = {}) {
         setPocetno(false)
       }
     }
-  }, [putanja, limit])
+  }, [putanja, limit, smer])
 
   // Nova putanja -> sve ispocetka
   useEffect(() => {

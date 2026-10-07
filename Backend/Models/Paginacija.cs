@@ -58,11 +58,11 @@ namespace Models
         }
 
         // upit: vec filtriran (i sa Include-ovima), bez sortiranja. Vraca limit stavki starijih od kursora.
-        public static async Task<Strana<T>> UzmiAsync<T>(IQueryable<T> upit, int? posleId, int limit) where T : class, IImaId
+        public static async Task<Strana<T>> UzmiAsync<T>(IQueryable<T> upit, int? posleId, int limit, bool saUkupno = true) where T : class, IImaId
         {
             limit = Math.Clamp(limit, 1, NajvecaVelicina);
 
-            int? ukupno = posleId == null ? await upit.CountAsync() : null;
+            int? ukupno = saUkupno && posleId == null ? await upit.CountAsync() : null;
 
             IQueryable<T> strana = upit;
             if (posleId != null)

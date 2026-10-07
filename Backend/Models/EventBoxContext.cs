@@ -86,6 +86,11 @@ namespace Models
                 .ToTable(t => t.HasCheckConstraint("CK_Razlog_Razlog_prijave",
                     "[Razlog_prijave] IN (N'nepozeljan', N'nasilje', N'terorizam', N'govor_mrznje', N'lazne_informacije', N'uznemiravanje', N'ostalo')"));
 
+            // Cet: razgovor (posiljalac, primalac) se cita po kursoru (Id opadajuce), a broj
+            // neprocitanih po (primalac, procitano) - bez ovih indeksa oba upita skeniraju celu tabelu
+            modelBuilder.Entity<Poruka>().HasIndex(m => new { m.PosiljaocId, m.PrimaocId });
+            modelBuilder.Entity<Poruka>().HasIndex(m => new { m.PrimaocId, m.JelProcitano });
+
             // Jedinstvena korisnicka imena. Indeks ujedno ubrzava prijavu (trazenje po imenu).
             modelBuilder.Entity<Korisnik>().HasIndex(k => k.Korisnicko_Ime).IsUnique();
             modelBuilder.Entity<Administrator>().HasIndex(a => a.Korisnicko_ime).IsUnique();
