@@ -52,12 +52,22 @@ namespace Models
             // puteva do iste tabele. Zato su sve ove veze NoAction, a zavisne redove brisu
             // IzbrisiKorisnika i IzbrisiDogadjaj (u istoj transakciji).
             modelBuilder.Entity<Notifikacija>()
-                .HasOne<Dogadjaj>().WithMany()
+                .HasOne(n => n.Dogadjaj).WithMany()
                 .HasForeignKey(n => n.DogadjajId)
                 .OnDelete(DeleteBehavior.NoAction);
             modelBuilder.Entity<Notifikacija>()
-                .HasOne<Korisnik>().WithMany()
+                .HasOne(n => n.KorisnikKojiReaguje).WithMany()
                 .HasForeignKey(n => n.KorisnikKojiReagujeId)
+                .OnDelete(DeleteBehavior.NoAction);
+            // Bez kaskade iz istog razloga (Korisnik -> Dogadjaj -> Komentar/Reakcija je vec kaskadno);
+            // notifikacije komentara/reakcije brise kod (Obavestenja.UkloniAsync) pre samog brisanja
+            modelBuilder.Entity<Notifikacija>()
+                .HasOne(n => n.Komentar).WithMany()
+                .HasForeignKey(n => n.KomentarId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<Notifikacija>()
+                .HasOne(n => n.Reakcija).WithMany()
+                .HasForeignKey(n => n.ReakcijaId)
                 .OnDelete(DeleteBehavior.NoAction);
             modelBuilder.Entity<Poruka>()
                 .HasOne<Korisnik>().WithMany()

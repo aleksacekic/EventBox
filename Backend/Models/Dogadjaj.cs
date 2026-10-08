@@ -26,17 +26,21 @@ namespace Models
 
         [Required]
         public DateTime Datum_Objave {get; set;}
-        [Required] 
+        [Required]
+        [MaxLength(DogadjajZahtev.NaslovMax)]
         public string Naslov {get;set;}
         [Required]
         public DateTime Datum_Dogadjaja {get;set;}
         [Required]
+        [MaxLength(5)] // "HH:mm"
         public string Vreme_pocetka {get;set;}
+        [MaxLength(DogadjajZahtev.OpisMax)]
         public string Opis {get;set;}
         public int Broj_Zainteresovanih {get;set;}
         public int Broj_Mozda {get;set;}
         public int Broj_Nezainteresovanih {get;set;} 
         [Required]
+        [MaxLength(50)]
         public string Kategorija {get;set;}
         [Required]
         public double X {get;set;}
@@ -52,4 +56,4 @@ namespace Models
         [NotMapped]
         public IFormFile ImageFile {get;set;}
     }
-}
+}

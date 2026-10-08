@@ -119,11 +119,14 @@ builder.Services.AddAuthorization();
 builder.Services.AddTransient<IFileService, FileService>();
 builder.Services.AddTransient<IDogadjajRepo, DogadjajRepo>();
 builder.Services.AddTransient<IKorisnikRepo, KorisnikRepo>();
-builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<Obavestenja>();
+// Zastita prijave: ograničenje po IP adresi + zaključavanje naloga posle 5 pogrešnih lozinki
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<ZastitaPrijave>();
+builder.Services.AddRateLimiter(ZastitaPrijave.Podesi);
+// SignalR: korisnik se prepoznaje po tokenu (claim NameIdentifier), podrazumevani IUserIdProvider
+// to vec radi - zato vise nema CustomUserIdProvider-a koji je verovao ?userID= iz adrese
 builder.Services.AddSignalR();
-
-//OVO JE MNOGO POMOGLO ZA SIGNALR !!!!!!!
-builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
 
 
 
@@ -146,15 +149,16 @@ app.UseStaticFiles(new StaticFileOptions {
 
 app.UseCookiePolicy();
 
-app.MapControllers();
-
-// Postavi rute za SignalR
+// Redosled je bitan: rutiranje -> CORS -> ko je korisnik -> sme li -> ogranicenje zahteva,
+// pa tek onda kontroleri i hub
 app.UseRouting();
 app.UseCors("CORS");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
+
+app.MapControllers();
 app.MapHub<NotificationHub>("/notificationHub");
-app.MapHub<ChatHub>("/chatHub");
 
 
 app.Run();

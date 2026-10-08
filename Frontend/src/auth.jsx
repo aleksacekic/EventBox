@@ -27,6 +27,20 @@ const SET_COOKIE_OPTS = {
 
 // Cisti auth kolacice. Koristi ga i logout() i api.js na 401 - da imena
 // kljuceva ('token', 'userID') stoje na jednom mestu.
+// Javi serveru da token vise ne vazi (POST .../Odjava). "Najbolji pokusaj": ako zahtev
+// ne uspe (npr. sesija je vec istekla, server nije dostupan), lokalna odjava se svejedno
+// zavrsava. keepalive - zahtev se zavrsi i ako stranica odmah ode na drugu adresu.
+// Ide preko fetch-a, a ne api.js, jer bi 401 u api.js ponovo pokrenuo odjavu i redirect.
+function odjaviNaServeru(token, isAdmin) {
+  if (!token) return
+  const base = import.meta.env.VITE_API_URL || 'http://localhost:5153'
+  fetch(`${base}/${isAdmin ? 'Administrator' : 'Korisnik'}/Odjava`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    keepalive: true,
+  }).catch(() => {})
+}
+
 export function clearAuthCookies() {
   Cookies.remove('token', COOKIE_OPTS)
   Cookies.remove('userID', COOKIE_OPTS)
@@ -54,6 +68,9 @@ export function AuthProvider({ children }) {
   }, [])
 
   const logout = useCallback(() => {
+    // Token se cita iz kolacica (ne iz state-a), da logout() radi i kad je pozvan
+    // odmah posle login-a u istom renderu
+    odjaviNaServeru(Cookies.get('token'), Cookies.get('role') === 'admin')
     clearAuthCookies()
     setAuth({ token: null, userId: null, isAdmin: false })
   }, [])

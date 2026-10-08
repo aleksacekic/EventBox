@@ -47,44 +47,34 @@ namespace EventBoxApi.Controllers
         }
 
 
+        // Novi dogadjaj ulogovanog korisnika. Podaci idu u telu (DogadjajZahtev); kreator i datum
+        // objave postavlja server. Neispravan unos -> 400 { message, greske: { polje: poruka } }.
         [HttpPost]
         [EnableCors("CORS")]
-        [Route("DodajDogadjaj/{kreator}/{datum_objave}/{naslov}/{datum_dogadjaja}/{vreme_pocetka}/{opis}/{kategorija}/{x}/{y}")]
-        public async Task<ActionResult> DodajDogadjaj(int kreator, DateTime datum_objave, string naslov
-                                                      ,DateTime datum_dogadjaja, string vreme_pocetka, string opis
-                                                      ,string kategorija, double x, double y)
+        [Route("DodajDogadjaj")]
+        public async Task<ActionResult> DodajDogadjaj([FromBody] DogadjajZahtev zahtev)
         {
-           try
-            {
-                if(kreator != User.IdKorisnika())
-                    return Forbid(); // dogadjaj moze da napravi samo za sebe
+            if (User.JeAdmin())
+                return Forbid(); // administrator nije korisnik i nema dogadjaje
+            if (zahtev == null)
+                return BadRequest("Nedostaju podaci o dogadjaju");
+            var greske = zahtev.Proveri();
+            if (greske.Count > 0)
+                return BadRequest(new { message = "Proverite unete podatke.", greske });
 
-                Korisnik k = new Korisnik();
-                k = await Context.Korisnici.FindAsync(kreator);
-                Dogadjaj dog = new Dogadjaj();
-                dog.KreatorId = k;
-                dog.ID_Kreatora = k.Id;
-                dog.Datum_Objave = datum_objave;
-                dog.Naslov = naslov;
-                dog.Datum_Dogadjaja = datum_dogadjaja;
-                dog.Vreme_pocetka = vreme_pocetka;
-                dog.Opis = opis; 
-                dog.Broj_Zainteresovanih = 0;
-                dog.Broj_Mozda = 0;
-                dog.Broj_Nezainteresovanih = 0;
-                dog.Kategorija = kategorija;
-                dog.X = x;
-                dog.Y = y;
-                dog.DogadjajImage = null;
-                Context.Dogadjaji.Add(dog);
-                await Context.SaveChangesAsync();
-                return Ok(dog);
-            }
-            catch(Exception e)
+            var dog = new Dogadjaj
             {
-                return BadRequest("Nije uspesno dodat dogadjaj! " + e.Message
-                    + (e.InnerException != null ? " | INNER: " + e.InnerException.Message : ""));
-            }
+                ID_Kreatora = User.IdKorisnika(),
+                Datum_Objave = DateTime.Today,
+                DogadjajImage = null,
+            };
+            zahtev.PrimeniNa(dog);
+            Context.Dogadjaji.Add(dog);
+            await Context.SaveChangesAsync();
+
+            // isti oblik kao u listama (sa imenom i slikom kreatora), da kartica odmah ima sve
+            await Context.Entry(dog).Reference(d => d.KreatorId).LoadAsync();
+            return Ok(dog);
         }
 
         [HttpDelete]
@@ -115,38 +105,27 @@ namespace EventBoxApi.Controllers
         }    
 
         
+        // Izmena dogadjaja (samo kreator), isto telo i ista pravila kao pri pravljenju. Datum vec
+        // odrzanog dogadjaja moze ostati isti, iako je u proslosti.
         [HttpPut]
         [EnableCors("CORS")]
-        [Route("IzmeniDogadjaj/{dogadjajID}/{datum_objave}/{naslov}/{datum_dogadjaja}/{vreme_pocetka}/{opis}/{kategorija}/{x}/{y}")]
-        public async Task<ActionResult> IzmeniDogadjaj(int dogadjajID, DateTime datum_objave, string naslov
-                                                      ,DateTime datum_dogadjaja, string vreme_pocetka, string opis
-                                                      ,string kategorija, double x, double y)
+        [Route("IzmeniDogadjaj/{dogadjajID}")]
+        public async Task<ActionResult> IzmeniDogadjaj(int dogadjajID, [FromBody] DogadjajZahtev zahtev)
         {
-            try
-            {
+            Dogadjaj dog = await Context.Dogadjaji.Include(d => d.KreatorId).FirstOrDefaultAsync(d => d.Id == dogadjajID);
+            if(dog == null)
+                return NotFound();
+            if(dog.ID_Kreatora != User.IdKorisnika())
+                return Forbid();
+            if (zahtev == null)
+                return BadRequest("Nedostaju podaci o dogadjaju");
+            var greske = zahtev.Proveri(dozvoliProsliDatum: dog.Datum_Dogadjaja);
+            if (greske.Count > 0)
+                return BadRequest(new { message = "Proverite unete podatke.", greske });
 
-                Dogadjaj dog = await Context.Dogadjaji.FindAsync(dogadjajID);
-                if(dog == null)
-                    return NotFound();
-                if(dog.ID_Kreatora != User.IdKorisnika())
-                    return Forbid();
-                dog.Datum_Objave = datum_objave;
-                dog.Naslov = naslov;
-                dog.Datum_Dogadjaja = datum_dogadjaja;
-                dog.Vreme_pocetka = vreme_pocetka;
-                dog.Opis = opis; 
-                dog.Kategorija = kategorija;
-                dog.X = x;
-                dog.Y = y;
-                Context.Dogadjaji.Update(dog);
-                await Context.SaveChangesAsync();
-                return Ok("Uspesno ste dodali novi azurirali dogadjaj " + naslov);
-            }
-            catch(Exception e)
-            {
-                return BadRequest("Nije uspesno azuriran dogadjaj! " + e.Message
-                    + (e.InnerException != null ? " | INNER: " + e.InnerException.Message : ""));
-            }
+            zahtev.PrimeniNa(dog);
+            await Context.SaveChangesAsync();
+            return Ok(dog);
         }
 
         [HttpPost]

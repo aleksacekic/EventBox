@@ -1,8 +1,8 @@
 import { api, API_BASE } from '../api';
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { HubConnectionBuilder } from "@microsoft/signalr";
 import { useAuth } from "../auth";
+import { useNotifications } from "../notifications";
 import Header from "../components/Header";
 import KrajListe from "../components/KrajListe";
 import { useBeskonacnaLista } from "../useBeskonacnaLista";
@@ -40,7 +40,6 @@ function Avatar({ user, className = "" }) {
 const Chat = () => {
   const [selectedUser, setSelectedUser] = useState(null); //trenutno izabrani korisnik za chat
   const [newMessage, setNewMessage] = useState(""); //nasa poruka u input polju
-  const [connection, setConnection] = useState(null); //singlaR konekcija
   const [users, setUsers] = useState([]); //lista korisnika koji su dostupni za chat
   const [messageSenders, setMessageSenders] = useState([]); //korisnici koji su poslali novu poruku
   const [korisnik, setKorisnik] = useState(null); //trenutno ulogovani korisnik
@@ -69,7 +68,7 @@ const Chat = () => {
   // iz istorije koju cita).
   const skrolRef = useRef({ prvi: null, zadnji: null, visina: 0 });
   const priDnuRef = useRef(true);
-  const kljucPoruke = (m) => (m ? (m.id ?? m.lokalniId) : null);
+  const kljucPoruke = (m) => (m ? (m.lokalniId ?? m.id) : null);
 
   useLayoutEffect(() => {
     const el = chatMessagesRef.current;
@@ -147,63 +146,49 @@ const Chat = () => {
     fetchUsers(korisnik_Id);
   }, []);
 
+  // Nove poruke stizu kroz zajednicku SignalR konekciju (src/notifications.jsx), tek posto ih
+  // server sacuva. Poruka za otvoren razgovor se odmah prikaze i oznaci kao procitana;
+  // za ostale razgovore kontakt dobija oznaku "Nova".
+  const { pretplatiNaPoruke, postaviNeprocitane } = useNotifications();
+
+  const oznaciProcitano = async (posiljaocId) => {
+    try {
+      const odgovor = await api.put(`/Poruka/OznaciKaoProcitano/${posiljaocId}/${korisnik_Id}`);
+      if (odgovor && typeof odgovor.neprocitano === "number") postaviNeprocitane(odgovor.neprocitano);
+    } catch (error) {
+      console.error("Oznacavanje poruka kao procitanih nije uspelo:", error);
+    }
+  };
+
   useEffect(() => {
-    // Lokalna promenljiva (ne state) - cleanup mora da zaustavi bas ovu konekciju.
-    // `ugasena`: StrictMode (dev) montira efekat dvaput, prva konekcija se gasi
-    // usred pregovaranja - to nije greska.
-    let conn = null;
-    let ugasena = false;
-
-    const connect = async () => {
-      conn = new HubConnectionBuilder()
-        .withUrl(`${API_BASE}/chatHub?userId=${encodeURIComponent(korisnik_Id)}`)
-        .build();
-
-      conn.on("ReceiveMessage", (senderId, message) => {
-        // Poruka za razgovor koji nije otvoren se ne cuva ovde: cim se otvori, ucitava se sa servera
-        if (String(senderId) === String(izabraniIdRef.current)) {
-          lista.setStavke((prev) => [
-            ...prev,
-            {
-              lokalniId: `l${Date.now()}${Math.random()}`,
-              sadrzaj: message,
-              sender: "their",
-              vreme: new Date().toISOString(),
-            },
-          ]);
-        }
-
-        setMessageSenders((prev) =>
-          prev.includes(senderId) ? prev : [senderId, ...prev]
-        );
-      });
-
-      try {
-        await conn.start();
-        if (!ugasena) setConnection(conn);
-      } catch (err) {
-        if (!ugasena) console.error("SignalR (chat) konekcija nije uspela:", err);
+    return pretplatiNaPoruke((poruka) => {
+      const od = poruka.posiljaocId;
+      if (String(od) === String(izabraniIdRef.current)) {
+        lista.setStavke((prev) => (prev.some((m) => m.id === poruka.id) ? prev : [...prev, poruka]));
+        oznaciProcitano(od);
+      } else {
+        setMessageSenders((prev) => (prev.includes(od) ? prev : [od, ...prev]));
+        // posiljalac koji nije u listi razgovora (prva poruka od njega) - dodaj ga
+        setUsers((prev) => {
+          if (prev.some((u) => u.id === od)) return prev;
+          fetchKorisnik(od).then((u) => u && setUsers((p) => (p.some((x) => x.id === u.id) ? p : [u, ...p])));
+          return prev;
+        });
       }
-    };
-    connect();
-
-    return () => {
-      ugasena = true;
-      if (conn) conn.stop();
-    };
-  }, []);
+    });
+  }, [pretplatiNaPoruke]);
 
   const handleUserClick = (user) => {
     // Klik na vec otvoren razgovor ne sme da ga resetuje (effect za ucitavanje poruka
     // se ne bi ponovo pokrenuo i ostala bi prazna lista)
     if (selectedUser?.id === user.id) {
       setMessageSenders((prev) => prev.filter((id) => id !== user.id));
-      api.put(`/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`);
+      oznaciProcitano(user.id);
       return;
     }
     setSelectedUser(user);
     setMessageSenders((prev) => prev.filter((id) => id !== user.id));
-    api.put(`/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`);
+    oznaciProcitano(user.id);
   };
 
   // /chat?korisnik=<id> (npr. dugme "Posalji poruku" na profilu) otvara razgovor sa tim korisnikom
@@ -219,30 +204,34 @@ const Chat = () => {
   }, [ciljniId, sviKorisnici]);
 
   const handleProcitaj = (user) => {
-    api.put(`/Poruka/OznaciKaoProcitano/${user.id}/${korisnik_Id}`);
+    oznaciProcitano(user.id);
   };
 
   const handleSendMessage = async (e) => {
     e?.preventDefault();
-    if (newMessage.trim() === "" || !selectedUser || !connection) return;
+    if (newMessage.trim() === "" || !selectedUser) return;
 
     const tekst = newMessage;
+    const lokalniId = `l${Date.now()}${Math.random()}`;
+    const primalac = selectedUser.id;
     setNewMessage("");
     lista.setStavke((prev) => [
       ...prev,
-      {
-        lokalniId: `l${Date.now()}${Math.random()}`,
-        sadrzaj: tekst,
-        sender: "me",
-        vreme: new Date().toISOString(),
-      },
+      { lokalniId, sadrzaj: tekst, sender: "me", vreme: new Date().toISOString() },
     ]);
 
-    await connection.invoke("SendMessage", korisnik.id, selectedUser.id, tekst);
-    await api.post(
-      `/Poruka/PosaljiPoruku/${selectedUser.id}/${korisnik_Id}`,
-      { poruka: tekst }
-    );
+    try {
+      // Server sacuva poruku i tek onda je posalje primaocu uzivo
+      const sacuvana = await api.post(`/Poruka/PosaljiPoruku/${primalac}/${korisnik_Id}`, { poruka: tekst });
+      if (String(izabraniIdRef.current) === String(primalac)) {
+        lista.setStavke((prev) => prev.map((m) => (m.lokalniId === lokalniId ? { ...sacuvana, lokalniId } : m)));
+      }
+      // novi razgovor se pojavi u listi kontakata
+      setUsers((prev) => (prev.some((u) => u.id === selectedUser.id) ? prev : [selectedUser, ...prev]));
+    } catch (error) {
+      console.error("Slanje poruke nije uspelo:", error);
+      lista.setStavke((prev) => prev.map((m) => (m.lokalniId === lokalniId ? { ...m, neuspela: true } : m)));
+    }
   };
 
   // Izabrani korisnik se uvek vidi u listi, i kad sa njim jos nije bilo poruka
@@ -432,7 +421,9 @@ const Chat = () => {
                       }`}
                     >
                       {msg.sadrzaj}
-                      <span className="poruke-time">{formatVreme(msg.vreme)}</span>
+                      <span className="poruke-time">
+                        {msg.neuspela ? "Nije poslato" : formatVreme(msg.vreme)}
+                      </span>
                     </div>
                   ))}
                 </div>

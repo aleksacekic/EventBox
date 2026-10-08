@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Models;
 using EventBoxApi.Repo;
@@ -21,18 +22,23 @@ namespace EventBoxApi.Controllers
         public EventBoxContext Context { get; set; }
         public IFileService _fileService;
         public IKorisnikRepo _korisnikRepo;
+        private readonly Obavestenja _obavestenja;
+        private readonly ZastitaPrijave _zastita;
 
 
-        public KorisnikController(EventBoxContext context, IFileService fs, IKorisnikRepo kr)
+        public KorisnikController(EventBoxContext context, IFileService fs, IKorisnikRepo kr, Obavestenja obavestenja, ZastitaPrijave zastita)
         {
             Context = context;
             this._fileService = fs;
             this._korisnikRepo = kr;
+            _obavestenja = obavestenja;
+            _zastita = zastita;
         }
 
 
         [EnableCors("CORS")]
         [AllowAnonymous]
+        [EnableRateLimiting(ZastitaPrijave.PolitikaRegistracija)]
         [Route("DodajKorisnika")]
         [HttpPost]
         public async Task<ActionResult> DodajKorisnika([FromBody] RegistracijaZahtev zahtev)
@@ -113,10 +119,11 @@ namespace EventBoxApi.Controllers
                 foreach (var razlog in await Context.Razlozi.Where(r => r.PrijavioId == id).ToListAsync())
                     razlog.PrijavioId = null;
                 Context.Poruke.RemoveRange(Context.Poruke.Where(m => m.PosiljaocId == id || m.PrimaocId == id));
-                Context.Notifikacije.RemoveRange(Context.Notifikacije.Where(n => n.KorisnikKojiReagujeId == id));
+                var uklonjene = await _obavestenja.UkloniAsync(Context.Notifikacije.Where(n => n.KorisnikKojiReagujeId == id));
                 Context.Korisnici.Remove(korisnik);
                 await Context.SaveChangesAsync();
                 await BrojaciReakcija.OsveziAsync(Context, reagovaoNa);
+                await _obavestenja.JaviUklonjeneAsync(uklonjene); // vlasnicima tih objava nestaju uzivo
                 return Ok("Uspesno je obrisan korisnik sa id-em " + id);
             }
             catch(Exception e)
@@ -308,6 +315,7 @@ namespace EventBoxApi.Controllers
         [HttpPost]
         [EnableCors("CORS")]
         [AllowAnonymous]
+        [EnableRateLimiting(ZastitaPrijave.PolitikaPrijava)]
         [Route("LogovanjeKorisnik")]
         public async Task<ActionResult> LogovanjeKorisnik([FromBody] PrijavaZahtev zahtev)
         {
@@ -317,11 +325,21 @@ namespace EventBoxApi.Controllers
                     return Ok(new {nema = "NEMA_KORISNIKA"});
 
                 string ime = KorisnickoIme.Normalizuj(zahtev.KorisnickoIme);
+
+                // Zakljucano ime (previse pogresnih lozinki) se odbija pre provere lozinke
+                if (_zastita.Zakljucan("k", ime) is TimeSpan preostalo)
+                    return Zakljucano(preostalo);
+
                 Korisnik k = await Context.Korisnici.Where(p => p.Korisnicko_Ime == ime).FirstOrDefaultAsync();
 
-                // Isti odgovor za nepostojeceg korisnika i pogresnu lozinku
+                // Isti odgovor za nepostojeceg korisnika i pogresnu lozinku; broji se i nepostojece
+                // ime, da se iz zakljucavanja ne bi videlo koja imena postoje
                 if (k == null || !Lozinke.Proveri(k.Lozinka_Hashirana, zahtev.Lozinka, out bool ponovoHesirati))
+                {
+                    _zastita.Neuspeh("k", ime);
                     return Ok(new {nema = "NEMA_KORISNIKA"});
+                }
+                _zastita.Uspeh("k", ime);
                 if (k.Blokiran == -1)
                     return Ok(new {blokiran = "BLOKIRAN"});
 
@@ -365,54 +383,28 @@ namespace EventBoxApi.Controllers
             }
         }
 
+        // Notifikacije ulogovanog korisnika, najnovije prve (vidi NotifikacijaDto)
         [HttpGet]
         [EnableCors("CORS")]
         [Route("VratiNotifikacijeKorisnika/{korisnik_Id}")]
-        public async Task<ActionResult> VratiNotifikacijeKorisnika(int korisnik_Id)
+        public async Task<ActionResult> VratiNotifikacijeKorisnika(int korisnik_Id, [FromQuery] int limit = 50)
         {
             if (korisnik_Id != User.IdKorisnika())
                 return Forbid(); // svoje notifikacije
-            Korisnik k = await Context.Korisnici.Where(p => p.Id == korisnik_Id).Include(p => p.Lista_Notifikacija).FirstOrDefaultAsync();
-            
-            return Ok(k.Lista_Notifikacija);
+            var notifikacije = await Context.Notifikacije
+                .Where(n => n.KorisnikCijaJeObjavaId == korisnik_Id)
+                .OrderByDescending(n => n.Vreme).ThenByDescending(n => n.Id)
+                .Take(Math.Clamp(limit, 1, 100))
+                .Select(NotifikacijaDto.Projekcija)
+                .ToListAsync();
+            return Ok(notifikacije);
         }
 
         [HttpGet]
         [EnableCors("CORS")]
         [Route("VratiPetNotifikacijaKorisnika/{korisnik_Id}")]
-        public async Task<ActionResult> VratiPetNotifikacijaKorisnika(int korisnik_Id)
-        {
-            if (korisnik_Id != User.IdKorisnika())
-                return Forbid(); // svoje notifikacije
-
-            Korisnik k = await Context.Korisnici
-                .Where(p => p.Id == korisnik_Id)
-                .Include(p => p.Lista_Notifikacija)
-                .FirstOrDefaultAsync();
-
-            if (k == null)
-            {
-                return NotFound("Korisnik nije pronađen");
-            }
-
-            // Preskacemo notifikacije ciji je dogadjaj obrisan (stari podaci)
-            var idjeviDogadjaja = k.Lista_Notifikacija.Select(n => n.DogadjajId).Distinct().ToList();
-            var postojeciDogadjaji = await Context.Dogadjaji
-                .Where(d => idjeviDogadjaja.Contains(d.Id))
-                .Select(d => d.Id)
-                .ToListAsync();
-
-            //sortirano po vremenu
-            var poslednjihPetNotifikacija = k.Lista_Notifikacija
-                .Where(n => postojeciDogadjaji.Contains(n.DogadjajId))
-                .OrderByDescending(n => n.Vreme)
-                .Take(5)
-                .ToList();
-
-            return Ok(poslednjihPetNotifikacija);
-        }
-
-
+        public Task<ActionResult> VratiPetNotifikacijaKorisnika(int korisnik_Id)
+            => VratiNotifikacijeKorisnika(korisnik_Id, 5);
 
         [HttpPut]
         [EnableCors("CORS")]
@@ -475,6 +467,29 @@ namespace EventBoxApi.Controllers
             {
                 return BadRequest("Nisu uspesno vracni korisnici "+ex.Message);
             }
+        }
+
+        // Odjava: token prestaje da vazi odmah, a ne tek kad istekne sesija (do 30 min).
+        // Token se zameni novim nasumicnim koji niko nema (kolona je obavezna i jedinstvena),
+        // pa stari vise ne pronalazi nijednog korisnika -> svaki sledeci zahtev sa njim je 401.
+        [HttpPost]
+        [EnableCors("CORS")]
+        [Route("Odjava")]
+        public async Task<ActionResult> Odjava()
+        {
+            var k = await Context.Korisnici.FindAsync(User.IdKorisnika());
+            if (k == null)
+                return Forbid(); // administrator se odjavljuje preko /Administrator/Odjava
+            k.Token = NoviToken();
+            k.Validnost = DateTime.Now;
+            await Context.SaveChangesAsync();
+            return Ok("Odjavljeni ste");
+        }
+
+        private ObjectResult Zakljucano(TimeSpan preostalo)
+        {
+            Response.Headers.RetryAfter = ((int)Math.Ceiling(preostalo.TotalSeconds)).ToString();
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = ZastitaPrijave.Poruka(preostalo) });
         }
 
         // Nasumican token od 256 bita (64 hex znaka)

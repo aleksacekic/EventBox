@@ -8,8 +8,6 @@ import srLatn from "date-fns/locale/sr-Latn";
 import { format } from 'date-fns';
 import TimePicker from './TimePicker'
 import Map from './Mapa'
-import 'react-toastify/dist/ReactToastify.css';
-import { ToastContainer } from 'react-toastify';
 import { useAuth } from '../auth';
 // import moment from 'moment';
 
@@ -23,42 +21,48 @@ function NapraviDogadjaj({ otvorena = false, onZatvori = () => {}, onKreiran = (
   const google = window.google;
 
 const [naslov, setNaslov] = useState('');
-const [kategorija, setKategorija] = useState('');
+const [kategorija, setKategorija] = useState('Ostalo');
 const [slika, setSlika] = useState(null);
 const [datumDogadjaja, setDatumDogadjaja] = useState('');
 const [vremePocetka, setVremePocetka] = useState('');
 const [opis, setOpis] = useState('');
 const [x, setX] = useState('');
 const [y, setY] = useState('');
+const [greske, setGreske] = useState({}); // polje -> poruka (iste provere kao na serveru)
+const [salje, setSalje] = useState(false);
 
 
+
+// Iste provere kao DogadjajZahtev.Proveri na serveru - ovde samo da korisnik odmah vidi gresku
+const proveri = () => {
+  const g = {};
+  const n = naslov.trim();
+  if (n.length < 3 || n.length > 100) g.naslov = 'Naziv mora imati od 3 do 100 karaktera.';
+  if (!(datumDogadjaja instanceof Date)) g.datum = 'Izaberite datum.';
+  if (!vremePocetka) g.vreme = 'Izaberite vreme pocetka.';
+  if (x === '' || y === '') g.lokacija = 'Oznacite lokaciju na mapi.';
+  return g;
+};
 
 const kreirajDogadjaj = async (e) => {
   e.preventDefault();
+  const g = proveri();
+  setGreske(g);
+  if (Object.keys(g).length > 0 || salje) return;
 
-  // [test] Tvrda validacija "sva polja obavezna" je sklonjena da bi se lakse probalo.
-  // Prazna polja dobijaju bezbedan default (npr. mapa ne radi bez Google kljuca -> Beograd).
-  const kreator = userId;
-  // format(..., 'yyyy-MM-dd') umesto .toISOString().split('T')[0] - potonje racuna
-  // sa UTC pa je oko ponoci pomeralo datum za jedan dan unazad (lokalno vreme je
-  // ispred UTC-a).
-  const datumObjave = format(new Date(), 'yyyy-MM-dd'); // danasnji datum u formatu YYYY-MM-DD
-  const formattedDatumDogadjaja =
-    (datumDogadjaja && typeof datumDogadjaja.getFullYear === 'function')
-      ? format(datumDogadjaja, 'yyyy-MM-dd')
-      : datumObjave;
-
-  const naslovZaSlanje = naslov || 'Test dogadjaj';
-  const kategorijaZaSlanje = kategorija || 'Ostalo';
-  const vremeZaSlanje = vremePocetka || '12:00';
-  const opisZaSlanje = opis || 'Test opis';
-  const xZaSlanje = x || 44.7866; // default lat (Beograd)
-  const yZaSlanje = y || 20.4489; // default lng (Beograd)
-
+  setSalje(true);
   try {
-    const dogadjaj = await api.post(
-      `/Dogadjaj/DodajDogadjaj/${kreator}/${datumObjave}/${naslovZaSlanje}/${formattedDatumDogadjaja}/${vremeZaSlanje}/${opisZaSlanje}/${kategorijaZaSlanje}/${xZaSlanje}/${yZaSlanje}`
-    );
+    // Sve ide u telu zahteva; kreatora i datum objave postavlja server
+    const dogadjaj = await api.post('/Dogadjaj/DodajDogadjaj', {
+      naslov: naslov.trim(),
+      opis: opis.trim(),
+      kategorija,
+      // format(..., 'yyyy-MM-dd') a ne toISOString() - potonji racuna u UTC i oko ponoci pomera dan
+      datumDogadjaja: format(datumDogadjaja, 'yyyy-MM-dd'),
+      vremePocetka,
+      x,
+      y,
+    });
 
     if (slika) {
       const formData = new FormData();
@@ -73,15 +77,22 @@ const kreirajDogadjaj = async (e) => {
     onZatvori();
     onKreiran(dogadjaj);
   } catch (error) {
-    const poruka = error instanceof ApiError ? error.message : String(error);
-    console.error('Kreiranje dogadjaja nije uspelo:', poruka);
-    alert('Kreiranje dogadjaja nije uspelo: ' + poruka);
+    if (error instanceof ApiError && error.data?.greske) {
+      setGreske(error.data.greske); // server je odbio neko polje - prikazi ispod tog polja
+    } else {
+      const poruka = error instanceof ApiError ? error.message : String(error);
+      console.error('Kreiranje dogadjaja nije uspelo:', poruka);
+      setGreske({ opste: 'Kreiranje dogadjaja nije uspelo. Pokusajte ponovo.' });
+    }
+  } finally {
+    setSalje(false);
   }
 };
 
 const resetujFormu = () => {
+  setGreske({});
   setNaslov('');
-  setKategorija('');
+  setKategorija('Ostalo');
   setSlika(null);
   setDatumDogadjaja('');
   setVremePocetka('');
@@ -151,10 +162,12 @@ const handleOverlayClick = useCallback((e) => {
                 type="text"
                 name="title"
                 placeholder="Naziv dogadjaja"
-                className="create-event-input"
+                className={`create-event-input ${greske.naslov ? 'create-event-input-invalid' : ''}`}
+                maxLength={100}
                 value={naslov}
                 onChange={(e) => setNaslov(e.target.value)}
               />
+              {greske.naslov && <span className="create-event-error">{greske.naslov}</span>}
             </div>
 
             <div className="create-event-row">
@@ -173,6 +186,7 @@ const handleOverlayClick = useCallback((e) => {
                   <option>Sportski dogadjaj</option>
                   <option>Koncert</option>
                 </select>
+                {greske.kategorija && <span className="create-event-error">{greske.kategorija}</span>}
               </div>
 
               <div className="create-event-field">
@@ -209,6 +223,7 @@ const handleOverlayClick = useCallback((e) => {
                   className="create-event-input"
                   wrapperClassName="create-event-date-wrapper"
                 />
+                {greske.datum && <span className="create-event-error">{greske.datum}</span>}
               </div>
 
               <div className="create-event-field">
@@ -217,6 +232,7 @@ const handleOverlayClick = useCallback((e) => {
                   value={vremePocetka}
                   onChange={(value) => setVremePocetka(value)}
                 />
+                {greske.vreme && <span className="create-event-error">{greske.vreme}</span>}
               </div>
             </div>
 
@@ -229,6 +245,7 @@ const handleOverlayClick = useCallback((e) => {
                   onMapMarker={handleMapMarker}
                 />
               </div>
+              {greske.lokacija && <span className="create-event-error">{greske.lokacija}</span>}
             </div>
 
             <div className="create-event-field">
@@ -242,16 +259,19 @@ const handleOverlayClick = useCallback((e) => {
                 value={opis}
                 onChange={(e) => setOpis(e.target.value)}
               />
+              {greske.opis && <span className="create-event-error">{greske.opis}</span>}
             </div>
 
+            {greske.opste && <span className="create-event-error">{greske.opste}</span>}
             <div className="create-event-actions">
-              <button type="submit" className="create-event-submit">Napravi</button>
+              <button type="submit" className="create-event-submit" disabled={salje}>
+                {salje ? 'Pravim...' : 'Napravi'}
+              </button>
               <button type="button" className="create-event-cancel" onClick={onZatvori}>Otkazi</button>
             </div>
           </form>
         </div>{/*create-event-card end*/}
       </div>{/*create-event-modal end*/}
-      <ToastContainer />
     </div>
   )
 }

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Models;
 
@@ -20,12 +19,12 @@ namespace EventBoxApi.Controllers
     public class Pr_dogController : ControllerBase
     {
         public EventBoxContext Context { get; set; }
-        private readonly IHubContext<NotificationHub> _hubContext;
+        private readonly Obavestenja _obavestenja;
 
-        public Pr_dogController(EventBoxContext context, IHubContext<NotificationHub> hubContext)
+        public Pr_dogController(EventBoxContext context, Obavestenja obavestenja)
         {
             Context = context;
-            _hubContext = hubContext;
+            _obavestenja = obavestenja;
         }
 
         // Prijava je JEDAN zahtev (razlog u telu): u istoj transakciji se pravi/pronalazi prijava
@@ -87,7 +86,8 @@ namespace EventBoxApi.Controllers
                     $"UPDATE Prijavljeni_dogadjaj SET Broj_prijava = (SELECT COUNT(*) FROM Razlog WHERE Prijavljeni_dogadjaj_IdId = {pr_dog.Id}) WHERE Id = {pr_dog.Id}");
                 await transakcija.CommitAsync();
 
-                await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveEventReport", "Dogadjaj je prijavljen", dogadjaj_Id);
+                // Vlasnik saznaje razlog, ali ne i ko je prijavio
+                await _obavestenja.NotifikujVlasnikaAsync(d, null, TipNotifikacije.Prijava, zahtev.Razlog);
                 return Ok("Dogadjaj je prijavljen");
             }
             catch(Exception ex)

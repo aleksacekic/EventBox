@@ -24,7 +24,7 @@ namespace Models
     public string SadrzajReakcije { get; set; }
 
     [Required]
-    public DateTime Vreme { get; set; } = DateTime.Now;
+    public DateTime Vreme { get; set; } = DateTime.UtcNow;
     
     // Vlasnik objave kojoj notifikacija pripada (FK na Korisnik) - jedna kolona
     [Required]
@@ -33,6 +33,22 @@ namespace Models
     [ForeignKey(nameof(KorisnikCijaJeObjavaId))]
     [JsonIgnore]
     public virtual Korisnik Korisnik { get; set; }
+
+    [JsonIgnore]
+    public virtual Dogadjaj Dogadjaj { get; set; }
+
+    // Na koji komentar/reakciju se notifikacija odnosi (FK, null za prijave i stare zapise).
+    // Kad autor obrise/izmeni komentar ili povuce/promeni reakciju, menja se i notifikacija.
+    public int? KomentarId { get; set; }
+    [JsonIgnore]
+    public virtual Komentar? Komentar { get; set; }
+
+    public int? ReakcijaId { get; set; }
+    [JsonIgnore]
+    public virtual Reakcija? Reakcija { get; set; }
+
+    [JsonIgnore]
+    public virtual Korisnik? KorisnikKojiReaguje { get; set; }
 
     }
 }

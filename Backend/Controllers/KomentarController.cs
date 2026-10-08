@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
-using Microsoft.AspNetCore.SignalR;
 
 namespace EventBoxApi.Controllers
 {
@@ -20,11 +19,11 @@ namespace EventBoxApi.Controllers
     public class KomentarController : ControllerBase
     {
         public EventBoxContext Context;
-        private readonly IHubContext<NotificationHub> _hubContext;
-        public KomentarController(EventBoxContext context, IHubContext<NotificationHub> hubContext)
+        private readonly Obavestenja _obavestenja;
+        public KomentarController(EventBoxContext context, Obavestenja obavestenja)
         {
             this.Context = context;
-            _hubContext = hubContext;
+            _obavestenja = obavestenja;
         }
 
         [HttpPost]
@@ -53,19 +52,7 @@ namespace EventBoxApi.Controllers
                 Context.Komentari.Add(k);
                 await Context.SaveChangesAsync();
 
-                //Console.WriteLine($"Pokušaj slanja notifikacije korisniku {d.ID_Kreatora} za događaj {dogadjaj_Id}");
-                //if(d.ID_Kreatora != korisnik_Id)
-                //{
-                    Console.WriteLine($"Slanje notifikacije korisniku {d.ID_Kreatora}");
-                    await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewComment", tekst, dogadjaj_Id, korisnik_Id);
-                     
-                //}
-               
-
-                //Console.WriteLine("Poziv ka hubu je izvršen.");
-
-
-       
+                await _obavestenja.NotifikujVlasnikaAsync(d, korisnik_Id, TipNotifikacije.Komentar, tekst, komentarId: k.Id);
 
                 return Ok("Uspesno je napravljen novi komentar");
             }
@@ -95,6 +82,7 @@ namespace EventBoxApi.Controllers
 
                 Context.Komentari.Update(k);
                 await Context.SaveChangesAsync();
+                await _obavestenja.IzmeniZaKomentarAsync(k);
                 return Ok("Uspesno je promenjen komentar sa ID-em "+id);
             }
             catch(Exception ex)
@@ -115,8 +103,11 @@ namespace EventBoxApi.Controllers
                     return NotFound();
                 if(k.AutorId != User.IdKorisnika())
                     return Forbid(); // brise samo autor
+                // Zajedno sa komentarom nestaje i notifikacija koju je napravio
+                var uklonjene = await _obavestenja.UkloniAsync(Context.Notifikacije.Where(n => n.KomentarId == id));
                 Context.Komentari.Remove(k);
                 await Context.SaveChangesAsync();
+                await _obavestenja.JaviUklonjeneAsync(uklonjene);
                 return Ok("Uspesno je izbrisan komentar sa ID-em: "+id);
             }
             catch(Exception ex)

@@ -19,9 +19,11 @@ namespace EventBoxApi.Controllers
     public class PorukaController : ControllerBase
     {
         public EventBoxContext Context;
-        public PorukaController(EventBoxContext context)
+        private readonly Obavestenja _obavestenja;
+        public PorukaController(EventBoxContext context, Obavestenja obavestenja)
         {
             this.Context = context;
+            _obavestenja = obavestenja;
         }
 
         [HttpPost]
@@ -54,7 +56,9 @@ namespace EventBoxApi.Controllers
                 };
                 Context.Poruke.Add(p);
                 await Context.SaveChangesAsync();
-                return Ok("Uspesno kreirana poruka");
+                // Tek posle upisa: primalac dobija poruku uzivo (ako je online)
+                await _obavestenja.JaviNovuPorukuAsync(p);
+                return Ok(PorukaDto.Od(p));
             }
             catch (Exception ex)
             {
@@ -106,7 +110,8 @@ namespace EventBoxApi.Controllers
                 }
                 await Context.SaveChangesAsync();
 
-                return Ok("Poruke oznacene kao procitane");
+                int preostalo = await Context.Poruke.CountAsync(m => m.PrimaocId == receiverId && !m.JelProcitano);
+                return Ok(new { neprocitano = preostalo });
             }
             catch (Exception ex)
             {

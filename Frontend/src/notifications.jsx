@@ -1,200 +1,125 @@
 // ============================================================================
-//  Notifikacije - jedna SignalR konekcija, ziva dok je korisnik ulogovan
+//  Uzivo veza sa serverom - jedna SignalR konekcija dok je korisnik ulogovan
 // ----------------------------------------------------------------------------
-//  Pre: konekcija (i to 3x duplirana - jedna po tipu dogadjaja: reakcija,
-//  komentar, prijava) je zivela SAMO unutar Main.jsx, koji se montira jedino
-//  na /pocetna. Efekat: vlasnik dogadjaja prima notifikaciju samo ako je u tom
-//  trenutku bio na feedu. Ako je gledao deep-link stranu dogadjaja (/objava/:id),
-//  profil, chat... Main.jsx nije montiran -> nema konekcije -> notifikacija se
-//  ni ne snimi u bazu (to backend ne radi sam; klijent koji primi SignalR push
-//  je taj koji zove /Notifikacija/PostaviNotifikaciju).
+//  Montirana jednom u App.jsx (iznad <Router>), pa radi na svakoj strani.
 //
-//  Sad: <NotificationsProvider> je montiran jednom u App.jsx (iznad <Router>),
-//  pa konekcija postoji na svakoj strani sve dok je korisnik ulogovan.
+//  Server (Backend/Models/Obavestenja.cs) PRVO upise notifikaciju/poruku u bazu,
+//  PA je posalje ovde. Klijent nista ne upisuje sam - ako korisnik nije online,
+//  sve ga ceka u bazi i ucita se pri sledecem ulasku.
+//
+//  Konekcija se prijavljuje istim tokenom kao API (accessTokenFactory), pa server
+//  zna ko je korisnik iz tokena, a ne iz ID-a koji bi klijent mogao da izmisli.
+//
+//  Daje:
+//    notifications            - poslednjih 5 notifikacija (NotifikacijaDto sa servera)
+//    ucitajNotifikacije()     - ponovo ucitaj sa servera (npr. posle brisanja dogadjaja)
+//    neprocitanePoruke        - broj za znacku u headeru
+//    postaviNeprocitane(n)    - npr. posle OznaciKaoProcitano (server vraca novi broj)
+//    pretplatiNaPoruke(fn)    - fn(poruka) za svaku novu poruku; vraca funkciju za odjavu
 // ============================================================================
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
-import { HubConnectionBuilder } from '@microsoft/signalr'
-import { api, API_BASE, ApiError } from './api'
+import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr'
+import { api, API_BASE } from './api'
 import { useAuth } from './auth'
 
 const NotificationsContext = createContext(null)
+const MAX_NOTIFIKACIJA = 5
 
 export function NotificationsProvider({ children }) {
-  const { userId } = useAuth()
+  const { userId, token } = useAuth()
   const [notifications, setNotifications] = useState([])
-  const connectionRef = useRef(null)
-
-  const fetchDogadjaj = useCallback(async (id) => {
-    try {
-      if (!id) return null
-      return await api.get(`/Dogadjaj/VratiDogadjaj/${id}`)
-    } catch (error) {
-      // 404 = dogadjaj je u medjuvremenu obrisan; stara notifikacija i dalje
-      // pokazuje na njega, to nije greska vredna logovanja
-      if (!(error instanceof ApiError && error.status === 404)) {
-        console.error('Greska pri dohvatanju dogadjaja:', error)
-      }
-      return null
-    }
-  }, [])
-
-  const fetchKorisnik = useCallback(async (id) => {
-    try {
-      if (!id) return null
-      return await api.get(`/Korisnik/VratiKorisnika_ID/${id}`)
-    } catch (error) {
-      console.error('Greska pri dohvatanju korisnika:', error)
-      return null
-    }
-  }, [])
-
-  const postaviNotifikaciju = useCallback(async (dogadjajId, korisnikReagujeId, tip, sadrzaj, vreme, vlasnikId) => {
-    try {
-      return await api.post(`/Notifikacija/PostaviNotifikaciju/${dogadjajId}/${korisnikReagujeId}/${vlasnikId}`, {
-        tipReakcije: tip,
-        sadrzajReakcije: sadrzaj,
-        vreme,
-      })
-    } catch (error) {
-      console.error('Greska pri cuvanju notifikacije:', error)
-      return null
-    }
-  }, [])
+  const [neprocitanePoruke, setNeprocitanePoruke] = useState(0)
+  const pretplatniciRef = useRef(new Set())
 
   const ucitajNotifikacije = useCallback(async () => {
     if (!userId) return
     try {
-      const data = await api.get(`/Korisnik/VratiPetNotifikacijaKorisnika/${userId}`)
-      // Vise notifikacija cesto gadja isti dogadjaj/korisnika - jedan zahtev po id-ju
-      const dogadjaji = new Map()
-      const korisnici = new Map()
-      const jednom = (mapa, id, fetchFn) => {
-        if (!mapa.has(id)) mapa.set(id, fetchFn(id))
-        return mapa.get(id)
-      }
-      const mapirane = await Promise.all(
-        data.map(async (not) => {
-          const dogadjaj = await jednom(dogadjaji, not.dogadjajId, fetchDogadjaj)
-          const korisnik = await jednom(korisnici, not.korisnikKojiReagujeId, fetchKorisnik)
-          return {
-            reactionType: not.tipReakcije || null,
-            commentText: not.sadrzajReakcije || null,
-            reason: not.tipReakcije || null,
-            eventId: not.dogadjajId,
-            eventName: dogadjaj?.naslov || 'Nepoznat dogadjaj',
-            organizer: korisnik?.korisnicko_Ime || 'Nepoznat korisnik',
-            time: new Date(not.vreme).toLocaleString('sr-RS'),
-          }
-        })
-      )
-      setNotifications(mapirane)
+      setNotifications(await api.get(`/Korisnik/VratiPetNotifikacijaKorisnika/${userId}`))
     } catch (error) {
       console.error('Greska pri ucitavanju notifikacija:', error)
     }
-  }, [userId, fetchDogadjaj, fetchKorisnik])
+  }, [userId])
+
+  const ucitajNeprocitane = useCallback(async () => {
+    if (!userId) return
+    try {
+      setNeprocitanePoruke(await api.get(`/Poruka/KolikoNeprocitanihPoruka/${userId}`))
+    } catch (error) {
+      console.error('Greska pri ucitavanju broja neprocitanih poruka:', error)
+    }
+  }, [userId])
+
+  const pretplatiNaPoruke = useCallback((fn) => {
+    pretplatniciRef.current.add(fn)
+    return () => pretplatniciRef.current.delete(fn)
+  }, [])
 
   useEffect(() => {
-    if (!userId) {
+    if (!userId || !token) {
       setNotifications([])
+      setNeprocitanePoruke(0)
       return
     }
 
     ucitajNotifikacije()
+    ucitajNeprocitane()
 
-    const connect = new HubConnectionBuilder()
-      .withUrl(`${API_BASE}/notificationHub?userId=${encodeURIComponent(userId)}`)
+    const conn = new HubConnectionBuilder()
+      .withUrl(`${API_BASE}/notificationHub`, { accessTokenFactory: () => token })
       .withAutomaticReconnect()
+      .configureLogging(LogLevel.Warning)
       .build()
 
-    const dodajULokalnuListu = (novaNotifikacija) => {
-      setNotifications((prev) => [novaNotifikacija, ...prev.slice(0, 4)]) // max 5
-    }
-
-    connect.on('ReceiveNewReaction', async (reactionType, eventId, reactingUserId) => {
-      const dogadjaj = await fetchDogadjaj(eventId)
-      const korisnikKojiReaguje = await fetchKorisnik(reactingUserId)
-      if (!dogadjaj || !korisnikKojiReaguje) return
-
-      await postaviNotifikaciju(
-        eventId,
-        korisnikKojiReaguje.id,
-        reactionType,
-        reactionType,
-        new Date().toLocaleString('sv-SE'),
-        dogadjaj.iD_Kreatora
-      )
-      dodajULokalnuListu({
-        reactionType,
-        eventId,
-        eventName: dogadjaj.naslov,
-        organizer: korisnikKojiReaguje.korisnicko_Ime,
-        time: new Date().toLocaleString('sr-RS'),
-      })
+    conn.on('NovaNotifikacija', (n) => {
+      setNotifications((prev) => [n, ...prev.filter((x) => x.id !== n.id)].slice(0, MAX_NOTIFIKACIJA))
     })
 
-    connect.on('ReceiveNewComment', async (commentText, eventId, reactingUserId) => {
-      const dogadjaj = await fetchDogadjaj(eventId)
-      const korisnikKojiReaguje = await fetchKorisnik(reactingUserId)
-      if (!dogadjaj || !korisnikKojiReaguje) return
-
-      await postaviNotifikaciju(
-        eventId,
-        korisnikKojiReaguje.id,
-        commentText,
-        commentText,
-        new Date().toLocaleString('sv-SE'),
-        dogadjaj.iD_Kreatora
-      )
-      dodajULokalnuListu({
-        commentText,
-        eventId,
-        eventName: dogadjaj.naslov,
-        organizer: korisnikKojiReaguje.korisnicko_Ime,
-        time: new Date().toLocaleString('sr-RS'),
-      })
+    // Autor je izmenio komentar - notifikacija ostaje na istom mestu sa novim tekstom
+    conn.on('NotifikacijaIzmenjena', (n) => {
+      setNotifications((prev) => prev.map((x) => (x.id === n.id ? n : x)))
     })
 
-    connect.on('ReceiveEventReport', async (reason, eventId) => {
-      const dogadjaj = await fetchDogadjaj(eventId)
-      if (!dogadjaj) return
+    // Autor je obrisao komentar ili povukao reakciju - notifikacija nestaje, a lista se
+    // ponovo ucita da bi se popunila do 5
+    conn.on('NotifikacijaObrisana', (id) => {
+      setNotifications((prev) => prev.filter((x) => x.id !== id))
+      ucitajNotifikacije()
+    })
 
-      await postaviNotifikaciju(
-        eventId,
-        0, // korisnik koji prijavljuje se ne pamti
-        reason,
-        reason,
-        new Date().toLocaleString('sv-SE'),
-        dogadjaj.iD_Kreatora
-      )
-      dodajULokalnuListu({
-        reason,
-        eventId,
-        eventName: dogadjaj.naslov,
-        organizer: 'Neko',
-        time: new Date().toLocaleString('sr-RS'),
-      })
+    conn.on('NovaPoruka', (poruka) => {
+      setNeprocitanePoruke((b) => b + 1)
+      pretplatniciRef.current.forEach((fn) => fn(poruka))
+    })
+
+    // Posle prekida veze moglo je nesto da stigne dok nismo bili povezani
+    conn.onreconnected(() => {
+      ucitajNotifikacije()
+      ucitajNeprocitane()
     })
 
     let ugasena = false
-    connect.start().catch((err) => {
+    conn.start().catch((err) => {
       // StrictMode (dev) montira efekat dvaput: prvi connect se gasi usred
       // pregovaranja i baca AbortError - to je ocekivano, ne greska
-      if (!ugasena) console.error('SignalR konekcija (notifikacije) nije uspela:', err)
+      if (!ugasena) console.error('SignalR konekcija nije uspela:', err)
     })
-    connectionRef.current = connect
 
     return () => {
       ugasena = true
-      connect.off('ReceiveNewReaction')
-      connect.off('ReceiveNewComment')
-      connect.off('ReceiveEventReport')
-      connect.stop()
-      connectionRef.current = null
+      conn.stop()
     }
-  }, [userId, fetchDogadjaj, fetchKorisnik, postaviNotifikaciju, ucitajNotifikacije])
+  }, [userId, token, ucitajNotifikacije, ucitajNeprocitane])
 
   return (
-    <NotificationsContext.Provider value={{ notifications, ucitajNotifikacije }}>
+    <NotificationsContext.Provider
+      value={{
+        notifications,
+        ucitajNotifikacije,
+        neprocitanePoruke,
+        postaviNeprocitane: setNeprocitanePoruke,
+        pretplatiNaPoruke,
+      }}
+    >
       {children}
     </NotificationsContext.Provider>
   )
@@ -206,4 +131,27 @@ export function useNotifications() {
     throw new Error('useNotifications mora biti unutar <NotificationsProvider>')
   }
   return ctx
+}
+
+// Server cuva vreme u UTC; ako stigne bez oznake zone (stari zapisi), tretira se kao UTC
+export function uLokalnoVreme(vreme) {
+  if (!vreme) return null
+  const s = String(vreme)
+  return new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z')
+}
+
+const REAKCIJE = {
+  Zainteresovan: 'je zainteresovan za',
+  Mozda: 'mozda dolazi na',
+  Nezainteresovan: 'nije zainteresovan za',
+}
+
+// Tekst notifikacije za prikaz
+export function tekstNotifikacije(n) {
+  const ko = n.korisnikKojiReaguje || 'Neko'
+  const gde = `"${n.naslovDogadjaja}"`
+  if (n.tip === 'Reakcija') return `${ko} ${REAKCIJE[n.sadrzaj] || 'je reagovao na'} vas dogadjaj ${gde}.`
+  if (n.tip === 'Komentar') return `${ko} je komentarisao vas dogadjaj ${gde}: "${n.sadrzaj}"`
+  if (n.tip === 'Prijava') return `Vas dogadjaj ${gde} je prijavljen${n.sadrzaj ? ` (razlog: ${n.sadrzaj.replace(/_/g, ' ')})` : ''}.`
+  return `Nova aktivnost na vasem dogadjaju ${gde}.`
 }

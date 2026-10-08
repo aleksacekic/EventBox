@@ -32,9 +32,7 @@ function HeaderAdmin() {
               {isActive && (
                 <div className="user-account-settingss active">
                   <h3 className="tc">
-                    <Link to="/">
-                      <a className="odjavise">Odjavi se</a>
-                    </Link>
+                    <Link to="/" className="odjavise">Odjavi se</Link>
                   </h3>
                 </div>
               )}

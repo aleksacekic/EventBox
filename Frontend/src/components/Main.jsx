@@ -9,7 +9,7 @@ import srLatn from "date-fns/locale/sr-Latn";
 import { Link } from 'react-router-dom';
 import moment from 'moment';
 import { useAuth } from '../auth';
-import { useNotifications } from '../notifications';
+import { useNotifications, tekstNotifikacije, uLokalnoVreme } from '../notifications';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -344,20 +344,13 @@ const handleClickObjava = (id) => {
                       <div className="jobs-list">
                      
                       {notifications.length > 0 ? (
-                        notifications.map((notif, index) => (
-                          <div className="job-info" key={index} onClick={() => handleClickObjava(notif.eventId)}>
+                        notifications.map((notif) => (
+                          <div className="job-info" key={notif.id} onClick={() => handleClickObjava(notif.dogadjajId)}>
                             <div className="job-details">
-                              <p>{notif.organizer} je {notif.reactionType ? " reagovao" 
-                              : notif.reason ? " prijavio" 
-                              : notif.commentText ? " komentarisao" 
-                              : ""}  '{notif.reactionType || notif.commentText || ""}' 
-                              {notif.reactionType ? " na" 
-                                : notif.reason ? " " 
-                                : notif.commentText ? " na" 
-                                : ""} Vaš događaj {notif.eventName}.</p>
+                              <p>{tekstNotifikacije(notif)}</p>
                             </div>
                             <div className="hr-rate">
-                              <span>{notif.time}</span> 
+                              <span>{uLokalnoVreme(notif.vreme)?.toLocaleString('sr-RS')}</span>
                             </div>
                           </div>
                         ))

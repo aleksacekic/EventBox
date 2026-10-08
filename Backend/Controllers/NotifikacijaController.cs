@@ -8,13 +8,6 @@ using Models;
 
 namespace EventBoxApi.Controllers
 {
-    public class NotifikacijaZahtev
-    {
-        public string TipReakcije { get; set; }
-        public string SadrzajReakcije { get; set; }
-        public string Vreme { get; set; }
-    }
-
     [Authorize]
     [ApiController]
     [Route("[controller]")]
@@ -26,56 +19,8 @@ namespace EventBoxApi.Controllers
             this.Context = context;
         }
 
-        //[HttpPost]
-        [EnableCors("CORS")]
-        [HttpPost("PostaviNotifikaciju/{dogadjaj_Id}/{korisnik_reaguje_Id}/{korisnik_Id}")]
-        public async Task<ActionResult> PostaviNotifikaciju(int dogadjaj_Id, int korisnik_reaguje_Id, int korisnik_Id, [FromBody] NotifikacijaZahtev zahtev)
-        {
-            try
-            {
-                if (korisnik_Id != User.IdKorisnika())
-                    return Forbid(); // notifikaciju za svoju objavu snima njen vlasnik
-                var dogadjajNotif = await Context.Dogadjaji.FindAsync(dogadjaj_Id);
-                if (dogadjajNotif == null || dogadjajNotif.ID_Kreatora != korisnik_Id)
-                    return Forbid();
-
-                // Tekst (npr. komentar) ide u telu zahteva - u URL-u bi / ? # kvarili rutu
-                string tip_reakcije = zahtev.TipReakcije;
-                string sadrzaj_reakcije = zahtev.SadrzajReakcije;
-                DateTime vreme = DateTime.TryParse(zahtev.Vreme, out var parsirano) ? parsirano : DateTime.Now;
-
-                Korisnik k = await Context.Korisnici.FindAsync(korisnik_Id);
-                if (k == null)
-                {
-                    return NotFound("Korisnik nije pronađen");
-                }
-               
-                // 0 = anonimno (npr. prijava dogadjaja), cuva se kao null; inace korisnik mora da postoji
-                int? reaguje = korisnik_reaguje_Id > 0 ? korisnik_reaguje_Id : null;
-                if (reaguje != null && !await Context.Korisnici.AnyAsync(p => p.Id == reaguje))
-                    return NotFound("Korisnik koji reaguje nije pronadjen");
-
-                Notifikacija n = new Notifikacija
-                {
-                    DogadjajId = dogadjaj_Id,
-                    KorisnikKojiReagujeId = reaguje,
-                    TipReakcije = tip_reakcije,
-                    SadrzajReakcije = sadrzaj_reakcije,
-                    Vreme = vreme,
-                    KorisnikCijaJeObjavaId = korisnik_Id
-                };
-
-                Context.Notifikacije.Add(n);
-                await Context.SaveChangesAsync();
-                return Ok("Uspesno ubacena nova notifikacija");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest("Nije uspesno ubacena nova notifikacija: " + ex.Message);
-            }
-        }
-
-        
+        // Notifikacije pravi server (Models/Obavestenja.cs) kad neko reaguje, komentarise ili
+        // prijavi dogadjaj - klijent ih vise ne upisuje sam.
 
         [HttpDelete]
         [EnableCors("CORS")]

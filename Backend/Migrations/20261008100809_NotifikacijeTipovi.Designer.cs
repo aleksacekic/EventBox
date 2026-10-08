@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Models;
 
@@ -11,9 +12,11 @@ using Models;
 namespace EventBoxApi.Migrations
 {
     [DbContext(typeof(EventBoxContext))]
-    partial class EventBoxContextModelSnapshot : ModelSnapshot
+    [Migration("20261008100809_NotifikacijeTipovi")]
+    partial class NotifikacijeTipovi
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -101,23 +104,19 @@ namespace EventBoxApi.Migrations
 
                     b.Property<string>("Kategorija")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Naslov")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Opis")
                         .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Vreme_pocetka")
                         .IsRequired()
-                        .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("X")
                         .HasColumnType("float");
@@ -230,16 +229,10 @@ namespace EventBoxApi.Migrations
                     b.Property<int>("DogadjajId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("KomentarId")
-                        .HasColumnType("int");
-
                     b.Property<int>("KorisnikCijaJeObjavaId")
                         .HasColumnType("int");
 
                     b.Property<int?>("KorisnikKojiReagujeId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ReakcijaId")
                         .HasColumnType("int");
 
                     b.Property<string>("SadrzajReakcije")
@@ -257,13 +250,9 @@ namespace EventBoxApi.Migrations
 
                     b.HasIndex("DogadjajId");
 
-                    b.HasIndex("KomentarId");
-
                     b.HasIndex("KorisnikCijaJeObjavaId");
 
                     b.HasIndex("KorisnikKojiReagujeId");
-
-                    b.HasIndex("ReakcijaId");
 
                     b.ToTable("Notifikacija");
                 });
@@ -432,11 +421,6 @@ namespace EventBoxApi.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("Models.Komentar", "Komentar")
-                        .WithMany()
-                        .HasForeignKey("KomentarId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.HasOne("Models.Korisnik", "Korisnik")
                         .WithMany("Lista_Notifikacija")
                         .HasForeignKey("KorisnikCijaJeObjavaId")
@@ -448,20 +432,11 @@ namespace EventBoxApi.Migrations
                         .HasForeignKey("KorisnikKojiReagujeId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("Models.Reakcija", "Reakcija")
-                        .WithMany()
-                        .HasForeignKey("ReakcijaId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.Navigation("Dogadjaj");
-
-                    b.Navigation("Komentar");
 
                     b.Navigation("Korisnik");
 
                     b.Navigation("KorisnikKojiReaguje");
-
-                    b.Navigation("Reakcija");
                 });
 
             modelBuilder.Entity("Models.Poruka", b =>

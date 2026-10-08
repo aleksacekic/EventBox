@@ -32,13 +32,10 @@ namespace EventBoxApi.Auth
 
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
-            var zaglavlje = Request.Headers.Authorization.ToString();
-            if (!zaglavlje.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            var token = ProcitajToken();
+            if (token == null)
                 return AuthenticateResult.NoResult(); // nema tokena -> [Authorize] vraca 401
 
-            var token = zaglavlje.Substring("Bearer ".Length).Trim();
-            if (token.Length == 0)
-                return AuthenticateResult.NoResult();
 
             var korisnik = await _context.Korisnici.FirstOrDefaultAsync(k => k.Token == token);
             if (korisnik != null)
@@ -49,6 +46,25 @@ namespace EventBoxApi.Auth
                 return await ProveriAdmina(admin);
 
             return AuthenticateResult.Fail("Nevalidan token");
+        }
+
+        // Token iz zaglavlja "Authorization: Bearer <token>". WebSocket iz brauzera ne moze da
+        // posalje zaglavlje, pa SignalR klijent salje ?access_token=<token> - to se prihvata SAMO
+        // za hub, da se token ne bi slao u adresama obicnih API poziva (zavrsava u logovima).
+        private string? ProcitajToken()
+        {
+            var zaglavlje = Request.Headers.Authorization.ToString();
+            if (zaglavlje.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                var t = zaglavlje.Substring("Bearer ".Length).Trim();
+                return t.Length > 0 ? t : null;
+            }
+            if (Request.Path.StartsWithSegments("/notificationHub"))
+            {
+                var t = Request.Query["access_token"].ToString();
+                return t.Length > 0 ? t : null;
+            }
+            return null;
         }
 
         private async Task<AuthenticateResult> ProveriKorisnika(Korisnik korisnik)

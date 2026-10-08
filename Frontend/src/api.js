@@ -20,11 +20,12 @@ export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5153'
 export const resourceUrl = (path = '') => `${API_BASE}${path}`
 
 export class ApiError extends Error {
-  constructor(status, message, url) {
+  constructor(status, message, url, data = null) {
     super(typeof message === 'string' && message ? message : `HTTP ${status}`)
     this.name = 'ApiError'
     this.status = status
     this.url = url
+    this.data = data // telo odgovora, npr. { message, greske: { polje: poruka } }
   }
 }
 
@@ -64,7 +65,7 @@ async function request(method, path, { body, headers, ...rest } = {}) {
 
   if (!res.ok) {
     const msg = (data && (data.message || data.title)) || (typeof data === 'string' ? data : res.statusText)
-    throw new ApiError(res.status, msg, url)
+    throw new ApiError(res.status, msg, url, data)
   }
 
   return data

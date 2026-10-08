@@ -65,7 +65,8 @@ function LoginRegistracijaKomponenta() {
       }
     } catch (error) {
       console.error('Greska pri prijavi:', error);
-      alert('Prijava nije uspela.');
+      // 429: previse pokusaja - server kaze koliko jos treba sacekati
+      alert(error instanceof ApiError && error.status === 429 ? error.message : 'Prijava nije uspela.');
     }
   };
 
@@ -80,7 +81,7 @@ function LoginRegistracijaKomponenta() {
       }
     } catch (error) {
       console.error('Greska pri admin prijavi:', error);
-      alert("Pogresan unos!");
+      alert(error instanceof ApiError && error.status === 429 ? error.message : "Pogresan unos!");
     }
   };
 // -----------------------------------------------------------------------------------------------
@@ -140,7 +141,7 @@ function LoginRegistracijaKomponenta() {
     } catch (error) {
       console.error('Greska:', error);
       // 400 sa servera nosi konkretnu poruku (npr. pravila za korisnicko ime)
-      alert(error instanceof ApiError && error.status === 400
+      alert(error instanceof ApiError && (error.status === 400 || error.status === 429)
         ? error.message
         : 'Došlo je do greške prilikom registracije.');
     }

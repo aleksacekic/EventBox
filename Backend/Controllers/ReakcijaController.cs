@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Models;
 
@@ -16,11 +15,11 @@ namespace EventBoxApi.Controllers
     {
         public EventBoxContext Context;
 
-        private readonly IHubContext<NotificationHub> _hubContext;
-        public ReakcijaController(EventBoxContext context, IHubContext<NotificationHub> hubContext)
+        private readonly Obavestenja _obavestenja;
+        public ReakcijaController(EventBoxContext context, Obavestenja obavestenja)
         {
             this.Context = context;
-            _hubContext = hubContext;
+            _obavestenja = obavestenja;
         }
 
         // Postavlja reakciju korisnika na dogadjaj. Ako korisnik vec ima reakciju na tom
@@ -62,7 +61,7 @@ namespace EventBoxApi.Controllers
                 }
                 await BrojaciReakcija.OsveziAsync(Context, dogadjaj_Id);
 
-                await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewReaction", tip, dogadjaj_Id, korisnik_Id);
+                await _obavestenja.NotifikujVlasnikaAsync(d, korisnik_Id, TipNotifikacije.Reakcija, tip, reakcijaId: r.Id);
 
                 return Ok("Uspesno je dodata rekcija");
             }
@@ -97,7 +96,7 @@ namespace EventBoxApi.Controllers
                 await Context.SaveChangesAsync();
                 await BrojaciReakcija.OsveziAsync(Context, dogadjaj_id);
 
-                await _hubContext.Clients.User(d.ID_Kreatora.ToString()).SendAsync("ReceiveNewReaction", tip_trenutni, dogadjaj_id, korisnik_id);
+                await _obavestenja.NotifikujVlasnikaAsync(d, korisnik_id, TipNotifikacije.Reakcija, tip_trenutni, reakcijaId: r.Id);
                 return Ok($"Uspesno je promenjena reakcija korisnika sa ID-em: {korisnik_id} na dogadjaj: {d.Naslov}");
 
             }
@@ -121,9 +120,12 @@ namespace EventBoxApi.Controllers
                     .FirstOrDefaultAsync(p => p.Korisnik_ID == korisnik_id && p.Dogadjaj_ID.Id == dogadjaj_id);
                 if (r == null)
                     return NotFound();
+                // Povucena reakcija povlaci i svoju notifikaciju
+                var uklonjene = await _obavestenja.UkloniAsync(Context.Notifikacije.Where(n => n.ReakcijaId == r.Id));
                 Context.Reakcije.Remove(r);
                 await Context.SaveChangesAsync();
                 await BrojaciReakcija.OsveziAsync(Context, dogadjaj_id);
+                await _obavestenja.JaviUklonjeneAsync(uklonjene);
                 return Ok("Uspesno je obrisana reakcija");
             }
             catch (Exception ex)
@@ -145,6 +147,7 @@ namespace EventBoxApi.Controllers
                 if (d.ID_Kreatora != User.IdKorisnika())
                     return Forbid();
 
+                await Context.Notifikacije.Where(n => n.ReakcijaId != null && n.DogadjajId == dogadjaj_ID).ExecuteDeleteAsync();
                 await Context.Reakcije.Where(r => r.Dogadjaj_ID.Id == dogadjaj_ID).ExecuteDeleteAsync();
                 await BrojaciReakcija.OsveziAsync(Context, dogadjaj_ID);
                 return Ok("Uspesno su obrisane reakije dogadjaja");

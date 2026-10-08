@@ -3,6 +3,7 @@ using EventBoxApi.Auth;
 using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Models;
 
@@ -95,10 +96,29 @@ namespace EventBoxApi.Controllers
             }
         }
 
+        // Odjava administratora: brise mu token, pa stari odmah prestaje da vazi
         [HttpPost]
         [EnableCors("CORS")]
+        [Authorize(Roles = "Admin")]
+        [Route("Odjava")]
+        public async Task<ActionResult> Odjava()
+        {
+            if (!int.TryParse(User.FindFirst("admin_id")?.Value, out int id))
+                return Forbid();
+            var a = await Context.Administratori.FindAsync(id);
+            if (a == null)
+                return Forbid();
+            a.Token = null;
+            a.Validnost = null;
+            await Context.SaveChangesAsync();
+            return Ok("Odjavljeni ste");
+        }
+
+        [HttpPost]
+        [EnableCors("CORS")]
+        [EnableRateLimiting(ZastitaPrijave.PolitikaPrijava)]
         [Route("LogovanjeAdministrator")]
-        public async Task<ActionResult> LogovanjeAdministrator([FromBody] PrijavaZahtev zahtev)
+        public async Task<ActionResult> LogovanjeAdministrator([FromBody] PrijavaZahtev zahtev, [FromServices] ZastitaPrijave zastita)
         {
             try
             {
@@ -106,9 +126,19 @@ namespace EventBoxApi.Controllers
                     return Ok(new {nema="NEMA"});
 
                 string ime = KorisnickoIme.Normalizuj(zahtev.KorisnickoIme);
+                if (zastita.Zakljucan("a", ime) is TimeSpan preostalo)
+                {
+                    Response.Headers.RetryAfter = ((int)Math.Ceiling(preostalo.TotalSeconds)).ToString();
+                    return StatusCode(StatusCodes.Status429TooManyRequests, new { message = ZastitaPrijave.Poruka(preostalo) });
+                }
+
                 Administrator a = await Context.Administratori.Where(p => p.Korisnicko_ime == ime).FirstOrDefaultAsync();
                 if (a == null || !Lozinke.Proveri(a.Lozinka, zahtev.Lozinka, out bool ponovoHesirati))
+                {
+                    zastita.Neuspeh("a", ime);
                     return Ok(new {nema="NEMA"});
+                }
+                zastita.Uspeh("a", ime);
 
                 if (ponovoHesirati)
                     a.Lozinka = Lozinke.Hesiraj(zahtev.Lozinka);

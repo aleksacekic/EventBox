@@ -1,5 +1,6 @@
 import { api, API_BASE } from '../api';
 import { useAuth } from '../auth';
+import { useNotifications } from '../notifications';
 import React, { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 
@@ -15,7 +16,8 @@ function Header() {
 
   const [korisnik, setKorisnik] = useState(null);
   const [meniOtvoren, setMeniOtvoren] = useState(false);
-  const [neprocitanePoruke, setNeprocitanePoruke] = useState(0);
+  // Broj nepročitanih stiže uživo (src/notifications.jsx) - nema više provere na svake 3 sekunde
+  const { neprocitanePoruke } = useNotifications();
 
   const [searchResults, setSearchResults] = useState([]);
   const [searchValue, setSearchValue] = useState("");
@@ -107,25 +109,6 @@ function Header() {
   useEffect(() => {
     window.addEventListener("korisnik-azuriran", ucitajKorisnika);
     return () => window.removeEventListener("korisnik-azuriran", ucitajKorisnika);
-  }, []);
-
-  useEffect(() => {
-    const korisnik_Id = userId;
-    if (!korisnik_Id) return;
-
-    async function fetchNeprocitanePoruke() {
-      try {
-        const broj = await api.get(`/Poruka/KolikoNeprocitanihPoruka/${korisnik_Id}`);
-        setNeprocitanePoruke(broj);
-      } catch (error) {
-        console.error("Greska prilikom dohvatanja neprocitanih poruka:", error);
-      }
-    }
-
-    fetchNeprocitanePoruke();
-    const interval = setInterval(fetchNeprocitanePoruke, 3000); //proverava na svake 3 sekunde
-
-    return () => clearInterval(interval);
   }, []);
 
   const avatarSrc =
