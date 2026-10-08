@@ -1,4 +1,5 @@
 import { api, ApiError } from '../api';
+import { toast } from 'react-toastify';
 import { useAuth } from '../auth';
 
 import React, { useState, useEffect } from 'react';
@@ -58,7 +59,7 @@ function LoginRegistracijaKomponenta() {
         // Nije obican korisnik -> probaj kao administrator
         await probajAdmin(username, password);
       } else if (data.blokiran !== undefined) {
-        alert("Vas nalog je blokiran");
+        toast.error("Vas nalog je blokiran.");
       } else {
         login({ token: data.token, userId: data.userID });
         navigate(from, { replace: true });
@@ -66,7 +67,7 @@ function LoginRegistracijaKomponenta() {
     } catch (error) {
       console.error('Greska pri prijavi:', error);
       // 429: previse pokusaja - server kaze koliko jos treba sacekati
-      alert(error instanceof ApiError && error.status === 429 ? error.message : 'Prijava nije uspela.');
+      toast.error(error instanceof ApiError && error.status === 429 ? error.message : 'Prijava nije uspela. Pokusajte ponovo.');
     }
   };
 
@@ -74,14 +75,14 @@ function LoginRegistracijaKomponenta() {
     try {
       const data = await api.post('/Administrator/LogovanjeAdministrator', { korisnickoIme: username, lozinka: password });
       if (data.nema !== undefined) {
-        alert("Pogresan unos!");
+        toast.error("Pogresno korisnicko ime ili lozinka.");
       } else {
         login({ token: data.token, isAdmin: true });
         navigate('/admin', { replace: true });
       }
     } catch (error) {
       console.error('Greska pri admin prijavi:', error);
-      alert(error instanceof ApiError && error.status === 429 ? error.message : "Pogresan unos!");
+      toast.error(error instanceof ApiError && error.status === 429 ? error.message : "Pogresno korisnicko ime ili lozinka.");
     }
   };
 // -----------------------------------------------------------------------------------------------
@@ -129,19 +130,25 @@ function LoginRegistracijaKomponenta() {
         emailAdresa: mail,
       });
       if (odgovor?.odgovor === 'KORISNICKO_IME') {
-        alert("Korisnicko ime je zauzeto.");
+        toast.error("Korisnicko ime je zauzeto.");
+        return;
+      }
+      if (odgovor?.odgovor === 'EMAIL') {
+        toast.error("Ova email adresa je vec u upotrebi.");
         return;
       }
       if (odgovor?.odgovor === 'DATUM') {
-        alert("Datum rodjenja nije ispravan.");
+        toast.error("Datum rodjenja nije ispravan.");
         return;
       }
-      alert("Uspesno ste registrovani!");
-      window.location.reload();
+      toast.success("Uspesno ste registrovani! Sada se prijavite.");
+      e.target.reset();
+      setErrors({});
+      setActiveTab('tab-1');
     } catch (error) {
       console.error('Greska:', error);
       // 400 sa servera nosi konkretnu poruku (npr. pravila za korisnicko ime)
-      alert(error instanceof ApiError && (error.status === 400 || error.status === 429)
+      toast.error(error instanceof ApiError && (error.status === 400 || error.status === 429)
         ? error.message
         : 'Došlo je do greške prilikom registracije.');
     }

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import React from 'react'
 import DogadjajKartica from './DogadjajKartica';
-import moment from 'moment';
+import { formatDatum } from '../utils/datum';
 import { useAuth } from '../auth';
 import { useNotifications } from '../notifications';
 
@@ -38,7 +38,7 @@ function DogadjajPosebnaStrana() {
         if (otkazano) return;
         setDogadjaj({
           ...data,
-          formattedDatum: moment(data.datum_Objave).format('DD.MM.YYYY'),
+          formattedDatum: formatDatum(data.datum_Objave),
         });
       } catch (error) {
         console.error('Greska pri dohvatanju dogadjaja:', error);

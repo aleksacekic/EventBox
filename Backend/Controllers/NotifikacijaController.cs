@@ -27,24 +27,17 @@ namespace EventBoxApi.Controllers
         [Route("IzbrisiNotifikaciju/{id}")]
         public async Task<ActionResult> IzbrisiNotifikaciju(int id)
         {
-            try
+            Notifikacija n = await Context.Notifikacije.FindAsync(id);
+            if (n == null)
             {
-                Notifikacija n = await Context.Notifikacije.FindAsync(id);
-                if (n == null)
-                {
-                    return NotFound("Notifikacija nije pronađena");
-                }
-                if (n.KorisnikCijaJeObjavaId != User.IdKorisnika())
-                    return Forbid();
+                return NotFound("Notifikacija nije pronađena");
+            }
+            if (n.KorisnikCijaJeObjavaId != User.IdKorisnika())
+                return Forbid();
 
-                Context.Notifikacije.Remove(n);
-                await Context.SaveChangesAsync();
-                return Ok("Uspesno je izbrisana notifikacija sa ID-em: " + id);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest("Nije uspesno izbrisana notifikacija: " + ex.Message);
-            }
+            Context.Notifikacije.Remove(n);
+            await Context.SaveChangesAsync();
+            return Ok("Uspesno je izbrisana notifikacija sa ID-em: " + id);
         }
 
         // Videcemo kako ce da se vracaju notifikacije zbog protokola

@@ -8,8 +8,6 @@
 										Reset Css
 ===================================================================================== */
 
-
-
  header{ /*JESTE RESPONZIVNO DO KRAJA ! ali sredi margine ! ! */
 	position: fixed;
 	top:0;
@@ -34,70 +32,6 @@
 	color:red;
 }
 
-.image-container {
-  position: relative;
-}
-
-.image-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-.profilnaslika {
-  border-radius: 100px;
-  border: 5px solid #fff;
-}
-
-.camera-icon {
-  position: absolute;
-  top: 0;
-  right: 0;
-  transform: translate(50%, -50%);
-  background-color: #fff;
-  border-radius: 50%;
-  padding: 5px;
-  cursor: pointer;
-}
-
-.user-pro-img .camera-icon {
-  position: absolute;
-  top: 0;
-  right: 0;
-  transform: translate(20%, -20%);
-  /* background-color: rgba(0, 0, 0, 0.7); */
-  border-radius: 50%;
-  padding: 5px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-}
-
-.user-pro-img .camera-icon i {
-  color: #fff;
-}
-
-.user-pro-img .options {
-  position: absolute;
-  bottom: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-}
-
-.user-pro-img .options .option {
-  cursor: pointer;
-  margin: 0 8px;
-}
-
 .pr_dog_klasa {
 	padding-top: 60px;
 	padding-left: 28%;
@@ -105,34 +39,11 @@
 	padding-bottom: 50px;
 }
 
-.slikafooter{
-	width: 88px;
-	height: 17px;
-}
-
-.profilnaslikaobjava{
-	width: 50px;
-  height: 50px;
-  object-fit: cover;
-  object-position: center;
-}
-
 .profilnaslikaheader{
 	width: 30px;
   height: 30px;
   object-fit: cover;
   object-position: center;
-}
-
-.profilnaslika{
-	width: 170px;
-  height: 170px;
-  object-fit: cover;
-  object-position: center;
-}
-
-.profilimeusername{
-	padding-top:15px !important;
 }
 
 .job_descp2
@@ -147,68 +58,7 @@
 	font-weight: bold;
 }
 
-.drugispanprofil{
-	margin-top:-10px;
-}
-
-.covermuski{
-	width: 1600px;
-	height: 160px;
-}
-
-.search-results {
-  position: absolute;
-  width: 280px;
-  background: #fff;
-  border: 1px solid #ddd;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 999;
-}
-
-.search-results-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.search-result-item {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-	cursor:pointer;
-}
-.search-result-item:hover {
-  background-color: #F2F3F5;
-}
-
-.search-podaci{
-	display:flex;
-	flex-direction: column;
-}
-
-.prvispansearch{
-	padding-bottom: 4px;
-}
-
-
 /* Dodatni stilovi za bolji izgled */
-.search-result-item a {
-  text-decoration: none;
-  color: #333;
-}
-
-.search-result-item a:hover {
-  color: #000;
-  font-weight: bold;
-
-}
-
-.opcijeobjava{
-	cursor:pointer;
-}
-.opcijeobjava:hover{
-	background-color: rgb(238, 236, 236);
-	padding: 5px;
-}
 
 /* .ed-opts-open{
 	display:inline;
@@ -217,136 +67,17 @@
 	top:auto;
 } */
 
-.ucitajjosdogadjaja{
-	border:none;
-	border-radius: 2px;
-	background-color: gainsboro;
-	color:black;
-	padding: 15px;
-}
-
-
-
 /* MAPA */
 #map {
   height: 280px;
 }
 
 /* ZA NOTIFIKACIJE */
-.widget1 {
-	float: left;
-	width: 100%;
-	background-color: #fff;
-	border-left: 1px solid #e4e4e4;
-	border-right: 1px solid #e4e4e4;
-	border-bottom: 1px solid #e4e4e4;
-	margin-bottom: 20px;
-	-webkit-box-shadow: 1px 0px 2px rgba(0,0,0,0.24);
-	-moz-box-shadow: 1px 0px 2px rgba(0,0,0,0.24);
-	-ms-box-shadow: 1px 0px 2px rgba(0,0,0,0.24);
-	-o-box-shadow: 1px 0px 2px rgba(0,0,0,0.24);
-	box-shadow: 1px 0px 2px rgba(0,0,0,0.24);
-}
-
-.sd-title1 {
-	float: left;
-	width: 100%;
-	padding: 20px;
-	border-bottom: 1px solid #e5e5e5;
-	position: relative;
-}
-
-.jobs-list1 {
-	display:flex;
-	flex-direction: column;
-	float: left;
-	width: 100%;
-}
-.job-info1 {
-	display:flex;
-	flex-direction: column;
-	padding-top: 15px;
-	padding-bottom: 15px;
-	padding-left:18px;
-	padding-right: 18px;
-	cursor:pointer;
-}
-
-.job-info1:hover{
-	background-color: #F2F3F5;
-}
-
-.job-info1:last-child {
-	margin-bottom: 0;
-}
-.job-details1 {
-	float: left;
-	width: 100%;
-}
-.job-details1 h3 {
-	color: #000000;
-	font-size: 14px;
-	font-weight: 600;
-	margin-bottom: 10px;
-}
-.job-details1 p {
-	color: #686868;
-	font-size: 14px;
-	line-height: 20px;
-}
-.hr-rate1 {
-	float: right;
-	width: 100%;
-}
-.hr-rate1 span {
-	color: #000000;
-	font-size: 14px;
-	font-weight: 600;
-	float: right;
-}
 
 /* 
 DEO SA NOTIFIKACIJAMA ZA MOBILNI*/
 
-.notifikacije-forma {
-	display: flex;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: none;
-  justify-content: center;
-  align-items: center;
-	z-index: 7777;
-}
-
-
-
-
-.izlaz-dugme {
-		position: absolute;
-		top: 130px;
-		right: 10px;
-		width: 30px;
-		height: 30px;
-		background-color: rgba(255, 255, 255, 0.9);
-		color: rgba(0, 0, 0, 0.9);
-		border-radius: 50%;
-		border: none;
-		font-weight: bold;
-		cursor: pointer;
-		border:1px solid black;
-}
-
-.odeljcihamburgermenu{
-	color:white;
-	font-size:larger;
-}
-
 /* KRAJ DELA SA NOTIFIKACIJAMA ZA MOBILNI*/
-
 
 /* POPUP za PRIJAVI */
 
@@ -370,117 +101,7 @@ DEO SA NOTIFIKACIJAMA ZA MOBILNI*/
     word-break: break-all; 
 }
 
-.close {
-	position: absolute;
-	top: 10px;
-	right: 10px;
-	color: #aaa;
-	font-size: 20px;
-	font-weight: bold;
-	cursor: pointer;
-}
-
-.close:hover {
-	color: #000;
-}
-
-.overlay1 {
-	display: none;
-	position: fixed;
-	z-index: 1;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	background-color: rgba(0, 0, 0, 0.5); 
-}
-
-
 /* POP-up za prijavi dogadjaj */
-
-
-.form-options label {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 18px;
-}
-
-.form-options input[type="radio"] {
-  margin-right: 5px;
-  vertical-align: middle;
-}
-
-
-.form-buttons {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.form-buttons button {
-  margin: 10px;
-  padding: 12px 24px;
-  border: none;
-  background-color: #FFA500;
-  color: #fff;
-  cursor: pointer;
-  font-size: 15px;
-	border-radius: 4px;
-	transition: background-color 0.3s ease;
-}
-
-.btn-otkazi:hover{
-	background-color: #FFD700;
-
-}
-
-.btn-prijavi:hover
-{
-	background-color: #FFD700;
-}
-
-
-.form-ostalo textarea {
-  width: 100%;
-  padding: 8px;
-  font-size: 16px;
-  resize: vertical;
-  box-sizing: border-box;
-}
-
-
-.popup-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); 
-  z-index: 9998;
-}
-
-.popup-form {
-  display: none;
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #fff;
-  padding: 20px;
-  z-index: 9999;
-	width: 80%;
-  max-width: 500px;
-  margin: 0 auto;
-  box-sizing: border-box;
-}
-
-.popup-form h2 {
-  margin-top: 0;
-}
-
-.popup-form button {
-  margin-top: 10px;
-}
 
 /* Carousel slike */
 
@@ -517,76 +138,6 @@ DEO SA NOTIFIKACIJAMA ZA MOBILNI*/
 }
 
 /* Reakcije */
-
-.btnzaintprofil{
-	background-color: #449d44;
-	color:white;
-}
-.btnmozdaprofil{
-	background-color: #ec971f;
-	color:white;
-}
-.btnnezaintprofil{
-	background-color: #c9302c;
-	color:white;
-}
-
-
-
-.divreakcije{
-	display:flex;
-	flex-direction: column;
-	float: right;
-}
-
-div.divreakcije button {
-  /* background-color: transparent; */
-  /* color: #333; */
-  border: 1px solid #333;
-  padding: 10px;
-  margin: 5px;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-div.divreakcije button.zainteresovan:hover{
-	background-color:#5cb85c;
-	border-color: #5cb85c;
-  color: #fff;
-}
-
-div.divreakcije button.zainteresovan.active {
-  background-color: #449d44;
-  border-color: #449d44;
-  color: #fff;
-}
-
-
-div.divreakcije button.mozda:hover {
-  background-color: #f0ad4e;
-  border-color: #f0ad4e;
-  color: #fff;
-}
-
-div.divreakcije button.mozda.active {
-  background-color: #ec971f;
-  border-color: #ec971f;
-  color: #fff;
-}
-
-div.divreakcije button.nisamzainteresovan:hover {
-  background-color: #d9534f;
-  border-color: #d9534f;
-  color: #fff;
-}
-
-div.divreakcije button.nisamzainteresovan.active {
-  background-color: #c9302c;
-  border-color: #c9302c;
-  color: #fff;
-}
-
 
 /* Filtriranje - na levoj strani */
 
@@ -889,30 +440,18 @@ p {
 	color: #666666;
 }
 
-
 /* ================ CROSS BROWSER COMPATABILITY =============== */
-
 
 nav,
 nav ul li a,
 .user-account-settingss.active,
 .user-info a,
-.suggestion-usd > span i,
-.view-more > a,
-.tags-sec ul li a,
 .post-st ul li a,
 .ed-opts > a,
 .like-com li a,
 .comment > a,
 .sign_link > a,
-.post-popup,
-.post-project > a,
-.post-project-fields form ul li button,
-.post-project-fields form ul li a,
-.sign-control li a,
-.cover-sec > a,
-nav ul li:hover > ul,
-.user-pro-img > a i {
+nav ul li:hover > ul {
 	-webkit-transition: all 0.4s ease-in;
 	-moz-transition: all 0.4s ease-in;
 	-ms-transition: all 0.4s ease-in;
@@ -920,28 +459,10 @@ nav ul li:hover > ul,
 	transition: all 0.4s ease-in;
 }
 
-
 /* ============== DEFAULT BORDER RADIUS =========== */
 
-
-
-.search-bar form input,
-.search-bar form button,
 .post-st ul li a,
-.post-bar,
-.comment_box form button,
-.post-project-fields form input,
-.post-project-fields form textarea,
-.post-project-fields form select,
-.post-project-fields form ul li button,
-.post-project-fields form ul li a,
-.signin-pop,
-.sign-control,
-.sign_in_sec form input,
-.sign_in_sec form select,
-.sign_in_sec form button,
-.user-profile-ov,
-.portfolio-gallery-sec {
+.post-bar {
 	-webkit-border-radius: 4px;
 	-moz-border-radius: 4px;
 	-ms-border-radius: 4px;
@@ -958,10 +479,6 @@ nav ul li:hover > ul,
 	flex-direction: column;
 }
 
-.site-footer {
-	margin-top: auto;
-}
-
 .overlay:before {
 	content: '';
 	position: absolute;
@@ -972,8 +489,6 @@ nav ul li:hover > ul,
 	background-color: rgba(0,0,0,0.75);
 	z-index: 99;
 }
-
-
 
 .wrapper.active.overlay:before {
 	background-color: rgba(0, 0, 0, 0.75) !important;
@@ -996,40 +511,6 @@ header {
 }
 
 /* ========== login_register ========== */
-.search-bar {
-
-	float:left;
-	width: 280px;
-	margin-top: 9px;
-}
-.search-bar form {
-	float: left;
-	width: 100%;
-	position: relative;
-}
-.search-bar form input {
-	width: 100%;
-	background-color: #fff;
-	height: 38px;
-	color: #b2b2b2;
-	font-size: 12px;
-	border: 0;
-	padding: 0 10px;
-}
-.search-bar form button {
-	position: absolute;
-	top: 0;
-	right: 0;
-	background-color: #efefef;
-	width: 38px;
-	height: 100%;
-	border: 0;
-}
-.search-bar form button i {
-	color: #FFA500;
-	font-size: 20px;
-	font-weight: bold;
-}
 
 nav {
 	float: left;
@@ -1090,7 +571,6 @@ nav > ul > li > a:hover {
 	color: #fff;
 }
 
-
 .user-account {
 	float: right;
 	width: 110px;
@@ -1144,30 +624,7 @@ nav > ul > li > a:hover {
 
 /* =========== search_form =========== */
 
-
 /* ============ us-links ============= */
-
-.us-links {
-	float: left;
-	width: 100%;
-	border-bottom: 1px solid #e5e5e5;
-	padding: 20px;
-}
-.us-links li {
-	float: left;
-	width: 100%;
-	margin-bottom: 15px;
-}
-.us-links li:last-child {
-	margin-bottom: 0;
-}
-.us-links li a {
-	float: left;
-	width: 100%;
-	color: #000000;
-	font-size: 14px;
-	font-weight: 600;
-}
 
 .tc {
 	text-align: center;
@@ -1206,10 +663,7 @@ nav > ul > li > a:hover {
 	transform: translateY(-50%);
 }
 
-
-
 /* =================== main-section ================= */
-
 
 main {
 	float: left;
@@ -1284,8 +738,6 @@ main {
 	font-size: 14px;
 }
 
-
-
 .user-fw-status {
 	float: left;
 	width: 100%;
@@ -1342,130 +794,8 @@ main {
 	right: 5px;
 	top: 15px;
 }
-.suggestions-list {
-	float: left;
-	width: 100%;
-	padding: 13px 0 30px 0;
-}
-.suggestion-usd {
-	float: left;
-	width: 100%;
-	padding: 15px 20px;
-}
-.suggestion-usd img {
-	-webkit-border-radius: 100px;
-	-moz-border-radius: 100px;
-	-ms-border-radius: 100px;
-	-o-border-radius: 100px;
-	border-radius: 100px;
-}
-.sgt-text {
-	float: left;
-	padding-left: 10px;
-}
-.sgt-text h4 {
-	color: #000000;
-	font-size: 14px;
-	font-weight: 700;
-	margin-bottom: 4px;
-}
-.sgt-text span {
-	color: #686868;
-	font-size: 14px;
-}
-.suggestion-usd > span {
-	float: right;
-	margin-top: 4px;
-	position: relative;
-}
-.suggestion-usd > span i {
-	color: #b2b2b2;
-	width: 30px;
-	height: 30px;
-	border: 1px solid #e5e5e5;
-	text-align: center;	
-	line-height: 30px;
-	font-weight: 700;
-	cursor: pointer;
-}
-.suggestion-usd > span i:hover {
-	background-color: #FFA500;
-	color: #fff;
-}
-.view-more {
-	float: left;
-	width: 100%;
-	text-align: center;
-	padding-top: 10px;
-}
-.view-more > a {
-	color: #FFA500;
-	font-size: 14px;
-	font-weight: 700;
-}
-.view-more > a:hover {
-	color: #FFA500
-}
-
-
 
 /* ============== tags-sec ============= */
-
-.tags-sec {
-	background-color: #fff;
-	padding: 25px 5px;
-	
-}
-.tags-sec ul {
-	float: left;
-	width: 100%;
-	text-align: center;
-}
-.tags-sec ul li {
-	display: inline-block;
-	border-right: 1px solid #b2b2b2;
-	padding: 0 7px;
-	margin-bottom: 15px;
-}
-.tags-sec ul li:nth-child(3),
-.tags-sec ul li:nth-child(5),
-.tags-sec ul li:nth-child(8) {
-	border-right: 0;
-}
-.tags-sec ul li a {
-	display: inline-block;
-	color: #b2b2b2;
-	font-size: 13px;
-	font-weight: 500;
-}
-.tags-sec ul li a:hover {
-	color: #FFA500;
-}
-.cp-sec {
-	float: left;
-	width: 100%;
-	margin-top: 5px;
-	padding: 0 13px;
-}
-.cp-sec > img {
-	float: left;
-	margin-top: -36px;
-}
-.cp-sec p {
-	float: right;
-	color: #b2b2b2;
-	font-size: 14px;
-	font-weight: 500;
-	margin-top: -36px;
-}
-.cp-sec p img {
-	float: none;
-	display: inline-block;
-	position: relative;
-	top: 3px;
-	padding-right: 5px;
-}
-
 
 /* =================== main-ws-sec ================== */
 
@@ -1527,25 +857,7 @@ main {
 	color: #fff;
 }
 
-
 /* ================ posts-section ================== */
-
-.post-barALTERNATIVE {
-	float: left;
-	width: 100%;
-	background-color: #fff;
-	border-left: 1px solid #e4e4e4;
-	border-right: 1px solid #e4e4e4;
-	border-bottom: 1px solid #e4e4e4;
-	margin-bottom: 20px;
-	margin-left:40px;
-	margin-top:10px;
-	-webkit-border-radius: 4px;
-	-moz-border-radius: 4px;
-	-ms-border-radius: 4px;
-	-o-border-radius: 4px;
-	border-radius: 4px;
-}
 
 .posts-section {
 	float: left;
@@ -1665,7 +977,6 @@ main {
 	color: #b2b2b2;
 	font-size: 30px;
 */}
-
 
 /* ============== job_descp ============ */
 
@@ -1801,10 +1112,7 @@ main {
 	top: 3px;
 }
 
-
-
 /* ============= top-profiles ============ */
-
 
 /* ============== profiles-slider ============== */
 .no-margin {
@@ -1817,7 +1125,6 @@ main {
 	border-radius: inherit;
 }
 
-
 /* =============== comment-section ============== */
 
 .comment-section {
@@ -1828,7 +1135,6 @@ main {
 }
 
 /* =============== comment-sec ================ */
-
 
 .comment-sec {
 	float: left;
@@ -1849,41 +1155,6 @@ main {
 	display: table;
 	padding-bottom: 30px;
 }
-.bg-img {
-	display: table-cell;
-}
-.bg-img img {
-	-webkit-border-radius: 100px;
-	-moz-border-radius: 100px;
-	-ms-border-radius: 100px;
-	-o-border-radius: 100px;
-	border-radius: 100px;
-}
-
-.comment-buttons{
-	color: #b2b2b2;
-	float: right;
-	position: relative;
-	margin:5px;
-	
-}
-
-.comment-buttons > button {
-	margin-right: 3px;
-	padding-left: 10px;
-	padding-right: 10px;
-	padding-top: 6px;
-	padding-bottom: 6px;
-	background-color: #FFA500;
-	color:white;
-	border: none;
-}
-
-.comment-buttons > button:hover {
-	background-color: #FFD700;
-	transition: background-color 0.15s !important;
-}
-
 
 .comment {
 	display: table-cell;
@@ -1938,46 +1209,7 @@ main {
 
 /* =============== post-comment ============= */
 
-.post-comment {
-	float: left;
-	width: 100%;
-}
-.cm_img {
-	float: left;
-	width: 40px;
-	margin-right: 10px;
-}
-.comment_box {
-	float: left;
-}
-.comment_box input {
-	width: 371px;
-	height: 40px;
-	border: 1px solid #e5e5e5;
-	background-color: #efefef;
-	padding-left: 10px;
-	color: #b2b2b2;
-	font-size: 14px;
-	font-weight: 600;
-	line-height: 40px;
-	resize: none;
-}
-.comment_box form button {
-	float: right;
-	color: #fff;
-	background-color: #FFA500;
-	height: 40px;
-	padding: 0 10px;
-	text-align: center;
-	font-size: 14px;
-	border: 0;
-	margin-left: 10px;
-	cursor: pointer;
-	font-weight: 600;
-}
-
 /* ============== process-comm ============= */
-
 
 /* =============== right-sidebar ============= */
 
@@ -2096,10 +1328,7 @@ main {
 	float: right;
 }
 
-
-
 /* ================ post-project-popup =============== */
-
 
 ::-webkit-input-placeholder { /* Chrome/Opera/Safari */
   color: #b2b2b2;
@@ -2945,7 +2174,6 @@ select {
 	}
 }
 
-
 /* ================= app-header (moderan header, zamena za stari header/nav/search-bar/user-account) ================= */
 /* Napomena: HeaderAdmin.jsx i dalje koristi stare klase (logo, user-account...) - ne diramo ih. */
 
@@ -3325,7 +2553,6 @@ select {
 	}
 }
 
-
 /* ================= zavrsen dogadjaj (kartica) ================= */
 
 .dogadjaj-card-badge-zavrsen {
@@ -3603,23 +2830,6 @@ select {
 	color: #999;
 	font-size: 14.5px;
 	text-align: center;
-}
-.profil-load-more {
-	display: block;
-	margin: 0 auto 24px;
-	padding: 10px 24px;
-	border: 1.5px solid #e4e4e4;
-	border-radius: 999px;
-	background-color: #fff;
-	color: #555;
-	font-size: 14px;
-	font-weight: 600;
-	cursor: pointer;
-	transition: border-color 0.15s ease, color 0.15s ease;
-}
-.profil-load-more:hover {
-	border-color: var(--eb-orange, #FFA500);
-	color: var(--eb-orange, #FFA500);
 }
 
 .profil-info {
@@ -4305,7 +3515,6 @@ select {
 	overflow-y: auto;
 	background-color: #f3f4f6;
 }
-.poruke-loading,
 .poruke-messages-empty {
 	margin: auto;
 	color: #999;
@@ -4667,317 +3876,37 @@ select {
 		padding: 40px 28px;
 	}
 }
-.fl-rgt {
-	float: right;
-	margin-top: 34px;
-	padding-right: 30px;
-}
 
 /* ================== USER PROFILE =================== */
 
-.cover-sec img {
-	width: 100%;
-}
-.cover-sec > a {
-	display: inline-block;
-	color: #FFA500;
-	font-size: 16px;
-	background-color: #fff;
-	border: 1px solid #FFA500;
-	position: absolute;
-	top: 30px;
-	right: 0;
-	padding: 10px 15px;
-	font-weight: 600;
-	margin-right: 15px;
-}
-.cover-sec > a i {
-	padding-right: 5px;
-}
-
-
 /* ============= user_profile ============= */
-
-.user_profile {
-	float: left;
-	width: 100%;
-	background-color: #fff;
-	margin-bottom: 20px;
-	text-align: center;
-	margin-top: -40px;
-}
-.user-pro-img {
-	float: left;
-	width: 100%;
-	text-align: center;
-	margin-bottom: 28px;
-	margin-top: -95px;
-	position: relative;
-}
-.user-pro-img > a {
-	width: 40px;
-	height: 40px;
-	-webkit-border-radius: 100px;
-	-moz-border-radius: 100px;
-	-ms-border-radius: 100px;
-	-o-border-radius: 100px;
-	border-radius: 100px;
-	color: #fff;
-	line-height: 40px;
-	background-color: #FFA500;
-	position: absolute;
-	top: 0;
-	left: 60%;
-}
-
-.user-pro-img img {
-	-webkit-border-radius: 100px;
-	-moz-border-radius: 100px;
-	-ms-border-radius: 100px;
-	-o-border-radius: 100px;
-	border-radius: 100px;
-	float: none;
-	border: 5px solid #fff;
-}
-.user_pro_status {
-	float: left;
-	width: 100%;
-	border-bottom: 1px solid #e5e5e5;
-	padding-bottom: 27px;
-}
-
 
 /* =============== flw-status ============ */
 
-.flw-status {
-	float: left;
-	width: 100%;
-}
-.flw-status li {
-	display: inline-block;
-	margin-right: 25px;
-}
-.flw-status li:last-child {
-	margin-right: 0;
-}
-.flw-status li span {
-	color: #686868;
-	font-size: 20px;
-	font-weight: 500;
-	margin-bottom: 15px;
-	display: block;
-}
-.flw-status li b {
-	color: #000000;
-	font-size: 20px;
-	font-weight: 700;
-}
-
 /* ================== social_links ============= */
-.la-globe {
-	color: #51a5fb;
-}
-
 
 /* ================= user-tab-sec ============== */
 
-.user-tab-sec {
-	float: left;
-	width: 100%;
-	padding-top: 4px;
-}
-.user-tab-sec h3 {
-	color: #000000;
-	font-size: 40px;
-	font-weight: 400;
-	text-transform: capitalize;
-	margin-bottom: 7px;
-}
-.tab-feed {
-	float: left;
-	width: 100%;
-	margin-bottom: 47px;
-	
-}
-.tab-feed ul {
-	float: left;
-	width: 100%;
-	display: flex;
-	justify-content: center;
-}
-.tab-feed ul li {
-	display: inline-block;
-	margin-right: 35px;
-	text-align: center;
-}
-.tab-feed ul li:last-child {
-	margin-right: 0;
-}
-.tab-feed ul li.active img {
-	filter: grayscale(0);
-}
-.tab-feed ul li.active span {
-	color: #FFA500;
-}
-.tab-feed ul li img {
-	float: none;
-	margin-bottom: 5px;
-	filter: grayscale(100%);
-}
-.tab-feed ul li span {
-	display: block;
-	color: #b2b2b2;
-	font-weight: 400;
-	font-size: 18px;
-}
-.tab-feed ul li:last-child {
-	margin-right: 0;
-}
-
-
 /* ================ message-btn ============= */
-
 
 /* ============== widget-portfolio ============== */
 
-.wd-heady {
-	display:flex;
-	flex-direction: column;
-	float: left;
-	width: 100%;
-	padding: 20px 20px;
-	border-bottom: 1px solid #e5e5e5;
-}
-.wd-heady h3 {
-	color: #000000;
-	font-size: 18px;
-	font-weight: 700;
-	float: left;
-	padding-bottom: 23px;
-}
-.wd-heady img {
-	float: right;
-}
-
-.horoskop{
-	font-size: large;
-	font-style:italic;
-	margin-bottom: 10px;
-}
-
-.product-feed-tab {
-	float: left;
-	width: 100%;
-	display: none;
-}
-.product-feed-tab.current {
-	display: block;
-}
-
 /* =============== user-profile-ov ================ */
-
-.user-profile-ov {
-	float: left;
-	width: 100%;
-	background-color: #fff;
-	padding: 30px 20px;
-	border-left: 1px solid #e4e4e4;
-	border-bottom: 1px solid #e4e4e4;
-	border-right: 1px solid #e4e4e4;
-	margin-bottom: 20px;
-}
-.user-profile-ov h3 {
-	color: #000000;
-	font-size: 18px;
-	font-weight: 600;
-	margin-bottom: 20px;
-}
-.user-profile-ov h3 a {
-	color: #000000;
-}
-.user-profile-ov i {
-	color: #000000;
-	font-size: 13px;
-	padding-left: 5px;
-}
-.user-profile-ov h4 {
-	font-size: 16px;
-	color: #000;
-	font-weight: 600;
-	margin-bottom: 10px;
-}
-.user-profile-ov p {
-	color: #686868;
-	font-size: 14px;
-	line-height: 24px;
-}
 .no-margin {
 	margin: 0 !important;
 }
-.user-profile-ov > span {
-	color: #686868;
-	font-size: 14px;
-	float: left;
-	width: 100%;
-	margin-bottom: 8px;
-	margin-top: 3px;
-}
-.user-profile-ov ul {
-	float: left;
-	width: 100%;
-}
-.user-profile-ov ul li {
-	display: inline-block;
-	margin-bottom: 10px;
-	padding: 0 2px;
-}
-.user-profile-ov ul li a {
-	display: inline-block;
-	color: #b2b2b2;
-	font-size: 14px;
-	font-weight: 600;
-	background-color: #e5e5e5;
-	-webkit-border-radius: 30px;
-	-moz-border-radius: 30px;
-	-ms-border-radius: 30px;
-	-o-border-radius: 30px;
-	border-radius: 30px;
-	padding: 10px 15px;
-}
-
-
 
 /* ==================== portfolio-gallery-sec ==================== */
-
-.portfolio-gallery-sec {
-	float: left;
-	width: 100%;
-	background-color: #fff;
-	padding: 30px 20px;
-	border-left: 1px solid #e4e4e4;
-	border-right: 1px solid #e4e4e4;
-	border-bottom: 1px solid #e4e4e4;
-}
-.portfolio-gallery-sec h3 {
-	font-weight: 600;
-	font-size: 18px;
-	margin-bottom: 32px;
-	padding-left: 5px;
-}
 .row {
 	margin: 0;
 }
-
-
 
 /* ============== overview-box ============= */
 a:hover {
 	color: initial;
 }
 
-
 /* ================= billing-method ============== */
-
 
 /* ============== add-billing-method ============== */
 
@@ -4988,76 +3917,39 @@ a:hover {
 .pd-right-none {
 	padding-right: 0;
 }
-.no-pdd {
-	padding: 0;
-}
-
 
 /* ============== companies-info ============== */
 
-
 /* ============= search-sec ============= */
-
-
 
 /* =============== filter-secs ============== */
 
-
 /* =========== Range Slider ========== */
-
-
 
 /* ============== chatbox-list ============== */
 
 /* =========== typing-msg =========== */
 
-
-
 /* ============ Menu Btn =============*/
 
-.menu-btn {
-	float: right;
-	display: none;
-}
-.menu-btn a {
-	font-size: 24px;
-	color: #fff;
-	display: inline-block;
-	padding-top: 16px;
-	padding-left: 20px;
-}
-
-
-
-
 /* ============= account-tabs-setting ============ */
-
-.profile-account-setting {
-}
-
 
 /* ============= acc-setting ============ */
 
 /* =============== Password Update ============ */
 /* =============== notifications-list ============= */
 
-
 /* ============== requests-list ============== */
-
 
 /* ============= Profile Sattus =========== */
 
-
 /* =========== pro-work-status ========= */
 
-
 /* ============== messages-page ============== */
-
 
 /* =============== main-message-box ============= */
 
 /* ============== message-send-area ============ */
-
 
 /* ============== forum-links ============= */
 
@@ -5069,21 +3961,15 @@ a:hover {
 }
 /* =========== navigation ============ */
 
-
 /* ============ User Widget =========== */
-
 
 /* ============== widget-adver ============ */
 
-
 /* ============ forum-post-view ============ */
-
 
 /* =============== post-comment-box ============= */
 
-
 /* ======== next-prev ========*/
-
 
 /* ========== widget-feat ========= */
 
@@ -5176,4 +4062,204 @@ a:hover {
 	border-radius: 16px;
 	background: #fff;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Izmena profila i brisanje naloga (IzmenaProfila.jsx) */
+.izmena-profila {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+.izmena-profila > .create-event-form,
+.izmena-profila-opasno {
+	padding: 20px;
+	background-color: #fff;
+	border-radius: 16px;
+	box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+}
+.izmena-profila-check {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 4px 0;
+	font-size: 14px;
+	cursor: pointer;
+}
+.izmena-profila-check input {
+	width: auto;
+	margin: 0;
+}
+.izmena-profila-opasno {
+	border: 1.5px solid #f3c4c4;
+}
+.izmena-profila-opasno h4 {
+	margin: 0 0 6px;
+	color: #c0392b;
+	font-size: 16px;
+}
+.izmena-profila-opasno p {
+	margin: 0 0 12px;
+	color: #777;
+	font-size: 13.5px;
+}
+.izmena-profila-obrisi {
+	border: none;
+	border-radius: 10px;
+	background-color: #e05a5a;
+	color: #fff;
+	padding: 10px 18px;
+	font-weight: 600;
+	cursor: pointer;
+}
+.izmena-profila-obrisi:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+.profil-info-izmeni {
+	align-self: flex-end;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 4px 4px 0 0;
+	border: 1.5px solid #ffa500;
+	border-radius: 10px;
+	background: #fff;
+	color: #e69200;
+	padding: 6px 14px;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+}
+.profil-info-izmeni:hover {
+	background-color: #fff4e0;
+}
+.izmena-profila-opasno .create-event-form {
+	padding: 0;
+}
+.izmena-profila-opasno .create-event-actions {
+	flex-wrap: wrap;
+}
+.izmena-profila-opasno .create-event-actions .izmena-profila-obrisi {
+	flex: 1 1 auto;
+	height: 46px;
+}
+.izmena-profila-opasno .create-event-actions .create-event-cancel {
+	flex: 0 1 auto;
+	padding: 0 18px;
+}
+
+/* Komentari: starije na dugme (Komentari.jsx) */
+.komentar-starije {
+	display: block;
+	margin: 0 0 10px;
+	padding: 4px 0;
+	border: none;
+	background: none;
+	color: #e69200;
+	font-size: 13.5px;
+	font-weight: 600;
+	cursor: pointer;
+}
+.komentar-starije:hover {
+	text-decoration: underline;
+}
+.komentar-starije:disabled {
+	color: #999;
+	cursor: default;
+	text-decoration: none;
+}
+
+/* Avatar bez slike: krug sa pocetnim slovom (Avatar.jsx). Velicinu i oblik daje klasa
+   mesta (dogadjaj-card-avatar, komentar-avatar...), ovde je samo izgled slova. */
+.avatar-inicijal {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	border-radius: 999px;
+	background-color: var(--eb-orange-tint, #FFF4E0);
+	color: var(--eb-orange-dark, #e69200);
+	font-weight: 700;
+	line-height: 1;
+	text-transform: uppercase;
+	user-select: none;
+	font-size: 16px;
+}
+.profil-avatar-img.avatar-inicijal {
+	font-size: 64px;
+}
+.usr-pic > .avatar-inicijal {
+	width: 100%;
+	height: 100%;
+	border: 5px solid #fff;
+	font-size: 40px;
+}
+.usr-pic > .profilnaslikahomepageobjava.avatar-inicijal {
+	width: 50px;
+	height: 50px;
+	border-width: 2px;
+	font-size: 20px;
+}
+.profilnaslikaheader.avatar-inicijal {
+	font-size: 14px;
+}
+.app-header-avatar.avatar-inicijal {
+	font-size: 15px;
+}
+
+/* Admin: tabovi i lista blokiranih korisnika (Administrator.jsx, BlokiraniKorisnici.jsx) */
+.admin-sadrzaj {
+	padding-top: 20px;
+}
+.blokirani {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 30px;
+}
+.blokirani-red {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 16px;
+	background-color: #fff;
+	border-radius: 14px;
+	box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+}
+.blokirani-avatar {
+	width: 44px;
+	height: 44px;
+	border-radius: 999px;
+	object-fit: cover;
+	flex-shrink: 0;
+}
+.blokirani-tekst {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+.blokirani-tekst strong {
+	font-size: 15px;
+}
+.blokirani-tekst small {
+	color: #888;
+	font-size: 13px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.blokirani-dugme {
+	flex-shrink: 0;
+	border: 1.5px solid #ffa500;
+	border-radius: 10px;
+	background: #fff;
+	color: #e69200;
+	padding: 6px 14px;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+}
+.blokirani-dugme:hover {
+	background-color: #fff4e0;
 }

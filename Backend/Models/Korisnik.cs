@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Models
 {
     [Table("Korisnik")]
-    public class Korisnik
+    public class Korisnik : IImaId
     {
         [Key]
         public int Id { get; set; }
@@ -20,6 +20,7 @@ namespace Models
         [Required]
         public DateTime Datum_rodjenja { get; set; }
         [Required]
+        [MaxLength(EmailAdresa.MaxDuzina)] // jedinstveno (indeks u EventBoxContext)
         public string Email_Adresa { get; set; }
         [Required]
         [Range(-1, 0)] //-1 = BLOKIRAN, 0 = NIJE BLOKIRAN  
@@ -35,8 +36,6 @@ namespace Models
         public virtual List<Notifikacija> Lista_Notifikacija { get; set; }
 
         public string? KorisnikImage { get; set; }
-        [NotMapped]
-        public IFormFile ImageFile { get; set; }
 
     }
 }

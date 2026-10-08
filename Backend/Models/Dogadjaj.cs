@@ -53,7 +53,5 @@ namespace Models
         public virtual List<Komentar> Lista_Komentara {get;set;}
 
         public string? DogadjajImage {get;set;}
-        [NotMapped]
-        public IFormFile ImageFile {get;set;}
     }
 }

@@ -28,52 +28,45 @@ namespace EventBoxApi.Controllers
         [Route("DodajAdministratora")]
         public async Task<ActionResult> DodajAdministratora([FromBody] AdministratorZahtev zahtev)
         {
+            if (await Context.Administratori.AnyAsync())
+            {
+                if (User.Identity?.IsAuthenticated != true)
+                    return Unauthorized();
+                if (!User.JeAdmin())
+                    return Forbid();
+            }
+            else if (!System.Net.IPAddress.IsLoopback(HttpContext.Connection.RemoteIpAddress ?? System.Net.IPAddress.None))
+            {
+                return Forbid(); // prvog administratora moze da napravi samo lokalni zahtev
+            }
+
+            if (zahtev == null || string.IsNullOrWhiteSpace(zahtev.KorisnickoIme)
+                || string.IsNullOrEmpty(zahtev.Lozinka) || zahtev.Lozinka.Length < 8)
+                return BadRequest("Korisnicko ime je obavezno, a lozinka mora imati najmanje 8 karaktera");
+
+            zahtev.KorisnickoIme = KorisnickoIme.Normalizuj(zahtev.KorisnickoIme);
+            var greskaImena = KorisnickoIme.Proveri(zahtev.KorisnickoIme);
+            if (greskaImena != null)
+                return BadRequest(greskaImena);
+            if (await Context.Administratori.AnyAsync(p => p.Korisnicko_ime == zahtev.KorisnickoIme))
+                return Conflict("Administrator sa tim korisnickim imenom vec postoji");
+
+            Administrator a = new Administrator();
+            a.Ime = zahtev.Ime;
+            a.Prezime = zahtev.Prezime;
+            a.Email_adresa = zahtev.EmailAdresa;
+            a.Korisnicko_ime = zahtev.KorisnickoIme;
+            a.Lozinka = Lozinke.Hesiraj(zahtev.Lozinka);
+            Context.Administratori.Add(a);
             try
             {
-                if (await Context.Administratori.AnyAsync())
-                {
-                    if (User.Identity?.IsAuthenticated != true)
-                        return Unauthorized();
-                    if (!User.JeAdmin())
-                        return Forbid();
-                }
-                else if (!System.Net.IPAddress.IsLoopback(HttpContext.Connection.RemoteIpAddress ?? System.Net.IPAddress.None))
-                {
-                    return Forbid(); // prvog administratora moze da napravi samo lokalni zahtev
-                }
-
-                if (zahtev == null || string.IsNullOrWhiteSpace(zahtev.KorisnickoIme)
-                    || string.IsNullOrEmpty(zahtev.Lozinka) || zahtev.Lozinka.Length < 8)
-                    return BadRequest("Korisnicko ime je obavezno, a lozinka mora imati najmanje 8 karaktera");
-
-                zahtev.KorisnickoIme = KorisnickoIme.Normalizuj(zahtev.KorisnickoIme);
-                var greskaImena = KorisnickoIme.Proveri(zahtev.KorisnickoIme);
-                if (greskaImena != null)
-                    return BadRequest(greskaImena);
-                if (await Context.Administratori.AnyAsync(p => p.Korisnicko_ime == zahtev.KorisnickoIme))
-                    return Conflict("Administrator sa tim korisnickim imenom vec postoji");
-
-                Administrator a = new Administrator();
-                a.Ime = zahtev.Ime;
-                a.Prezime = zahtev.Prezime;
-                a.Email_adresa = zahtev.EmailAdresa;
-                a.Korisnicko_ime = zahtev.KorisnickoIme;
-                a.Lozinka = Lozinke.Hesiraj(zahtev.Lozinka);
-                Context.Administratori.Add(a);
-                try
-                {
-                    await Context.SaveChangesAsync();
-                }
-                catch (DbUpdateException e) when (KorisnickoIme.JeDuplikat(e))
-                {
-                    return Conflict("Administrator sa tim korisnickim imenom vec postoji");
-                }
-                return Ok("Uspesno ubacen administrator: " + zahtev.Ime + " " + zahtev.Prezime);
+                await Context.SaveChangesAsync();
             }
-            catch(Exception ex)
+            catch (DbUpdateException e) when (KorisnickoIme.JeDuplikat(e))
             {
-                return BadRequest("Nije uspesno ubacen administrator "+ ex.Message);
+                return Conflict("Administrator sa tim korisnickim imenom vec postoji");
             }
+            return Ok("Uspesno ubacen administrator: " + zahtev.Ime + " " + zahtev.Prezime);
         }
 
         [HttpDelete]
@@ -82,18 +75,17 @@ namespace EventBoxApi.Controllers
         [Route("IzbrisiAdministratora/{id}")]
         public async Task<ActionResult> IzbrisiAdministratora(int id)
         {
-            try
-            {
-            Administrator a = await Context.Administratori.FindAsync(id);
+            Administrator? a = await Context.Administratori.FindAsync(id);
+            if (a == null)
+                return NotFound();
+            // Bez ijednog administratora prvog bi opet mogao da napravi bilo ko sa servera
+            // (vidi DodajAdministratora) - poslednji se zato ne brise
+            if (await Context.Administratori.CountAsync() == 1)
+                return Conflict("Ne moze se obrisati poslednji administrator");
 
             Context.Administratori.Remove(a);
             await Context.SaveChangesAsync();
             return Ok("Uspesno ste izbrisali korisnika sa ID-em "+id);
-            }
-            catch(Exception ex)
-            {
-                return BadRequest("Nije uspesno izbrisan administrator "+ex.Message);
-            }
         }
 
         // Odjava administratora: brise mu token, pa stari odmah prestaje da vazi
@@ -120,40 +112,33 @@ namespace EventBoxApi.Controllers
         [Route("LogovanjeAdministrator")]
         public async Task<ActionResult> LogovanjeAdministrator([FromBody] PrijavaZahtev zahtev, [FromServices] ZastitaPrijave zastita)
         {
-            try
+            if (zahtev == null || string.IsNullOrEmpty(zahtev.KorisnickoIme) || string.IsNullOrEmpty(zahtev.Lozinka))
+                return Ok(new {nema="NEMA"});
+
+            string ime = KorisnickoIme.Normalizuj(zahtev.KorisnickoIme);
+            if (zastita.Zakljucan("a", ime) is TimeSpan preostalo)
             {
-                if (zahtev == null || string.IsNullOrEmpty(zahtev.KorisnickoIme) || string.IsNullOrEmpty(zahtev.Lozinka))
-                    return Ok(new {nema="NEMA"});
-
-                string ime = KorisnickoIme.Normalizuj(zahtev.KorisnickoIme);
-                if (zastita.Zakljucan("a", ime) is TimeSpan preostalo)
-                {
-                    Response.Headers.RetryAfter = ((int)Math.Ceiling(preostalo.TotalSeconds)).ToString();
-                    return StatusCode(StatusCodes.Status429TooManyRequests, new { message = ZastitaPrijave.Poruka(preostalo) });
-                }
-
-                Administrator a = await Context.Administratori.Where(p => p.Korisnicko_ime == ime).FirstOrDefaultAsync();
-                if (a == null || !Lozinke.Proveri(a.Lozinka, zahtev.Lozinka, out bool ponovoHesirati))
-                {
-                    zastita.Neuspeh("a", ime);
-                    return Ok(new {nema="NEMA"});
-                }
-                zastita.Uspeh("a", ime);
-
-                if (ponovoHesirati)
-                    a.Lozinka = Lozinke.Hesiraj(zahtev.Lozinka);
-
-                // Sesija administratora (isto kao kod korisnika)
-                a.Token = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-                a.Validnost = DateTime.Now.AddMinutes(30);
-                await Context.SaveChangesAsync();
-
-                return Ok(new {token = a.Token, adminID = a.Id});
+                Response.Headers.RetryAfter = ((int)Math.Ceiling(preostalo.TotalSeconds)).ToString();
+                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = ZastitaPrijave.Poruka(preostalo) });
             }
-            catch(Exception ex)
+
+            Administrator a = await Context.Administratori.Where(p => p.Korisnicko_ime == ime).FirstOrDefaultAsync();
+            if (a == null || !Lozinke.Proveri(a.Lozinka, zahtev.Lozinka, out bool ponovoHesirati))
             {
-                return BadRequest("Nije uspelo vracanje administratora "+ex.Message);
+                zastita.Neuspeh("a", ime);
+                return Ok(new {nema="NEMA"});
             }
+            zastita.Uspeh("a", ime);
+
+            if (ponovoHesirati)
+                a.Lozinka = Lozinke.Hesiraj(zahtev.Lozinka);
+
+            // Sesija administratora (isto kao kod korisnika)
+            a.Token = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+            a.Validnost = DateTime.UtcNow.AddMinutes(30);
+            await Context.SaveChangesAsync();
+
+            return Ok(new {token = a.Token, adminID = a.Id});
         }
         
     }

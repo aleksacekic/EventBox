@@ -99,7 +99,7 @@ namespace EventBoxApi.Auth
         // u bazu na svaki zahtev (npr. brojac poruka u headeru se osvezava na 3 s).
         private async Task<bool> VazecaSesija(DateTime validnost, Action<DateTime> postaviValidnost)
         {
-            var sada = DateTime.Now;
+            var sada = DateTime.UtcNow; // Validnost se cuva u UTC
             if (sada > validnost)
                 return false;
 

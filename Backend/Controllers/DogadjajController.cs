@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore; 
 using Models;
-using EventBoxApi.Repo;
 using EventBoxApi.Repo.Abstract;
+using EventBoxApi.Repo.Implementation;
 
 namespace EventBoxApi.Controllers
 {
@@ -17,12 +17,10 @@ namespace EventBoxApi.Controllers
     {
         public EventBoxContext Context;
         public IFileService _fileService;
-        public IDogadjajRepo _dogadjajRepo;
-        public DogadjajController(EventBoxContext context, IFileService fs, IDogadjajRepo dr)
+        public DogadjajController(EventBoxContext context, IFileService fs)
         {
             this.Context = context;
             this._fileService = fs;
-            this._dogadjajRepo = dr;
         }
 
         [HttpGet]
@@ -30,20 +28,13 @@ namespace EventBoxApi.Controllers
         [Route("VratiDogadjaj/{id}")]
         public async Task<ActionResult> VratiDogadjaj(int id)
         {
-            try
+            var dogadjaj = await Context.Dogadjaji.Include(d => d.KreatorId).FirstOrDefaultAsync(d => d.Id == id);
+            if (dogadjaj == null)
             {
-                var dogadjaj = await Context.Dogadjaji.Include(d => d.KreatorId).FirstOrDefaultAsync(d => d.Id == id);
-                if (dogadjaj == null)
-                {
-                    return NotFound($"Događaj sa ID-em {id} nije pronađen.");
-                }
+                return NotFound($"Događaj sa ID-em {id} nije pronađen.");
+            }
 
-                return Ok(dogadjaj);
-            }
-            catch (Exception e)
-            {
-                return BadRequest($"Greška prilikom vraćanja događaja: {e.Message}");
-            }
+            return Ok(dogadjaj);
         }
 
 
@@ -82,26 +73,20 @@ namespace EventBoxApi.Controllers
         [Route("IzbrisiDogadjaj/{id}")]
         public async Task<ActionResult> IzbrisiDogadjaj(int id)
         {
-            try
-            {
-                var dog = await Context.Dogadjaji.FindAsync(id);
-                if(dog == null)
-                    return NotFound($"Dogadjaj sa ID-em {id} nije pronadjen");
-                if(dog.ID_Kreatora != User.IdKorisnika() && !User.JeAdmin())
-                    return Forbid(); // brise vlasnik ili administrator
+            var dog = await Context.Dogadjaji.FindAsync(id);
+            if(dog == null)
+                return NotFound($"Dogadjaj sa ID-em {id} nije pronadjen");
+            if(dog.ID_Kreatora != User.IdKorisnika() && !User.JeAdmin())
+                return Forbid(); // brise vlasnik ili administrator
 
-                // Notifikacija cuva samo DogadjajId (bez FK), baza je ne brise sama
-                var notifikacije = Context.Notifikacije.Where(n => n.DogadjajId == id);
-                Context.Notifikacije.RemoveRange(notifikacije);
+            // Notifikacija cuva samo DogadjajId (bez FK), baza je ne brise sama
+            var notifikacije = Context.Notifikacije.Where(n => n.DogadjajId == id);
+            Context.Notifikacije.RemoveRange(notifikacije);
 
-                Context.Dogadjaji.Remove(dog);
-                await Context.SaveChangesAsync();
-                return Ok($"Uspesno je izbrisan dogadjaj sa ID-em {id}");
-            }
-            catch(Exception e)
-            {
-                return BadRequest("Nije uspesno izbrisan dogadjaj! " + e.Message);
-            }
+            Context.Dogadjaji.Remove(dog);
+            await Context.SaveChangesAsync();
+            _fileService.ObrisiSliku(dog.DogadjajImage); // tek kad je dogadjaj stvarno obrisan
+            return Ok($"Uspesno je izbrisan dogadjaj sa ID-em {id}");
         }    
 
         
@@ -128,94 +113,67 @@ namespace EventBoxApi.Controllers
             return Ok(dog);
         }
 
+        // Postavlja ili menja sliku dogadjaja (multipart, polje "fajl"). Odgovor: { slika } -
+        // ime novog fajla. Neispravan fajl -> 400 { message }. Stara slika se brise sa diska.
         [HttpPost]
         [EnableCors("CORS")]
         [Route("DodajSlikuDogadjaju")]
-        public IActionResult AddImage(IFormFile fajl,int dogadjaj_id)
+        [RequestSizeLimit(FileService.MaxVelicina + 64 * 1024)] // + malo za zaglavlja multipart-a
+        public async Task<ActionResult> DodajSlikuDogadjaju([FromForm] IFormFile? fajl, [FromQuery] int dogadjaj_id)
         {
-            Console.WriteLine("Uso sam u funkciju");
-            Dogadjaj model = Context.Dogadjaji.FirstOrDefault(p => p.Id == dogadjaj_id);
-            if(model == null)
+            Dogadjaj? d = await Context.Dogadjaji.FindAsync(dogadjaj_id);
+            if(d == null)
                 return NotFound();
-            if(model.ID_Kreatora != User.IdKorisnika())
+            if(d.ID_Kreatora != User.IdKorisnika())
                 return Forbid();
-            model.ImageFile = fajl;
-            Console.WriteLine("Ucitao sam dogadjaj" + model.Id);
 
-            var status = new Status();
-            string pom = "";
+            var rezultat = await _fileService.SacuvajSlikuAsync(fajl);
+            if (rezultat.Greska != null)
+                return BadRequest(new { message = rezultat.Greska });
 
-          if(model.ImageFile != null)
-                    {
-                        var fileResult = _fileService.SaveImage(model.ImageFile);
-                        if(fileResult.Item1 == 1)
-                        {
-                            model.DogadjajImage = fileResult.Item2;
-                        }
-                        var dogadjajResult = _dogadjajRepo.Add(model);
-                        if(dogadjajResult)
-                        {
-                            pom = model.DogadjajImage;
-                            status.StatusCode = 1;
-                            status.Message = pom;
-                        }
-                        else
-                        {
-                            status.StatusCode = 0;
-                            status.Message = "Greska pri dodavanju slike";
-                        }
-                        return Ok(status);
-                    }
-            return Ok(status);
-
-
-}
-
-
-        [HttpDelete]
-        [EnableCors("CORS")]
-        [Route("IzbirsiSlikuDogadjaja/{dogadjaj_id}")]
-        public async Task<ActionResult> IzbrisiSlikuDogadjaja(int dogadjaj_id)
-        {
+            string? stara = d.DogadjajImage;
+            d.DogadjajImage = rezultat.Ime;
             try
             {
-                Dogadjaj d = await Context.Dogadjaji.FindAsync(dogadjaj_id);
-                if(d == null)
-                    return NotFound();
-                if(d.ID_Kreatora != User.IdKorisnika())
-                    return Forbid();
-                if(_fileService.DeleteImage(d.DogadjajImage))
-                {
-                    d.DogadjajImage = null;
-                    await Context.SaveChangesAsync();
-                    return Ok("Uspesno izbrisana slika");
-                }
-                return BadRequest("Nije uspesno obrisano");
-                                
-                
+                await Context.SaveChangesAsync();
             }
-            catch(Exception ex)
+            catch
             {
-                return BadRequest("Nije uspesno izbrisana slika dogadjaja " + ex.Message);
+                _fileService.ObrisiSliku(rezultat.Ime); // upis nije uspeo - nova slika ne sme da ostane siroce
+                throw;
             }
+            _fileService.ObrisiSliku(stara);
+            return Ok(new { slika = d.DogadjajImage });
         }
-        
+
+        // Uklanja sliku dogadjaja. Referenca u bazi se brise i ako fajla vise nema na disku.
+        [HttpDelete]
+        [EnableCors("CORS")]
+        [Route("IzbrisiSlikuDogadjaja/{dogadjaj_id}")]
+        [Route("IzbirsiSlikuDogadjaja/{dogadjaj_id}")] // stara ruta (greska u kucanju), ostaje radi kompatibilnosti
+        public async Task<ActionResult> IzbrisiSlikuDogadjaja(int dogadjaj_id)
+        {
+            Dogadjaj? d = await Context.Dogadjaji.FindAsync(dogadjaj_id);
+            if(d == null)
+                return NotFound();
+            if(d.ID_Kreatora != User.IdKorisnika())
+                return Forbid();
+            string? stara = d.DogadjajImage;
+            d.DogadjajImage = null;
+            await Context.SaveChangesAsync();
+            _fileService.ObrisiSliku(stara);
+            return Ok("Uspesno izbrisana slika");
+        }
+
         // Liste dogadjaja: najnoviji prvi, stranicenje kursorom (Models/Paginacija.cs).
         //   ?limit=3                -> prva strana
         //   ?limit=3&cursor=<kursor> -> sledeca (kursor = sledeciKursor iz prethodnog odgovora)
         // Odgovor: { stavke, sledeciKursor, imaJos, ukupno }  (ukupno samo uz prvu stranu)
         private async Task<ActionResult> StranaDogadjaja(IQueryable<Dogadjaj> upit, int limit, string? cursor)
         {
-            try
-            {
-                if (!Paginacija.TryDekodiraj(cursor, out int? posle))
-                    return BadRequest("Neispravan kursor");
-                return Ok(await Paginacija.UzmiAsync(upit.Include(d => d.KreatorId), posle, limit));
-            }
-            catch(Exception ex)
-            {
-                return BadRequest("Nije uspelo vracanje dogadjaja: " + ex.Message);
-            }
+            if (!Paginacija.TryDekodiraj(cursor, out int? posle))
+                return BadRequest("Neispravan kursor");
+            return Ok(await Paginacija.UzmiAsync(upit.Include(d => d.KreatorId), posle, limit));
         }
 
         [HttpGet]

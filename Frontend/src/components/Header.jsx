@@ -1,6 +1,7 @@
-import { api, API_BASE } from '../api';
+import { api } from '../api';
 import { useAuth } from '../auth';
 import { useNotifications } from '../notifications';
+import Avatar from './Avatar';
 import React, { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 
@@ -111,10 +112,6 @@ function Header() {
     return () => window.removeEventListener("korisnik-azuriran", ucitajKorisnika);
   }, []);
 
-  const avatarSrc =
-    korisnik && korisnik.korisnikImage
-      ? `${API_BASE}/resources/${korisnik.korisnikImage}`
-      : "http://via.placeholder.com/50x50";
 
   return (
     <header className="app-header">
@@ -189,7 +186,7 @@ function Header() {
                 aria-haspopup="menu"
                 aria-expanded={meniOtvoren}
               >
-                <img className="app-header-avatar" src={avatarSrc} alt="" />
+                <Avatar className="app-header-avatar" slika={korisnik.korisnikImage} ime={korisnik.ime} />
                 <span className="app-header-profile-name">{korisnik.ime}</span>
                 <i className="la la-angle-down app-header-chevron" />
               </button>

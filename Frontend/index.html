@@ -8,28 +8,26 @@
     <meta name="description" content="EventBox - drustvena mreza za dogadjaje" />
     <link rel="manifest" href="/manifest.json" />
 
-    <!-- Content-Security-Policy: belaja lista odakle stranica sme da ucita skripte/stilove/slike/konekcije.
-         VAZNO za produkciju: connect-src dole ima http(s)://localhost:5153 za razvoj - kad se backend
-         postavi na pravi domen, taj domen mora da se doda ovde, inace ce svi API pozivi biti blokirani. -->
+    <!-- Content-Security-Policy: bela lista odakle stranica sme da ucita skripte/stilove/slike/konekcije.
+         %API_ORIGIN% i %API_WS_ORIGIN% zamenjuje vite.config.js adresom backenda iz VITE_API_URL
+         (.env za razvoj, .env.production za produkciju) - ovde se adresa ne pise rucno. -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
       script-src 'self' https://maps.googleapis.com https://maps.gstatic.com;
-      style-src 'self' 'unsafe-inline' https://stackpath.bootstrapcdn.com https://fonts.googleapis.com https://maps.googleapis.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://maps.googleapis.com;
       font-src 'self' https://fonts.gstatic.com data:;
-      img-src 'self' data: https: http://localhost:5153 http://via.placeholder.com;
-      connect-src 'self' http://localhost:5153 ws://localhost:5153 https://maps.googleapis.com;
+      img-src 'self' data: https: %API_ORIGIN%;
+      connect-src 'self' %API_ORIGIN% %API_WS_ORIGIN% https://maps.googleapis.com;
       frame-src 'none';
       object-src 'none';
       base-uri 'self';
       form-action 'self';
     " />
 
-    <!-- ===== Legacy Bootstrap tema (ColorMag-style). Faza 1 refactora uklanja jQuery deo. ===== -->
-    <!-- CSS teme: ucitava se globalno; kasnije se premesta u src/ import-e da bundler upravlja njime -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous" />
-    <link rel="stylesheet" type="text/css" href="/css/line-awesome.css" />
-    <link rel="stylesheet" type="text/css" href="/css/line-awesome-font-awesome.min.css" />
-    <link rel="stylesheet" type="text/css" href="/css/font-awesome.min.css" />
+    <!-- CSS: ucitava se globalno iz public/css (stara tema + nove komponente u style.css) -->
+    <!-- osnova.css: reset + grid izvucen iz Bootstrap-a (ranije ceo Bootstrap sa CDN-a); ikone: samo Line Awesome (la la-*) -->
+    <link rel="stylesheet" type="text/css" href="/css/osnova.css" />
+    <link rel="stylesheet" type="text/css" href="/css/line-awesome.min.css" />
     <link rel="stylesheet" type="text/css" href="/css/style.css" />
     <link rel="stylesheet" type="text/css" href="/css/responsive.css" />
 

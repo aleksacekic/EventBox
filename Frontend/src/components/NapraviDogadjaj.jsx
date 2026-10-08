@@ -8,26 +8,31 @@ import srLatn from "date-fns/locale/sr-Latn";
 import { format } from 'date-fns';
 import TimePicker from './TimePicker'
 import Map from './Mapa'
-import { useAuth } from '../auth';
-// import moment from 'moment';
+import { toast } from 'react-toastify';
 
-function NapraviDogadjaj({ otvorena = false, onZatvori = () => {}, onKreiran = () => {} }) {
+// dogadjaj = null: pravljenje novog. dogadjaj = {...}: izmena postojeceg (polja su popunjena,
+// cuva se PUT-om, onKreiran dobija izmenjen dogadjaj). Za izmenu se komponenta montira tek
+// kad se otvara, pa pocetne vrednosti (i marker na mapi) dolaze iz dogadjaja.
+function NapraviDogadjaj({ otvorena = false, onZatvori = () => {}, onKreiran = () => {}, dogadjaj: postojeci = null }) {
+  const izmena = postojeci != null;
+  const pid = izmena ? 'cei' : 'ced'; // prefiks id-jeva, da se ne sudare sa formom za novi dogadjaj
 
-  const { userId } = useAuth();
 
   registerLocale("sr-Latn", srLatn);  
 
-  
-  const google = window.google;
-
-const [naslov, setNaslov] = useState('');
-const [kategorija, setKategorija] = useState('Ostalo');
+const [naslov, setNaslov] = useState(postojeci?.naslov ?? '');
+const [kategorija, setKategorija] = useState(postojeci?.kategorija ?? 'Ostalo');
 const [slika, setSlika] = useState(null);
-const [datumDogadjaja, setDatumDogadjaja] = useState('');
-const [vremePocetka, setVremePocetka] = useState('');
-const [opis, setOpis] = useState('');
-const [x, setX] = useState('');
-const [y, setY] = useState('');
+const [ukloniSliku, setUkloniSliku] = useState(false); // samo pri izmeni: skloni postojecu sliku
+const [datumDogadjaja, setDatumDogadjaja] = useState(() => {
+  if (!postojeci?.datum_Dogadjaja) return '';
+  const d = new Date(postojeci.datum_Dogadjaja);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+});
+const [vremePocetka, setVremePocetka] = useState(postojeci?.vreme_pocetka ?? '');
+const [opis, setOpis] = useState(postojeci?.opis ?? '');
+const [x, setX] = useState(postojeci?.x ?? '');
+const [y, setY] = useState(postojeci?.y ?? '');
 const [greske, setGreske] = useState({}); // polje -> poruka (iste provere kao na serveru)
 const [salje, setSalje] = useState(false);
 
@@ -53,7 +58,7 @@ const kreirajDogadjaj = async (e) => {
   setSalje(true);
   try {
     // Sve ide u telu zahteva; kreatora i datum objave postavlja server
-    const dogadjaj = await api.post('/Dogadjaj/DodajDogadjaj', {
+    const telo = {
       naslov: naslov.trim(),
       opis: opis.trim(),
       kategorija,
@@ -62,18 +67,29 @@ const kreirajDogadjaj = async (e) => {
       vremePocetka,
       x,
       y,
-    });
+    };
+    const dogadjaj = izmena
+      ? await api.put(`/Dogadjaj/IzmeniDogadjaj/${postojeci.id}`, telo)
+      : await api.post('/Dogadjaj/DodajDogadjaj', telo);
+
+    if (izmena && ukloniSliku && !slika && dogadjaj.dogadjajImage) {
+      await api.del(`/Dogadjaj/IzbrisiSlikuDogadjaja/${dogadjaj.id}`);
+      dogadjaj.dogadjajImage = null;
+    }
 
     if (slika) {
       const formData = new FormData();
       formData.append('fajl', slika);
-      const slikaStatus = await api.post(`/Dogadjaj/DodajSlikuDogadjaju?dogadjaj_id=${dogadjaj.id}`, formData);
-      if (slikaStatus.statusCode === 1) {
-        dogadjaj.dogadjajImage = slikaStatus.message;
+      try {
+        const { slika: ime } = await api.post(`/Dogadjaj/DodajSlikuDogadjaju?dogadjaj_id=${dogadjaj.id}`, formData);
+        dogadjaj.dogadjajImage = ime;
+      } catch (error) {
+        // Dogadjaj je napravljen, samo slika nije prosla - ne brisemo ga, javimo
+        toast.warn(`Dogadjaj je ${izmena ? 'sacuvan' : 'napravljen'}, ali slika nije sacuvana: ` + (error instanceof ApiError ? error.message : error));
       }
     }
 
-    resetujFormu();
+    if (!izmena) resetujFormu();
     onZatvori();
     onKreiran(dogadjaj);
   } catch (error) {
@@ -82,7 +98,7 @@ const kreirajDogadjaj = async (e) => {
     } else {
       const poruka = error instanceof ApiError ? error.message : String(error);
       console.error('Kreiranje dogadjaja nije uspelo:', poruka);
-      setGreske({ opste: 'Kreiranje dogadjaja nije uspelo. Pokusajte ponovo.' });
+      setGreske({ opste: `${izmena ? 'Cuvanje' : 'Kreiranje'} dogadjaja nije uspelo. Pokusajte ponovo.` });
     }
   } finally {
     setSalje(false);
@@ -115,8 +131,16 @@ const handleMapMarker = (latitude, longitude) => {
   setY(longitude);
 };
 
+// Iste granice kao na serveru (FileService): JPG/PNG/WEBP do 5 MB
 const handleSlikaChange = (e) => {
-  setSlika(e.target.files[0]);
+  const fajl = e.target.files[0];
+  e.target.value = '';
+  if (!fajl) return;
+  const greska = !['image/jpeg', 'image/png', 'image/webp'].includes(fajl.type)
+    ? 'Dozvoljene su samo JPG, PNG i WEBP slike.'
+    : fajl.size > 5 * 1024 * 1024 ? 'Slika moze imati najvise 5 MB.' : null;
+  setGreske((g) => ({ ...g, slika: greska }));
+  setSlika(greska ? null : fajl);
 };
 
 // ESC zatvara formu dok je otvorena
@@ -138,12 +162,12 @@ const handleOverlayClick = useCallback((e) => {
     <div>
       <div
         className={`create-event-modal ${otvorena ? 'is-open' : ''}`}
-        id="forma"
+        id={izmena ? undefined : 'forma'}
         onClick={handleOverlayClick}
       >
         <div className="create-event-card">
           <div className="create-event-header">
-            <h3>Napravi dogadjaj</h3>
+            <h3>{izmena ? 'Izmeni dogadjaj' : 'Napravi dogadjaj'}</h3>
             <button
               type="button"
               className="create-event-close"
@@ -156,9 +180,9 @@ const handleOverlayClick = useCallback((e) => {
 
           <form onSubmit={kreirajDogadjaj} className="create-event-form">
             <div className="create-event-field">
-              <label htmlFor="ced-naziv">Naziv</label>
+              <label htmlFor={`${pid}-naziv`}>Naziv</label>
               <input
-                id="ced-naziv"
+                id={`${pid}-naziv`}
                 type="text"
                 name="title"
                 placeholder="Naziv dogadjaja"
@@ -172,9 +196,9 @@ const handleOverlayClick = useCallback((e) => {
 
             <div className="create-event-row">
               <div className="create-event-field">
-                <label htmlFor="ced-kategorija">Kategorija</label>
+                <label htmlFor={`${pid}-kategorija`}>Kategorija</label>
                 <select
-                  id="ced-kategorija"
+                  id={`${pid}-kategorija`}
                   className="create-event-input create-event-select"
                   value={kategorija}
                   onChange={(e) => setKategorija(e.target.value)}
@@ -190,30 +214,37 @@ const handleOverlayClick = useCallback((e) => {
               </div>
 
               <div className="create-event-field">
-                <label htmlFor="ced-slika">Slika</label>
-                <label htmlFor="ced-slika" className="create-event-file">
+                <label htmlFor={`${pid}-slika`}>Slika</label>
+                <label htmlFor={`${pid}-slika`} className="create-event-file">
                   <i className="la la-image" />
-                  <span>{slika ? slika.name : 'Dodaj sliku...'}</span>
+                  <span>{slika ? slika.name : izmena && postojeci.dogadjajImage && !ukloniSliku ? 'Zameni sliku...' : 'Dodaj sliku...'}</span>
                 </label>
                 <input
-                  id="ced-slika"
+                  id={`${pid}-slika`}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={handleSlikaChange}
                   hidden
                 />
+                {greske.slika && <span className="create-event-error">{greske.slika}</span>}
+                {izmena && postojeci.dogadjajImage && !slika && (
+                  <label className="izmena-profila-check">
+                    <input type="checkbox" checked={ukloniSliku} onChange={(e) => setUkloniSliku(e.target.checked)} />
+                    Ukloni postojecu sliku
+                  </label>
+                )}
               </div>
             </div>
 
             <div className="create-event-row">
               <div className="create-event-field">
-                <label htmlFor="ced-datum">Datum</label>
+                <label htmlFor={`${pid}-datum`}>Datum</label>
                 <DatePicker
-                  id="ced-datum"
+                  id={`${pid}-datum`}
                   selected={datumDogadjaja}
                   onChange={handleDatePickerChange}
                   locale="sr-Latn"
-                  minDate={new Date()}
+                  minDate={izmena && datumDogadjaja instanceof Date && datumDogadjaja < new Date() ? datumDogadjaja : new Date()}
                   dateFormat="d.M.yyyy."
                   calendarClassName="eb-calendar"
                   dayClassName={(date) =>
@@ -249,9 +280,9 @@ const handleOverlayClick = useCallback((e) => {
             </div>
 
             <div className="create-event-field">
-              <label htmlFor="ced-opis">Opis</label>
+              <label htmlFor={`${pid}-opis`}>Opis</label>
               <textarea
-                id="ced-opis"
+                id={`${pid}-opis`}
                 name="description"
                 placeholder="Opis dogadjaja (max 200 karaktera)"
                 className="create-event-input create-event-textarea"
@@ -265,7 +296,7 @@ const handleOverlayClick = useCallback((e) => {
             {greske.opste && <span className="create-event-error">{greske.opste}</span>}
             <div className="create-event-actions">
               <button type="submit" className="create-event-submit" disabled={salje}>
-                {salje ? 'Pravim...' : 'Napravi'}
+                {salje ? (izmena ? 'Cuvam...' : 'Pravim...') : (izmena ? 'Sacuvaj' : 'Napravi')}
               </button>
               <button type="button" className="create-event-cancel" onClick={onZatvori}>Otkazi</button>
             </div>

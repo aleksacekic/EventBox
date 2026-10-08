@@ -7,19 +7,8 @@ import Header from "../components/Header";
 import KrajListe from "../components/KrajListe";
 import { useBeskonacnaLista } from "../useBeskonacnaLista";
 
-// Server salje vreme bez oznake zone (UTC); lokalne poruke su ISO stringovi.
-const uDatum = (vreme) => {
-  if (!vreme) return null;
-  if (/[zZ]|[+-]\d\d:?\d\d$/.test(vreme)) return new Date(vreme);
-  const d = new Date(vreme + "Z");
-  return isNaN(d) ? new Date(vreme) : d;
-};
-
-const formatVreme = (vreme) => {
-  const d = uDatum(vreme);
-  if (!d || isNaN(d)) return "";
-  return d.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit", hour12: false });
-};
+// Server salje vreme u UTC (vidi utils/datum.js); lokalne poruke su ISO stringovi
+import { formatSat as formatVreme } from "../utils/datum";
 
 const imePrezime = (u) => `${u.ime ?? ""} ${u.prezime ?? ""}`.trim();
 

@@ -1,11 +1,14 @@
-import { api, API_BASE } from '../api';
+import { api, ApiError } from '../api';
 import React from 'react'
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import moment from 'moment';
+import { formatDatum } from '../utils/datum';
 import { useAuth } from '../auth';
+import { toast } from 'react-toastify';
 import { useNotifications } from '../notifications';
 import DogadjajKartica from './DogadjajKartica';
+import IzmenaProfila from './IzmenaProfila';
+import Avatar from './Avatar';
 import KrajListe from './KrajListe';
 import { useBeskonacnaLista } from '../useBeskonacnaLista';
 import { jeZavrsen } from '../utils/dogadjaj';
@@ -25,7 +28,7 @@ function Profil() {
   // Dogadjaji profila se ucitavaju 3 po 3 kako korisnik skroluje (vidi useBeskonacnaLista)
   const lista = useBeskonacnaLista(
     profileId ? `/Korisnik/VratiDogadjajeKorisnika/${profileId}` : null,
-    { mapiraj: (d) => ({ ...d, formattedDatum: moment(d.datum_Objave).format("DD.MM.YYYY") }) }
+    { mapiraj: (d) => ({ ...d, formattedDatum: formatDatum(d.datum_Objave) }) }
   );
   const dogadjaji = lista.stavke;
   const ukupnoElemenata = lista.ukupno ?? 0;
@@ -34,6 +37,7 @@ function Profil() {
   const [mojdatum, setmojdatum] = useState();
   const [kategorije, setKategorije] = useState(null);   // [{ kategorija, broj }] - svi dogadjaji korisnika
 
+  const [izmenaProfila, setIzmenaProfila] = useState(false);
   const [meniSlikeOtvoren, setMeniSlikeOtvoren] = useState(false);
   const [slikaSeMenja, setSlikaSeMenja] = useState(false);
   const fileInputRef = useRef(null);
@@ -67,13 +71,13 @@ function Profil() {
     try {
       const formData = new FormData();
       formData.append('fajl', file);
-      const status = await api.post(`/Korisnik/DodajSlikuKorisniku?id_korisnika=${userId}`, formData);
-      if (status.statusCode === 1) {
-        setKorisnik((k) => ({ ...k, korisnikImage: status.message }));
-        javiHeaderu();
-      }
+      const { slika } = await api.post(`/Korisnik/DodajSlikuKorisniku?id_korisnika=${userId}`, formData);
+      setKorisnik((k) => ({ ...k, korisnikImage: slika }));
+      javiHeaderu();
     } catch (error) {
       console.log(error);
+      // 400 nosi razlog (npr. pogresan format ili prevelika slika)
+      toast.error(error instanceof ApiError && error.status === 400 ? error.message : 'Slika nije sacuvana. Pokusajte ponovo.');
     } finally {
       setSlikaSeMenja(false);
     }
@@ -116,7 +120,7 @@ function Profil() {
   const ulogovaniKorisnik = isOwnProfile ? korisnik : ulogovani;
 
   const formatirajDatum = (datum) => {
-    return moment(datum).format('DD.MM.YYYY');
+    return formatDatum(datum);
   };
 
   const ucitajKorisnika = async () => {
@@ -150,9 +154,6 @@ function Profil() {
     return statusFilter === 'zavrseni' ? jeZavrsen(d) : !jeZavrsen(d);
   });
 
-  const avatarSrc = korisnik?.korisnikImage
-    ? `${API_BASE}/resources/${korisnik.korisnikImage}`
-    : "http://via.placeholder.com/170x170";
 
   const FILTERI = [
     ['svi', 'Svi'],
@@ -178,7 +179,7 @@ function Profil() {
               <aside className="profil-card">
                 <div className="profil-avatar" ref={avatarRef}>
                   {korisnik ? (
-                    <img className="profil-avatar-img" src={avatarSrc} alt="" />
+                    <Avatar className="profil-avatar-img" slika={korisnik.korisnikImage} ime={korisnik.ime} />
                   ) : (
                     <div className="profil-avatar-img profil-skeleton" />
                   )}
@@ -199,7 +200,7 @@ function Profil() {
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp"
                         onChange={handleImageUpload}
                         hidden
                       />
@@ -302,8 +303,26 @@ function Profil() {
                 </div>
               )}
 
-              {profileTab === 'info-dd' && (
+              {profileTab === 'info-dd' && izmenaProfila && korisnik && (
+                <IzmenaProfila
+                  korisnik={korisnik}
+                  onOtkazi={() => setIzmenaProfila(false)}
+                  onSacuvano={(novi) => {
+                    setKorisnik(novi);
+                    setmojdatum(formatirajDatum(novi.datum_rodjenja));
+                    setIzmenaProfila(false);
+                    javiHeaderu(); // ime u headeru
+                  }}
+                />
+              )}
+
+              {profileTab === 'info-dd' && !izmenaProfila && (
                 <div className="profil-info">
+                  {isOwnProfile && korisnik && (
+                    <button type="button" className="profil-info-izmeni" onClick={() => setIzmenaProfila(true)}>
+                      <i className="la la-pencil" /> Izmeni podatke
+                    </button>
+                  )}
                   {INFO_REDOVI.length === 0 ? (
                     <div className="profil-skeleton profil-skeleton-card" />
                   ) : (

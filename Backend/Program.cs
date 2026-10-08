@@ -7,50 +7,10 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.OpenApi.Models;
 using EventBoxApi.Auth;
+using Microsoft.AspNetCore.Diagnostics;
 
 
 var builder = WebApplication.CreateBuilder(args);
-
-static void CheckSameSite(HttpContext httpContext, CookieOptions options)
-{
-    if (options.SameSite == SameSiteMode.None)
-    {
-        var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
-        if (DisallowsSameSiteNone(userAgent))
-        {
-            options.SameSite = SameSiteMode.Unspecified;
-        }
-    }
-}
-
-static bool DisallowsSameSiteNone(string userAgent)
-{
-
-
-    if (string.IsNullOrEmpty(userAgent))
-    {
-        return false;
-    }
-
-    if (userAgent.Contains("CPU iPhone OS 12")
-        || userAgent.Contains("iPad; CPU OS 12"))
-    {
-        return true;
-    }
-
-    if (userAgent.Contains("Macintosh; Intel Mac OS X 10_14")
-        && userAgent.Contains("Version/") && userAgent.Contains("Safari"))
-    {
-        return true;
-    }
-
-    if (userAgent.Contains("Chrome/5") || userAgent.Contains("Chrome/6"))
-    {
-        return true;
-    }
-
-    return false;
-}
 
 // Add services to the container.
 
@@ -82,16 +42,6 @@ builder.Services.AddCors(options =>
             });
 
 
-builder.Services.Configure<CookiePolicyOptions>(options =>
-{
-    options.MinimumSameSitePolicy = SameSiteMode.None;
-    options.OnAppendCookie = cookieContext =>
-        CheckSameSite(cookieContext.Context, cookieContext.CookieOptions);
-    options.OnDeleteCookie = cookieContext =>
-        CheckSameSite(cookieContext.Context, cookieContext.CookieOptions);
-});
-
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -117,8 +67,6 @@ builder.Services.AddAuthentication(TokenAuthenticationHandler.Sema)
     .AddScheme<AuthenticationSchemeOptions, TokenAuthenticationHandler>(TokenAuthenticationHandler.Sema, null);
 builder.Services.AddAuthorization();
 builder.Services.AddTransient<IFileService, FileService>();
-builder.Services.AddTransient<IDogadjajRepo, DogadjajRepo>();
-builder.Services.AddTransient<IKorisnikRepo, KorisnikRepo>();
 builder.Services.AddScoped<Obavestenja>();
 // Zastita prijave: ograničenje po IP adresi + zaključavanje naloga posle 5 pogrešnih lozinki
 builder.Services.AddMemoryCache();
@@ -132,6 +80,26 @@ builder.Services.AddSignalR();
 
 var app = builder.Build();
 
+// Globalni handler gresaka: svaki neocekivan izuzetak (baza nedostupna, bug u kodu...) se upise
+// u log sa svim detaljima, a klijent dobija 500 i opstu poruku - bez teksta izuzetka, jer bi
+// on otkrio semu baze i unutrasnjost servera. traceId povezuje odgovor sa zapisom u logu.
+// Kontroleri zato vise nemaju try/catch: 400 vracaju samo za greske klijenta (neispravan unos).
+app.UseExceptionHandler(greska => greska.Run(async http =>
+{
+    var izuzetak = http.Features.Get<IExceptionHandlerPathFeature>();
+    app.Logger.LogError(izuzetak?.Error, "Neobradjena greska: {Metoda} {Putanja} (traceId {TraceId})",
+        http.Request.Method, izuzetak?.Path, http.TraceIdentifier);
+
+    http.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    await http.Response.WriteAsJsonAsync(new
+    {
+        message = "Doslo je do greske na serveru. Pokusajte ponovo.",
+        traceId = http.TraceIdentifier,
+        // samo u razvoju (dotnet run): tekst izuzetka da se ne trazi po logu
+        detalj = app.Environment.IsDevelopment() ? izuzetak?.Error.Message : null,
+    });
+}));
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -141,13 +109,19 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Slike korisnika iz Uploads na /Resources/<ime>. Upload proverava da je sadrzaj zaista slika,
+// a nosniff zabranjuje pregledacu da fajl "pogadja" kao nesto drugo (npr. HTML sa skriptom).
+// Ime fajla je nasumicni GUID koji se nikad ne menja, pa slika moze dugo da stoji u kesu.
 app.UseStaticFiles(new StaticFileOptions {
-    FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath,"Uploads")),
-    RequestPath = "/Resources"
+    FileProvider = new PhysicalFileProvider(Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "Uploads")).FullName),
+    RequestPath = "/Resources",
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.XContentTypeOptions = "nosniff";
+        ctx.Context.Response.Headers.CacheControl = "public, max-age=604800";
+    }
 });
 
-
-app.UseCookiePolicy();
 
 // Redosled je bitan: rutiranje -> CORS -> ko je korisnik -> sme li -> ogranicenje zahteva,
 // pa tek onda kontroleri i hub

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Avatar from './Avatar';
 import { Link } from "react-router-dom";
 
 function HeaderAdmin() {
@@ -14,16 +15,13 @@ function HeaderAdmin() {
         <div className="container">
           <div className="header-data">
             <div className="logo">
-              <a href="index.html">
-                <img src="/images/logosajt(4).ico" />
-              </a>
+              <Link to="/admin" aria-label="Administracija">
+                <img src="/images/logosajt(4).ico" alt="EventBox" />
+              </Link>
             </div>
             <div className="user-account">
               <div className="user-info">
-                <img
-                  className="profilnaslikaheader"
-                  src={"http://via.placeholder.com/50x50"}
-                />
+                <Avatar className="profilnaslikaheader" ime="Administrator" />
                 <i
                   className={`la la-sort-down ${isActive ? "active" : ""}`}
                   onClick={toggleActive}

@@ -11,6 +11,8 @@ import { NotificationsProvider } from "./notifications";
 import { GoogleMapsProvider } from "./maps";
 import InfoStranica from "./Pages/InfoStranica";
 import { INFO_STRANICE } from "./infoStranice";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   return (
@@ -34,6 +36,8 @@ function App() {
               <Route key={s.slug} path={s.putanja} element={<RequireAuth><InfoStranica slug={s.slug} /></RequireAuth>} />
             ))}
           </Routes>
+          {/* Kratke poruke (toast.success/error/...) umesto alert(), koji blokira stranicu */}
+          <ToastContainer position="top-center" autoClose={4000} newestOnTop closeOnClick pauseOnFocusLoss={false} />
         </div>
       </Router>
       </GoogleMapsProvider>

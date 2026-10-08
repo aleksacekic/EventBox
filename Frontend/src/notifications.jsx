@@ -133,12 +133,8 @@ export function useNotifications() {
   return ctx
 }
 
-// Server cuva vreme u UTC; ako stigne bez oznake zone (stari zapisi), tretira se kao UTC
-export function uLokalnoVreme(vreme) {
-  if (!vreme) return null
-  const s = String(vreme)
-  return new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z')
-}
+// Server cuva vreme u UTC (vidi utils/datum.js)
+export { uLokalnoVreme, formatTrenutak } from './utils/datum'
 
 const REAKCIJE = {
   Zainteresovan: 'je zainteresovan za',

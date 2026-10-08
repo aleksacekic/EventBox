@@ -1,4 +1,4 @@
-import { api, API_BASE } from '../api';
+import { api } from '../api';
 import React from 'react'
 import Dogadjaj from './Dogadjaj'
 import DatePicker from 'react-datepicker'
@@ -7,9 +7,10 @@ import { useEffect, useState } from 'react'
 import { registerLocale } from "react-datepicker"
 import srLatn from "date-fns/locale/sr-Latn";
 import { Link } from 'react-router-dom';
-import moment from 'moment';
+import { formatDatum } from '../utils/datum';
+import Avatar from './Avatar';
 import { useAuth } from '../auth';
-import { useNotifications, tekstNotifikacije, uLokalnoVreme } from '../notifications';
+import { useNotifications, tekstNotifikacije, formatTrenutak } from '../notifications';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -18,7 +19,6 @@ function Main({ onNapraviDogadjaj, noviDogadjaj }) {
   const { userId } = useAuth();
   const { notifications } = useNotifications();
   const [korisnik, setKorisnik] = useState(null);
-  const [mojdatum, setmojdatum] = useState();
   const [NazivPicker, setNazivPicker] = useState("");
   const [NazivZaSlanje, setNazivZaSlanje] = useState("default");
 
@@ -31,15 +31,6 @@ function Main({ onNapraviDogadjaj, noviDogadjaj }) {
   const [feedKey, setFeedKey] = useState(0);
 
   registerLocale("sr-Latn", srLatn);
-  //#region JAVASCRIPT
-  // Za zatvaranje forme NOTIFIKACIJE
-  function sakrijFormu() {
-    var forma = document.querySelector('.notifikacije-forma');
-    forma.style.display = 'none';
-  }
-
-
-  //#endregion
   // za datum kod radio buttona
 
   const [datumPicker, setDatumPicker] = useState(() => new Date());
@@ -77,7 +68,7 @@ function Main({ onNapraviDogadjaj, noviDogadjaj }) {
   }, []);
 
   const formatirajDatum = (datum) => {
-    return moment(datum).format('DD.MM.YYYY');
+    return formatDatum(datum);
   };
 
   const korisnik_Id = userId;
@@ -88,45 +79,12 @@ function Main({ onNapraviDogadjaj, noviDogadjaj }) {
       const formatiranDatum = formatirajDatum(data.datum_rodjenja);
       data.datumrodjenja = formatiranDatum;
       setKorisnik(data);
-      setmojdatum(formatiranDatum);
     } catch (error) {
       console.log(error);
     }
   };
 
   //-------------------------------------------------------------------------------------------------------
-   //ovo sluzi za prosledjivanje dogadjajId iz Komentari.js u Dogajdaj.js pa u Main.js
-
-  const [selectedDogadjajId, setSelectedDogadjajId] = useState();
-  const handleDogadjajId = (id) => {
-   
-      setSelectedDogadjajId(id);
-      console.log(`Primljen dogadjajId u Main: ${id}`);
-    
-  };
-
-  //----------------------------------------------
-
-    //-------------------------------------------------------------------------------------------------------
-
-    const [dogadjaj, setDogadjaj] = useState({});
-
-      useEffect(() => {
-        async function fetchDogadjaj(id) {
-            try {
-                if (!id) return;
-                const data = await api.get(`/Dogadjaj/VratiDogadjaj/${id}`);
-                setDogadjaj(data);
-            } catch (error) {
-                console.error('Greška pri dohvaćanju podataka o događaju:', error);
-            }
-        }
-
-        if (selectedDogadjajId) { 
-          fetchDogadjaj(selectedDogadjajId);
-      }
-  
-    }, [selectedDogadjajId]);
   
 
 
@@ -153,8 +111,7 @@ const handleClickObjava = (id) => {
                         <div className="username-dt">
                           {korisnik ? (
                           <div className="usr-pic">
-                            <img className="profilnaslikahomepage"
-                                    src={korisnik.korisnikImage ? `${API_BASE}/resources/${korisnik.korisnikImage}` : "http://via.placeholder.com/100x100"} />
+                            <Avatar className="profilnaslikahomepage" slika={korisnik.korisnikImage} ime={korisnik.ime} />
                           </div>) : (
                               <p>Korisnik nije dostupan</p>
                             )}
@@ -183,8 +140,7 @@ const handleClickObjava = (id) => {
                       <div className="user-picy">
                       {korisnik ? (
                           <div className="usr-pic">
-                            <img className="profilnaslikahomepageobjava"
-                                    src={korisnik.korisnikImage ? `${API_BASE}/resources/${korisnik.korisnikImage}` : "http://via.placeholder.com/100x100"} />
+                            <Avatar className="profilnaslikahomepageobjava" slika={korisnik.korisnikImage} ime={korisnik.ime} />
                           </div>) : (
                               <p>Korisnik nije dostupan</p>
                             )}
@@ -264,63 +220,10 @@ const handleClickObjava = (id) => {
                     </div>{/*feed-filter end*/}
 
                     <div className="posts-section" >
-                      <Dogadjaj key={feedKey} primljenDatum={dateZaSlanje} primljenNaziv={NazivZaSlanje} onDogadjajIdChange={handleDogadjajId} noviDogadjaj={noviDogadjaj} />
+                      <Dogadjaj key={feedKey} primljenDatum={dateZaSlanje} primljenNaziv={NazivZaSlanje} noviDogadjaj={noviDogadjaj} />
 
 
                     </div>{/*posts-section end*/}
-                    <div className="notifikacije-forma" style={{ display: 'none' }}>
-                      <div className="notifikacije-content">
-                        <div className="widget1 widget-jobs1">
-                          <div className="sd-title1">
-                            <h3>Notifikacije</h3>
-                            {/* <i class="la la-ellipsis-v"></i> */}
-                          </div>
-                          <div className="jobs-list1">
-                            <div className="job-info1">
-                              <div className="job-details1">
-                                <p>Korisnik Ime Prezime je reagovao/la na vas dogadjaj ImeDogadjaja: Zainteresovan.</p>
-                              </div>
-                              <div className="hr-rate1">
-                                <span>Danas, 17:38</span>
-                              </div>
-                            </div>{/*job-info end*/}
-                            <div className="job-info1">
-                              <div className="job-details1">
-                                <p>Korisnik Ime Prezime je dodao komentar na vas dogadjaj ImeDogadjaja.</p>
-                              </div>
-                              <div className="hr-rate1">
-                                <span>Sreda, 20:20</span>
-                              </div>
-                            </div>{/*job-info end*/}
-                            <div className="job-info1">
-                              <div className="job-details1">
-                                <p>Lorem ipsum dolor sit amet, consec adipiscing elit..</p>
-                              </div>
-                              <div className="hr-rate1">
-                                <span>Petak, 18:04</span>
-                              </div>
-                            </div>{/*job-info end*/}
-                            <div className="job-info1">
-                              <div className="job-details1">
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit..</p>
-                              </div>
-                              <div className="hr-rate1">
-                                <span>Petak, 9:18</span>
-                              </div>
-                            </div>{/*job-info end*/}
-                            <div className="job-info1">
-                              <div className="job-details1">
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit..</p>
-                              </div>
-                              <div className="hr-rate1">
-                                <span>Subota, 21:36</span>
-                              </div>
-                            </div>{/*job-info end*/}
-                          </div>{/*jobs-list end*/}
-                        </div>{/*widget-jobs end*/}
-                        <button className="izlaz-dugme" onClick={sakrijFormu}>X</button>
-                      </div>
-                    </div>
                   </div>{/*main-ws-sec end*/}
                 </div>
                 <div className="col-lg-3 pd-right-none no-pd">
@@ -350,7 +253,7 @@ const handleClickObjava = (id) => {
                               <p>{tekstNotifikacije(notif)}</p>
                             </div>
                             <div className="hr-rate">
-                              <span>{uLokalnoVreme(notif.vreme)?.toLocaleString('sr-RS')}</span>
+                              <span>{formatTrenutak(notif.vreme)}</span>
                             </div>
                           </div>
                         ))
@@ -363,66 +266,6 @@ const handleClickObjava = (id) => {
   
                       </div>{/*jobs-list end*/}
                     </div>{/*widget-jobs end*/}
-                    {/* Predlog za PRONALAZENJE LJUDI ! ! */}
-                    {/* <div class="widget suggestions full-width">
-        										<div class="sd-title">
-        											<h3>Most Viewed People</h3>
-        											<i class="la la-ellipsis-v"></i>
-        										</div> <!- -sd-title end- ->
-        										<div class="suggestions-list">
-        											<div class="suggestion-usd">
-        												<img src="http://via.placeholder.com/35x35" alt="">
-        												<div class="sgt-text">
-        													<h4>Jessica William</h4>
-        													<span>Graphic Designer</span>
-        												</div>
-        												<span><i class="la la-plus"></i></span>
-        											</div>
-        											<div class="suggestion-usd">
-        												<img src="http://via.placeholder.com/35x35" alt="">
-        												<div class="sgt-text">
-        													<h4>John Doe</h4>
-        													<span>PHP Developer</span>
-        												</div>
-        												<span><i class="la la-plus"></i></span>
-        											</div>
-        											<div class="suggestion-usd">
-        												<img src="http://via.placeholder.com/35x35" alt="">
-        												<div class="sgt-text">
-        													<h4>Poonam</h4>
-        													<span>Wordpress Developer</span>
-        												</div>
-        												<span><i class="la la-plus"></i></span>
-        											</div>
-        											<div class="suggestion-usd">
-        												<img src="http://via.placeholder.com/35x35" alt="">
-        												<div class="sgt-text">
-        													<h4>Bill Gates</h4>
-        													<span>C &amp; C++ Developer</span>
-        												</div>
-        												<span><i class="la la-plus"></i></span>
-        											</div>
-        											<div class="suggestion-usd">
-        												<img src="http://via.placeholder.com/35x35" alt="">
-        												<div class="sgt-text">
-        													<h4>Jessica William</h4>
-        													<span>Graphic Designer</span>
-        												</div>
-        												<span><i class="la la-plus"></i></span>
-        											</div>
-        											<div class="suggestion-usd">
-        												<img src="http://via.placeholder.com/35x35" alt="">
-        												<div class="sgt-text">
-        													<h4>John Doe</h4>
-        													<span>PHP Developer</span>
-        												</div>
-        												<span><i class="la la-plus"></i></span>
-        											</div>
-        											<div class="view-more">
-        												<a href="#" title="">View More</a>
-        											</div>
-        										</div> <!- -suggestions-list end- ->
-        									</div> */}
                   </div>{/*right-sidebar end*/}
                 </div>
               </div>

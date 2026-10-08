@@ -103,6 +103,9 @@ namespace Models
 
             // Jedinstvena korisnicka imena. Indeks ujedno ubrzava prijavu (trazenje po imenu).
             modelBuilder.Entity<Korisnik>().HasIndex(k => k.Korisnicko_Ime).IsUnique();
+            // Jedan email - jedan nalog (osnova za buduci "zaboravljena lozinka")
+            modelBuilder.Entity<Korisnik>().HasIndex(k => k.Email_Adresa).IsUnique()
+                .HasDatabaseName(EmailAdresa.IndeksJedinstvenosti);
             modelBuilder.Entity<Administrator>().HasIndex(a => a.Korisnicko_ime).IsUnique();
 
             // Token se trazi na SVAKOM zahtevu (TokenAuthenticationHandler) - bez indeksa je to

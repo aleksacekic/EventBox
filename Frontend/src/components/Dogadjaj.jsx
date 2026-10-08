@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import DogadjajKartica from './DogadjajKartica';
 import KrajListe from './KrajListe';
 import { useBeskonacnaLista } from '../useBeskonacnaLista';
-import moment from 'moment';
+import { formatDatum } from '../utils/datum';
 import { format } from 'date-fns';
 import { useAuth } from '../auth';
 import { useNotifications } from '../notifications';
@@ -16,7 +16,7 @@ const NEMA_DATUMA = new Date("2000-01-01").getTime();
 
 const dodajFormatiranDatum = (d) => ({
   ...d,
-  formattedDatum: moment(d.datum_Objave).format("DD.MM.YYYY"),
+  formattedDatum: formatDatum(d.datum_Objave),
 });
 
 function Dogadjaj({ primljenDatum, primljenNaziv, noviDogadjaj }) {
@@ -65,7 +65,7 @@ function Dogadjaj({ primljenDatum, primljenNaziv, noviDogadjaj }) {
   };
 
   const formatirajDatum = (datum) => {
-    return moment(datum).format('DD.MM.YYYY');
+    return formatDatum(datum);
   };
 
   // Postavljamo korisnik_Id cim imamo ulogovanog korisnika

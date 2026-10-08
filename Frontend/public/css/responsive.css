@@ -8,76 +8,33 @@
 	header nav ul li:hover {
 		background-color: #FFA500;
 	}
-	.menu-btn {display: block;}
 	header nav ul li span {display: inline-block;margin-right: 10px;}
 	.widget-about h3 {font-size: 16px;}
 	.widget-about span {font-size: 13px;}
-	.suggestion-usd {padding: 15px 5px;}
-	.cp-sec p {margin-top: 10px;float: none;}
-	.comment_box input {width: 281px;}
 	.job-details {width: 100%;}
 	.job-details h3 {line-height: 18px;}
 	.sd-title h3 {font-size: 15px;}
-	.cp-sec > img {text-align: center;float: none;}
-	.cp-sec {text-align: center;}
-	.flw-status li {margin-right: 10px;}
-	.flw-status li span {font-size: 16px;}
-	.fl-rgt {float: none;margin-top: 0;padding-bottom: 20px;width: auto;padding-right: 0;}
 	.hr-rate {margin-top: 10px;}
-	.tab-feed ul li {margin-bottom: 30px;}
-	.tab-feed {margin-bottom: 30px;}
 	nav ul ul {left: 50%;top: 0;border: 1px solid #e4e4e4;padding-left: 20px;padding-right: 20px;}
-	.sgt-text span {font-size: 12px;}
-	.odeljcihamburgermenu{
-		display:inline !important;
-		float: left;
-		width: 100%;
-		text-align: left;
-		padding: 0 0 0 0;
-		margin-bottom: 20px;
-	}
 }
 
 
 @media (max-width: 991px) {
-	.post-popup{width: 570px;
-		height: 101%;
-		margin: 0 auto;
-		position: fixed;
-		top: 48%;
-		left: 50%;}
-	.sgt-text span {font-size: 14px;}
 	/* main {padding: 20px 0 60px 0;} */
 	.user-specs span {font-size: 13px;}
-	.comment_box input {width: 275px;}
 	.job-details {width: auto;}
 	.hr-rate {margin-top: 15px;}
-	.suggestion-usd {padding: 15px 20px;}
 	.right-sidebar {margin-top: 50px;}
-	.user-pro-img > a {left: 56%;}
 	.no-pd {padding: 0;}
-	.profile-account-setting {margin-bottom: 50px;}
-	.notifikacije-u-hederu{display:inline !important;}
 	.widget-jobs{display:none;}
-	.izlaz-dugme{right:10%;top:23%;}
 }
 
 
 @media (max-width: 768px) {
-	.post-popup{width: 570px;
-		height: 100%;
-		margin: 0 auto;
-		position: fixed;
-		top: 55%;
-		left: 50%;
-		overflow: scroll;}
 	.pr_dog_klasa {padding-left: 10%; padding-right: 10%; padding-top: 80px;}
-	.comment_box input {width: 84%;}
-	.comment_box {width: 88%;}
 	.no-pd {padding: 0;}
 	/* .user-profile{display:none !important;}
 	.user-fw-status{display:none !important;} */
-	.izlaz-dugme{right:4%;top:23%;}
 }
 
 
@@ -85,36 +42,14 @@
 	.pr_dog_klasa {padding-left: 4%; padding-right: 4%; padding-top: 120px;}
 	.logo {width: 100%;text-align: center;}
 	.logo img {float: none;}
-	.search-bar {width: 100%;}
-	.search-results{width: 100%;}
 	.user-account {float: left;}
-	.cm_img {width: 100%;text-align: center;margin-bottom: 10px;}
-	.cm_img img {float: none;}
-	.comment_box {width: 100%;}
-	.comment_box input {width: 100%;margin-bottom: 10px;}
-	.comment_box form button {float: none;}
-	.post-comment {text-align: center;}
-	.comment_box form button {padding: 0 15px;}
 	.job-details {width: 80%;}
-	.cover-sec {height: 200px;}
-	.cover-sec img {height: 100%;object-fit: cover;}
 	.like-com li {margin-right: 5px;}
 	/* main {padding: 20px 0 40px 0} */
 	.like-com li {float: left;}/*margin-bottom: 15px;width: 100%;*/
 	.job-status-bar > a {float: left;width: 100%;margin-top: -5px;}
-	.post-popup {width: 100%;overflow: scroll;}
-	.price-br {float: left;width: 100% !important;}
-	.post-project > a {top: 21px;right: 20px;}
 	.user-account-settingss {right: auto;left: 0;}
-	.image-container{margin-top:30px}
-	.radio-div{margin-top:60px}
 }
-@media (max-width: 455px) {
-.izlaz-dugme{top:18%;}
-}
-@media (max-width: 365px) {
-	.izlaz-dugme{top:17%;}
-	}
 
 	@media (max-width: 1015px)
 {

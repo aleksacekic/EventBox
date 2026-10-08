@@ -1,9 +1,13 @@
 import { api, API_BASE, ApiError } from '../api';
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { toast } from 'react-toastify';
+import NapraviDogadjaj from './NapraviDogadjaj';
+import Avatar from './Avatar';
 import HideShowMapa from './Hide&ShowMapa';
 import Komentari from './Komentari';
 import Reakcije from './Reakcije';
-import moment from 'moment';
+import { formatDatum } from '../utils/datum';
 import { jeZavrsen } from '../utils/dogadjaj';
 
 // Jedna kartica dogadjaja - ceo prikaz (topbar, opis, mapa, reakcije, komentari,
@@ -22,8 +26,12 @@ import { jeZavrsen } from '../utils/dogadjaj';
 // (public/css/style.css), NE stare "post-bar/job_descp/..." klase - one i dalje
 // koristi Profil.jsv koji ima svoju (nezavisnu, dupliranu) verziju kartice, pa
 // je dirati taj stari CSS ovde rizicno.
-function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, className = 'dogadjaj-card' }) {
+function DogadjajKartica({ dogadjaj: izListe, korisnik, onOpen, onObrisi, idsZaReakcije, className = 'dogadjaj-card' }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  // Izmena: forma se otvara iz kartice, a izmenjeni podaci se prikazuju odmah (bez ponovnog ucitavanja liste)
+  const [izmenaOtvorena, setIzmenaOtvorena] = useState(false);
+  const [izmenjen, setIzmenjen] = useState(null);
+  const dogadjaj = izmenjen ? { ...izListe, ...izmenjen } : izListe;
   const [prikaziKomentare, setPrikaziKomentare] = useState(false);
 
   const [prijaviFormaOtvorena, setPrijaviFormaOtvorena] = useState(false);
@@ -50,7 +58,7 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
   const posaljiPrijavu = async (e) => {
     stop(e);
     if (!selectedOption) {
-      alert('Molimo odaberite razlog prijave.');
+      toast.warn('Molimo odaberite razlog prijave.');
       return;
     }
 
@@ -66,7 +74,7 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         // Server pamti ko je prijavio: isti dogadjaj se ne prijavljuje dvaput
-        alert('Vec ste prijavili ovaj dogadjaj.');
+        toast.info('Vec ste prijavili ovaj dogadjaj.');
         zatvoriPrijavuFormu();
         setPrijavaPoslata(true);
         return;
@@ -83,10 +91,7 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
     >
       <div className="dogadjaj-card-header">
         <div className="dogadjaj-card-author">
-          <img
-            className="dogadjaj-card-avatar"
-            src={dogadjaj.slikaKorisnika ? `${API_BASE}/resources/${dogadjaj.slikaKorisnika}` : "http://via.placeholder.com/50x50"}
-          />
+          <Avatar className="dogadjaj-card-avatar" slika={dogadjaj.slikaKorisnika} ime={dogadjaj.userName_Kreatora} />
           <div className="dogadjaj-card-author-info">
             <h3>@{dogadjaj.userName_Kreatora}</h3>
             <span><i className="la la-clock-o" />{dogadjaj.formattedDatum}</span>
@@ -99,6 +104,7 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
               <i className="la la-ellipsis-v" />
             </button>
             <ul className="dogadjaj-card-menu-list">
+              <li><button type="button" onClick={(e) => { stop(e); setMenuOpen(false); setIzmenaOtvorena(true); }}>Izmeni objavu</button></li>
               <li><button type="button" onClick={(e) => { stop(e); onObrisi(dogadjaj.id); }}>Obrisi objavu</button></li>
             </ul>
           </div>
@@ -112,7 +118,7 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
           {zavrsen && <span className="dogadjaj-card-badge dogadjaj-card-badge-zavrsen">Zavrsen</span>}
           <span className="dogadjaj-card-when">
             <i className="la la-calendar" />
-            {moment(dogadjaj.datum_Dogadjaja).format('DD.MM.YYYY.')} od {dogadjaj.vreme_pocetka}
+            {formatDatum(dogadjaj.datum_Dogadjaja)}. od {dogadjaj.vreme_pocetka}
           </span>
         </div>
         {dogadjaj.opis && <p className="dogadjaj-card-desc">{dogadjaj.opis}</p>}
@@ -177,12 +183,27 @@ function DogadjajKartica({ dogadjaj, korisnik, onOpen, onObrisi, idsZaReakcije, 
         </div>
       )}
 
+      {/* Portal na <body>: modal ne sme da bude unutar kartice (njen onClick otvara objavu,
+          a CSS transformacija kartice bi pomerila "fixed" pozadinu) */}
+      {izmenaOtvorena && createPortal(
+        <div onClick={stop}>
+          <NapraviDogadjaj
+            otvorena
+            dogadjaj={dogadjaj}
+            onZatvori={() => setIzmenaOtvorena(false)}
+            onKreiran={(d) => setIzmenjen(d)}
+          />
+        </div>,
+        document.body
+      )}
+
       {prikaziKomentare && (
         <div className="dogadjaj-card-comments" onClick={stop}>
           <Komentari
             dogadjajId={dogadjaj.id}
             prikazaniDogadjaj={dogadjaj.id}
             korisnikovaSlika={korisnik.korisnikImage}
+            korisnikovoIme={korisnik.ime}
           />
         </div>
       )}

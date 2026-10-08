@@ -22,9 +22,16 @@ namespace Models
         public string Ime { get; set; }
         public string Prezime { get; set; }
         public string KorisnickoIme { get; set; }
-        public string? Lozinka { get; set; } // prazno = lozinka se ne menja
+        public string? Lozinka { get; set; } // nova lozinka; prazno = lozinka se ne menja
+        public string? TrenutnaLozinka { get; set; } // obavezna samo kad se menja lozinka
         public DateTime DatumRodjenja { get; set; }
         public string EmailAdresa { get; set; }
+    }
+
+    // Brisanje naloga trazi lozinku - token sam nije dovoljan za nepovratnu akciju
+    public class BrisanjeNalogaZahtev
+    {
+        public string? Lozinka { get; set; }
     }
 
     public class AdministratorZahtev
