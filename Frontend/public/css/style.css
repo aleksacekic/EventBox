@@ -4859,3 +4859,52 @@ a:hover {
 		padding: 12px 14px;
 	}
 }
+
+/* ================= Prebacivanje jezika (LanguageSwitcher: header i strana za prijavu) ================= */
+/* Obe pozadine su narandzaste, pa dugme izgleda isto; kod administratora prati njegovu boju. */
+.lang-switch {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 2px;
+	padding: 3px;
+	border-radius: 999px;
+	background-color: rgba(255, 255, 255, 0.2);
+}
+.lang-switch button {
+	height: 30px;
+	min-width: 34px;
+	padding: 0 8px;
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	color: #fff;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	cursor: pointer;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+.lang-switch button:hover {
+	background-color: rgba(255, 255, 255, 0.2);
+}
+.lang-switch button.is-active {
+	background-color: #fff;
+	color: var(--eb-orange, #FFA500);
+}
+.lang-switch button:focus-visible {
+	outline: 2px solid #fff;
+	outline-offset: 1px;
+}
+.app-header-right {
+	align-items: center;
+	gap: 10px;
+}
+.auth-page {
+	position: relative;
+}
+.auth-lang {
+	position: absolute;
+	top: 16px;
+	right: 16px;
+}

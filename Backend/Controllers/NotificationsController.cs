@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Microsoft.Extensions.Localization;
+using Novi_backend_za_SWE;
 
 namespace EventBoxApi.Controllers
 {
@@ -16,10 +18,15 @@ namespace EventBoxApi.Controllers
     public class NotificationsController : ControllerBase
     {
         public EventBoxContext Context;
-        public NotificationsController(EventBoxContext context)
+        private readonly IStringLocalizer<SharedResource> _t;
+        public NotificationsController(EventBoxContext context, IStringLocalizer<SharedResource> t)
         {
             this.Context = context;
+            _t = t;
         }
+
+        // Poruka na jeziku zahteva (Accept-Language), vidi SharedResource.cs
+        private string T(string kljuc, params object[] args) => _t[kljuc, args];
 
         // GET /api/notifications?limit=5 - najnovije prve (vidi NotifikacijaDto)
         [HttpGet]
@@ -46,14 +53,14 @@ namespace EventBoxApi.Controllers
             Notifikacija n = await Context.Notifikacije.FindAsync(id);
             if (n == null)
             {
-                return NotFound("Notifikacija nije pronađena");
+                return NotFound(T("NotificationNotFound"));
             }
             if (n.KorisnikCijaJeObjavaId != User.GetUserId())
                 return Forbid();
 
             Context.Notifikacije.Remove(n);
             await Context.SaveChangesAsync();
-            return Ok("Uspesno je izbrisana notifikacija sa ID-em: " + id);
+            return Ok(T("NotificationDeleted", id));
         }
     }
 }

@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api';
 import Avatar from './Avatar';
 import AdminEventCard from './AdminEventCard';
 import InfiniteScrollFooter from './InfiniteScrollFooter';
 import { useInfiniteList } from '../useInfiniteList';
 import { formatDate } from '../utils/date';
-import { adminTabUrl, pluralize } from '../utils/admin';
+import { adminTabUrl } from '../utils/admin';
 
 // Admin: pregled jednog korisnika (/admin?korisnik=ID) - podaci, status naloga,
 // blokiranje/odblokiranje i svi njegovi dogadjaji.
 function AdminUserDetails({ id }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [k, setK] = useState(null);
   const [greska, setGreska] = useState(null);
   const [radi, setRadi] = useState(false);
@@ -37,18 +39,18 @@ function AdminUserDetails({ id }) {
   const toggleBlock = async () => {
     const blokiraj = !k.blokiran;
     const pitanje = blokiraj
-      ? `Blokirati korisnika @${k.korisnicko_Ime}? Odmah ce biti odjavljen i nece moci da se prijavi.`
-      : `Odblokirati korisnika @${k.korisnicko_Ime}? Ponovo ce moci da se prijavi.`;
+      ? t('admin.user.confirmBlock', { username: k.korisnicko_Ime })
+      : t('admin.user.confirmUnblock', { username: k.korisnicko_Ime });
     if (radi || !window.confirm(pitanje)) return;
     setRadi(true);
     try {
       const url = `/api/users/${k.id}/block`;
       await (blokiraj ? api.put(url) : api.del(url));
       setK((prev) => ({ ...prev, blokiran: blokiraj }));
-      toast.success(`Korisnik @${k.korisnicko_Ime} je ${blokiraj ? 'blokiran' : 'odblokiran'}.`);
+      toast.success(t(blokiraj ? 'admin.user.blockedToast' : 'admin.user.unblockedToast', { username: k.korisnicko_Ime }));
     } catch (error) {
       console.error('Promena blokade nije uspela:', error);
-      toast.error('Akcija nije uspela. Pokusajte ponovo.');
+      toast.error(t('admin.user.actionFailed'));
     } finally {
       setRadi(false);
     }
@@ -60,8 +62,8 @@ function AdminUserDetails({ id }) {
   };
 
   const dugmeNazad = (
-    <button type="button" className="admin-goBack" onClick={goBack}>
-      <i className="la la-arrow-left" /> Nazad
+    <button type="button" className="admin-nazad" onClick={goBack}>
+      <i className="la la-arrow-left" /> {t('common.back')}
     </button>
   );
 
@@ -71,7 +73,7 @@ function AdminUserDetails({ id }) {
         {dugmeNazad}
         <div className="profil-empty admin-prazno">
           <i className="la la-user-times" />
-          {greska.status === 404 ? 'Korisnik ne postoji (mozda je obrisao nalog).' : 'Ucitavanje korisnika nije uspelo.'}
+          {greska.status === 404 ? t('admin.user.notFound') : t('admin.user.loadFailed')}
         </div>
       </section>
     );
@@ -89,22 +91,22 @@ function AdminUserDetails({ id }) {
               <h2>
                 {k.ime} {k.prezime}
                 <span className={`admin-status ${k.blokiran ? 'is-blokiran' : 'is-aktivan'}`}>
-                  {k.blokiran ? 'Blokiran' : 'Aktivan'}
+                  {k.blokiran ? t('admin.user.blocked') : t('admin.user.active')}
                 </span>
               </h2>
               <div className="admin-korisnik-korisnicko">@{k.korisnicko_Ime}</div>
               <div className="admin-korisnik-detalji">
                 <span><i className="la la-envelope" /> {k.email_Adresa}</span>
-                <span><i className="la la-birthday-cake" /> {formatDate(k.datum_rodjenja)}.</span>
-                <span><i className="la la-calendar" /> {pluralize(lista.total ?? k.brojDogadjaja, ['dogadjaj', 'dogadjaja', 'dogadjaja'])}</span>
+                <span><i className="la la-birthday-cake" /> {formatDate(k.datum_rodjenja)}</span>
+                <span><i className="la la-calendar" /> {t('admin.user.eventCount', { count: lista.total ?? k.brojDogadjaja })}</span>
                 <span className={k.brojPrijava > 0 ? 'admin-korisnik-prijave' : undefined}>
                   <i className="la la-flag" />{' '}
-                  {k.brojPrijava > 0 ? `Prijavljen ${pluralize(k.brojPrijava, ['put', 'puta', 'puta'])}` : 'Bez prijava'}
+                  {k.brojPrijava > 0 ? t('admin.user.reportedTimes', { count: k.brojPrijava }) : t('admin.user.noReports')}
                 </span>
               </div>
               {k.blokiran && (
                 <p className="admin-skriveno">
-                  <i className="la la-eye-slash" /> Njegovi dogadjaji i komentari su sakriveni za ostale korisnike.
+                  <i className="la la-eye-slash" /> {t('admin.user.hiddenNote')}
                 </p>
               )}
             </div>
@@ -115,23 +117,23 @@ function AdminUserDetails({ id }) {
               disabled={radi}
             >
               <i className={`la ${k.blokiran ? 'la-unlock' : 'la-ban'}`} />
-              {k.blokiran ? 'Odblokiraj' : 'Blokiraj'}
+              {k.blokiran ? t('admin.user.unblock') : t('admin.user.block')}
             </button>
           </>
         ) : (
-          <div className="admin-korisnik-ucitava">Ucitavam...</div>
+          <div className="admin-korisnik-ucitava">{t('common.loading')}</div>
         )}
       </div>
 
       <h3 className="admin-podnaslov">
-        Dogadjaji korisnika
+        {t('admin.user.events')}
         {lista.total != null && <span className="admin-broj">{lista.total}</span>}
       </h3>
 
       {!lista.initialLoading && !lista.error && lista.items.length === 0 && (
         <div className="profil-empty admin-prazno">
           <i className="la la-calendar-o" />
-          Korisnik nema nijedan dogadjaj.
+          {t('admin.user.noEvents')}
         </div>
       )}
 

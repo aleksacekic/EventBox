@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Localization;
+
 namespace Models
 {
     // Pravila za email korisnika: ispravan format, najvise 254 karaktera, jedinstven (indeks u
@@ -9,10 +11,10 @@ namespace Models
 
         public static string Normalize(string? email) => (email ?? "").Trim();
 
-        // null = ispravno, inace poruka o gresci
-        public static string? Validate(string email)
+        // null = ispravno, inace poruka o gresci (na jeziku zahteva)
+        public static string? Validate(string email, IStringLocalizer t)
             => email.Length > MaxLength || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email)
-                ? "Unesite ispravnu email adresu."
+                ? t["InvalidEmail"].Value
                 : null;
 
         // Da li je SaveChanges pao bas na jedinstvenosti emaila (a ne korisnickog imena)

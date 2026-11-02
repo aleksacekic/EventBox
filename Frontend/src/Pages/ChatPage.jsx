@@ -3,6 +3,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth";
 import { useNotifications } from "../notifications";
+import { useTranslation } from "react-i18next";
 import Header from "../components/Header";
 import InfiniteScrollFooter from "../components/InfiniteScrollFooter";
 import { useInfiniteList } from "../useInfiniteList";
@@ -27,6 +28,7 @@ function Avatar({ user, className = "" }) {
 }
 
 const ChatPage = () => {
+  const { t } = useTranslation();
   const [selectedUser, setSelectedUser] = useState(null); //trenutno izabrani korisnik za chat
   const [newMessage, setNewMessage] = useState(""); //nasa poruka u input polju
   const [users, setUsers] = useState([]); //lista korisnika koji su dostupni za chat
@@ -294,19 +296,19 @@ const ChatPage = () => {
       <Header />
       <div className="container poruke-wrap">
         <button type="button" onClick={() => navigate(-1)} className="poruke-back">
-          <i className="la la-arrow-left" /> Nazad
+          <i className="la la-arrow-left" /> {t('common.back')}
         </button>
 
         <div className={`poruke-card ${selectedUser ? "has-chat" : ""}`}>
           <div className="poruke-list">
             <div className="poruke-list-head">
-              <h2>Poruke</h2>
+              <h2>{t('chat.title')}</h2>
               <button
                 type="button"
                 onClick={toggleSearch}
                 className={`poruke-new ${showSearch ? "is-open" : ""}`}
-                aria-label="Nova poruka"
-                title="Nova poruka"
+                aria-label={t('chat.newMessage')}
+                title={t('chat.newMessage')}
               >
                 <i className={`la ${showSearch ? "la-times" : "la-plus"}`} />
               </button>
@@ -319,8 +321,8 @@ const ChatPage = () => {
                   <input
                     type="text"
                     name="search"
-                    placeholder="Pretrazi korisnike..."
-                    aria-label="Pretrazi korisnike"
+                    placeholder={t('header.searchUsers')}
+                    aria-label={t('header.searchUsersLabel')}
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
                     autoComplete="off"
@@ -348,7 +350,7 @@ const ChatPage = () => {
             <div className="poruke-contacts">
               {sortedUsers.length === 0 && (
                 <p className="poruke-contacts-empty">
-                  Jos nemas razgovora. Klikni + da zapocnes novi.
+                  {t('chat.noConversations')}
                 </p>
               )}
               {sortedUsers.map((user) => {
@@ -365,7 +367,7 @@ const ChatPage = () => {
                       <strong>{fullName(user)}</strong>
                       <small>@{user.korisnicko_Ime}</small>
                     </span>
-                    {nova && <span className="poruke-nova">Nova</span>}
+                    {nova && <span className="poruke-nova">{t('chat.new')}</span>}
                   </button>
                 );
               })}
@@ -380,7 +382,7 @@ const ChatPage = () => {
                     type="button"
                     className="poruke-chat-back"
                     onClick={() => setSelectedUser(null)}
-                    aria-label="Nazad na listu razgovora"
+                    aria-label={t('chat.backToList')}
                   >
                     <i className="la la-arrow-left" />
                   </button>
@@ -397,7 +399,7 @@ const ChatPage = () => {
                   <InfiniteScrollFooter lista={lista} gore />
                   {!lista.initialLoading && !lista.loading && !lista.error && poruke.length === 0 && (
                     <div className="poruke-messages-empty">
-                      Jos nema poruka. Napisi prvu!
+                      {t('chat.noMessages')}
                     </div>
                   )}
                   {poruke.map((msg) => (
@@ -411,7 +413,7 @@ const ChatPage = () => {
                     >
                       {msg.sadrzaj}
                       <span className="poruke-time">
-                        {msg.neuspela ? "Nije poslato" : formatTime(msg.vreme)}
+                        {msg.neuspela ? t('chat.notSent') : formatTime(msg.vreme)}
                       </span>
                     </div>
                   ))}
@@ -420,13 +422,13 @@ const ChatPage = () => {
                 <form className="poruke-composer" onSubmit={handleSendMessage}>
                   <input
                     type="text"
-                    placeholder="Napisi poruku..."
-                    aria-label="Poruka"
+                    placeholder={t('chat.placeholder')}
+                    aria-label={t('chat.messageLabel')}
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onFocus={() => handleMarkRead(selectedUser)}
                   />
-                  <button type="submit" aria-label="Posalji" disabled={!newMessage.trim()}>
+                  <button type="submit" aria-label={t('chat.send')} disabled={!newMessage.trim()}>
                     <i className="la la-paper-plane" />
                   </button>
                 </form>
@@ -434,8 +436,8 @@ const ChatPage = () => {
             ) : (
               <div className="poruke-empty">
                 <i className="la la-comments-o" />
-                <h3>Tvoje poruke</h3>
-                <p>Izaberi razgovor sa liste ili zapocni novi.</p>
+                <h3>{t('chat.emptyTitle')}</h3>
+                <p>{t('chat.emptyText')}</p>
               </div>
             )}
           </div>

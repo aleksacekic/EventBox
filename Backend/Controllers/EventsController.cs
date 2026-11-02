@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using Models;
 using EventBoxApi.Repo.Abstract;
 using EventBoxApi.Repo.Implementation;
+using Microsoft.Extensions.Localization;
+using Novi_backend_za_SWE;
 
 namespace EventBoxApi.Controllers
 {
@@ -19,11 +21,16 @@ namespace EventBoxApi.Controllers
     {
         public EventBoxContext Context;
         public IFileService _fileService;
-        public EventsController(EventBoxContext context, IFileService fs)
+        private readonly IStringLocalizer<SharedResource> _t;
+        public EventsController(EventBoxContext context, IFileService fs, IStringLocalizer<SharedResource> t)
         {
             this.Context = context;
             this._fileService = fs;
+            _t = t;
         }
+
+        // Poruka na jeziku zahteva (Accept-Language), vidi SharedResource.cs
+        private string T(string kljuc, params object[] args) => _t[kljuc, args];
 
         // Liste dogadjaja: najnoviji prvi, stranicenje kursorom (Models/Pagination.cs).
         //   ?limit=3                -> prva strana
@@ -37,7 +44,7 @@ namespace EventBoxApi.Controllers
         private async Task<ActionResult> GetEventPage(IQueryable<Dogadjaj> upit, int limit, string? cursor)
         {
             if (!Pagination.TryDecodeCursor(cursor, out int? posle))
-                return BadRequest("Neispravan kursor");
+                return BadRequest(T("InvalidCursor"));
             return Ok(await Pagination.GetPageAsync(upit.Include(d => d.KreatorId), posle, limit));
         }
 
@@ -68,7 +75,7 @@ namespace EventBoxApi.Controllers
         public async Task<ActionResult> SearchEvents([FromQuery] string title, [FromQuery] int limit = Pagination.DefaultPageSize, [FromQuery] string? cursor = null)
         {
             if (string.IsNullOrWhiteSpace(title))
-                return BadRequest("Naziv je obavezan");
+                return BadRequest(T("TitleRequired"));
             DateTime danas = DateTime.Today;
             return await GetEventPage(OnlyVisible(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= danas && d.Naslov.Contains(title))), limit, cursor);
         }
@@ -100,7 +107,7 @@ namespace EventBoxApi.Controllers
             // Dogadjaj blokiranog korisnika je sakriven (kao da ne postoji) za sve osim administratora
             if (dogadjaj == null || (dogadjaj.KreatorBlokiran && !User.IsAdmin()))
             {
-                return NotFound($"Događaj sa ID-em {id} nije pronađen.");
+                return NotFound(T("EventNotFound", id));
             }
 
             return Ok(dogadjaj);
@@ -115,10 +122,10 @@ namespace EventBoxApi.Controllers
             if (User.IsAdmin())
                 return Forbid(); // administrator nije korisnik i nema dogadjaje
             if (zahtev == null)
-                return BadRequest("Nedostaju podaci o dogadjaju");
-            var greske = zahtev.Validate();
+                return BadRequest(T("MissingEventData"));
+            var greske = zahtev.Validate(_t);
             if (greske.Count > 0)
-                return BadRequest(new { message = "Proverite unete podatke.", greske });
+                return BadRequest(new { message = T("CheckInput"), greske });
 
             var dog = new Dogadjaj
             {
@@ -148,10 +155,10 @@ namespace EventBoxApi.Controllers
             if(dog.ID_Kreatora != User.GetUserId())
                 return Forbid();
             if (zahtev == null)
-                return BadRequest("Nedostaju podaci o dogadjaju");
-            var greske = zahtev.Validate(allowedPastDate: dog.Datum_Dogadjaja);
+                return BadRequest(T("MissingEventData"));
+            var greske = zahtev.Validate(_t, allowedPastDate: dog.Datum_Dogadjaja);
             if (greske.Count > 0)
-                return BadRequest(new { message = "Proverite unete podatke.", greske });
+                return BadRequest(new { message = T("CheckInput"), greske });
 
             zahtev.ApplyTo(dog);
             await Context.SaveChangesAsync();
@@ -166,7 +173,7 @@ namespace EventBoxApi.Controllers
         {
             var dog = await Context.Dogadjaji.FindAsync(id);
             if(dog == null)
-                return NotFound($"Dogadjaj sa ID-em {id} nije pronadjen");
+                return NotFound(T("EventNotFound", id));
             if(dog.ID_Kreatora != User.GetUserId() && !User.IsAdmin())
                 return Forbid(); // brise vlasnik ili administrator
 
@@ -177,7 +184,7 @@ namespace EventBoxApi.Controllers
             Context.Dogadjaji.Remove(dog);
             await Context.SaveChangesAsync();
             _fileService.DeleteImage(dog.DogadjajImage); // tek kad je dogadjaj stvarno obrisan
-            return Ok($"Uspesno je izbrisan dogadjaj sa ID-em {id}");
+            return Ok(T("EventDeleted", id));
         }
 
         // PUT /api/events/{id}/image - postavlja ili menja sliku dogadjaja (multipart, polje "fajl").
@@ -229,7 +236,7 @@ namespace EventBoxApi.Controllers
             d.DogadjajImage = null;
             await Context.SaveChangesAsync();
             _fileService.DeleteImage(stara);
-            return Ok("Uspesno izbrisana slika");
+            return Ok(T("ImageDeleted"));
         }
     }
 }

@@ -1,8 +1,10 @@
 import { api } from '../api';
 import React, { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 
 // samoPrikaz: zavrsen dogadjaj - bez reagovanja, samo brojevi (prosledjuju se u `brojevi`)
 function ReactionButtons({ dogadjaj_Id, IDucitanidogadjaji, samoPrikaz = false, brojevi }) {
+  const { t } = useTranslation();
   // dogadjaj_ID -> tip reakcije ulogovanog korisnika ("Zainteresovan" | "Mozda" | "Nezainteresovan")
   const [aktivneReakcije, setAktivneReakcije] = useState({});
   const aktivniTip = aktivneReakcije[dogadjaj_Id];
@@ -60,13 +62,13 @@ function ReactionButtons({ dogadjaj_Id, IDucitanidogadjaji, samoPrikaz = false, 
     return (
       <div className="dogadjaj-card-reakcije">
         <span className="dogadjaj-card-reakcija-ro dogadjaj-card-reakcija-da">
-          Zainteresovanih: {brojevi?.da ?? 0}
+          {t('reactions.interestedCount', { n: brojevi?.da ?? 0 })}
         </span>
         <span className="dogadjaj-card-reakcija-ro dogadjaj-card-reakcija-mozda">
-          Mozda: {brojevi?.mozda ?? 0}
+          {t('reactions.maybeCount', { n: brojevi?.mozda ?? 0 })}
         </span>
         <span className="dogadjaj-card-reakcija-ro dogadjaj-card-reakcija-ne">
-          Nezainteresovanih: {brojevi?.ne ?? 0}
+          {t('reactions.notInterestedCount', { n: brojevi?.ne ?? 0 })}
         </span>
       </div>
     );
@@ -81,7 +83,7 @@ function ReactionButtons({ dogadjaj_Id, IDucitanidogadjaji, samoPrikaz = false, 
           handleInterestedClick();
         }}
       >
-        Zainteresovan sam
+        {t('reactions.interested')}
       </button>
       <button
         className={`dogadjaj-card-reakcija dogadjaj-card-reakcija-mozda ${mozdaActive ? "is-active" : ""}`}
@@ -90,7 +92,7 @@ function ReactionButtons({ dogadjaj_Id, IDucitanidogadjaji, samoPrikaz = false, 
           handleMaybeClick();
         }}
       >
-        Mozda
+        {t('reactions.maybe')}
       </button>
       <button
         className={`dogadjaj-card-reakcija dogadjaj-card-reakcija-ne ${
@@ -101,7 +103,7 @@ function ReactionButtons({ dogadjaj_Id, IDucitanidogadjaji, samoPrikaz = false, 
           handleNotInterestedClick();
         }}
       >
-        Nisam zainteresovan
+        {t('reactions.notInterested')}
       </button>
     </div>
   );

@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import React from 'react'
 import EventCard from './EventCard';
-import { formatDate } from '../utils/date';
 import { useAuth } from '../auth';
 import { useNotifications } from '../notifications';
+import { useTranslation } from 'react-i18next';
 
 // Deep-link strana za jedan dogadjaj (/objava/:id) - otvara se i direktnim
 // linkom / iz chata / refreshom, ne samo klikom iz feeda. Zato NE zavisi od
@@ -16,6 +16,7 @@ function EventDetails() {
   const navigate = useNavigate();
   const { userId } = useAuth();
   const { loadNotifications } = useNotifications();
+  const { t } = useTranslation();
 
   const [dogadjaj, setDogadjaj] = useState(null);
   const [ucitavaSe, setUcitavaSe] = useState(true);
@@ -36,10 +37,7 @@ function EventDetails() {
       try {
         const data = await api.get(`/api/events/${id}`);
         if (otkazano) return;
-        setDogadjaj({
-          ...data,
-          formattedDatum: formatDate(data.datum_Objave),
-        });
+        setDogadjaj(data);
       } catch (error) {
         console.error('Greska pri dohvatanju dogadjaja:', error);
         if (!otkazano) setNijeNadjen(true);
@@ -80,7 +78,7 @@ function EventDetails() {
   };
 
   if (ucitavaSe || !korisnik) {
-    return <p>Učitavanje...</p>;
+    return <p>{t('common.loading')}</p>;
   }
 
   if (nijeNadjen || !dogadjaj) {
@@ -89,9 +87,9 @@ function EventDetails() {
         <div className="dogadjaj-standalone-inner">
           <button onClick={handleBackClick} className="dogadjaj-standalone-back">
             <i className="la la-arrow-left" />
-            Povratak na pocetnu
+            {t('events.backHome')}
           </button>
-          <p>Ovaj dogadjaj ne postoji ili je obrisan.</p>
+          <p>{t('events.notFound')}</p>
         </div>
       </div>
     );
@@ -102,7 +100,7 @@ function EventDetails() {
       <div className="dogadjaj-standalone-inner">
         <button onClick={handleBackClick} className="dogadjaj-standalone-back">
           <i className="la la-arrow-left" />
-          Povratak na pocetnu
+          {t('events.backHome')}
         </button>
         <EventCard
           dogadjaj={dogadjaj}

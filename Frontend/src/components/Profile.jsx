@@ -5,19 +5,21 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { formatDate } from '../utils/date';
 import { useAuth } from '../auth';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useNotifications } from '../notifications';
 import EventCard from './EventCard';
 import EditProfileForm from './EditProfileForm';
 import Avatar from './Avatar';
 import InfiniteScrollFooter from './InfiniteScrollFooter';
 import { useInfiniteList } from '../useInfiniteList';
-import { isEventFinished } from '../utils/event';
+import { isEventFinished, categoryLabel } from '../utils/event';
 
 
 function Profile() {
   const { id: routeId } = useParams();      // definisan samo na /profilkorisnika/:id
   const { userId } = useAuth();             // ulogovani korisnik
   const { loadNotifications } = useNotifications();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const profileId = routeId || userId;      // koji profil gledamo
   const isOwnProfile = String(profileId) === String(userId);
@@ -26,15 +28,11 @@ function Profile() {
   const [statusFilter, setStatusFilter] = useState('svi'); // 'svi' | 'predstojeci' | 'zavrseni'
 
   // Dogadjaji profila se ucitavaju 3 po 3 kako korisnik skroluje (vidi useInfiniteList)
-  const lista = useInfiniteList(
-    profileId ? `/api/users/${profileId}/events` : null,
-    { mapItem: (d) => ({ ...d, formattedDatum: formatDate(d.datum_Objave) }) }
-  );
+  const lista = useInfiniteList(profileId ? `/api/users/${profileId}/events` : null);
   const dogadjaji = lista.items;
   const ukupnoElemenata = lista.total ?? 0;
   const [korisnik, setKorisnik] = useState(null);       // ciji profil gledamo
   const [ulogovani, setUlogovani] = useState(null);     // ko gleda (treba kartici)
-  const [mojdatum, setmojdatum] = useState();
   const [kategorije, setKategorije] = useState(null);   // [{ kategorija, broj }] - svi dogadjaji korisnika
 
   const [izmenaProfila, setIzmenaProfila] = useState(false);
@@ -77,7 +75,7 @@ function Profile() {
     } catch (error) {
       console.log(error);
       // 400 nosi razlog (npr. pogresan format ili prevelika slika)
-      toast.error(error instanceof ApiError && error.status === 400 ? error.message : 'Slika nije sacuvana. Pokusajte ponovo.');
+      toast.error(error instanceof ApiError && error.status === 400 ? error.message : t('profile.imageSaveFailed'));
     } finally {
       setSlikaSeMenja(false);
     }
@@ -86,7 +84,7 @@ function Profile() {
   // BRISANJE SLIKE KORISNIKU (samo svoj profil)
   const handleDeleteImage = async () => {
     setMeniSlikeOtvoren(false);
-    if (!window.confirm('Da li sigurno zelis da uklonis profilnu sliku?')) return;
+    if (!window.confirm(t('profile.confirmRemoveImage'))) return;
     setSlikaSeMenja(true);
     try {
       await api.del(`/api/users/${userId}/image`);
@@ -122,10 +120,7 @@ function Profile() {
   const loadUser = async () => {
     try {
       const data = await api.get(`/api/users/${profileId}`);
-      const formatiranDatum = formatDate(data.datum_rodjenja);
-      data.datumrodjenja = formatiranDatum;
       setKorisnik(data);
-      setmojdatum(formatiranDatum);
     } catch (error) {
       console.log(error);
     }
@@ -152,16 +147,16 @@ function Profile() {
 
 
   const FILTERI = [
-    ['svi', 'Svi'],
-    ['predstojeci', 'Predstojeci'],
-    ['zavrseni', 'Zavrseni'],
+    ['svi', t('profile.filterAll')],
+    ['predstojeci', t('profile.filterUpcoming')],
+    ['zavrseni', t('profile.filterFinished')],
   ];
 
   const INFO_REDOVI = korisnik ? [
-    ['la-user', 'Ime i prezime', `${korisnik.ime} ${korisnik.prezime}`],
-    ['la-at', 'Korisnicko ime', `@${korisnik.korisnicko_Ime}`],
-    ['la-birthday-cake', 'Datum rodjenja', mojdatum],
-    ['la-envelope', 'Email', korisnik.email_Adresa],
+    ['la-user', t('profile.fullName'), `${korisnik.ime} ${korisnik.prezime}`],
+    ['la-at', t('profile.username'), `@${korisnik.korisnicko_Ime}`],
+    ['la-birthday-cake', t('profile.birthDate'), formatDate(korisnik.datum_rodjenja)],
+    ['la-envelope', t('profile.email'), korisnik.email_Adresa],
   ] : [];
 
   return (
@@ -187,7 +182,7 @@ function Profile() {
                         type="button"
                         className="profil-avatar-edit"
                         onClick={() => setMeniSlikeOtvoren((v) => !v)}
-                        aria-label="Promeni profilnu sliku"
+                        aria-label={t('profile.changeImageLabel')}
                         aria-haspopup="menu"
                         aria-expanded={meniSlikeOtvoren}
                       >
@@ -203,11 +198,11 @@ function Profile() {
                       {meniSlikeOtvoren && (
                         <div className="profil-avatar-menu" role="menu">
                           <button type="button" role="menuitem" onClick={() => fileInputRef.current.click()}>
-                            <i className="la la-image" /> {korisnik.korisnikImage ? 'Promeni sliku' : 'Dodaj sliku'}
+                            <i className="la la-image" /> {korisnik.korisnikImage ? t('profile.changeImage') : t('profile.addImage')}
                           </button>
                           {korisnik.korisnikImage && (
                             <button type="button" role="menuitem" className="is-danger" onClick={handleDeleteImage}>
-                              <i className="la la-trash" /> Ukloni sliku
+                              <i className="la la-trash" /> {t('profile.removeImage')}
                             </button>
                           )}
                         </div>
@@ -230,13 +225,13 @@ function Profile() {
 
                 {!isOwnProfile && korisnik && (
                   <Link to={`/chat?korisnik=${korisnik.id}`} className="profil-message-btn">
-                    <i className="la la-envelope" /> Posalji poruku
+                    <i className="la la-envelope" /> {t('profile.sendMessage')}
                   </Link>
                 )}
 
                 <div className="profil-stat">
                   <b>{ukupnoElemenata}</b>
-                  <span>Napravljenih dogadjaja</span>
+                  <span>{t('profile.createdEvents')}</span>
                 </div>
               </aside>
             </div>
@@ -250,7 +245,7 @@ function Profile() {
                   className={`profil-tab ${profileTab === 'feed-dd' ? 'is-active' : ''}`}
                   onClick={() => setProfileTab('feed-dd')}
                 >
-                  <i className="la la-calendar" /> Dogadjaji
+                  <i className="la la-calendar" /> {t('profile.tabEvents')}
                   <span className="profil-tab-count">{ukupnoElemenata}</span>
                 </button>
                 <button
@@ -260,7 +255,7 @@ function Profile() {
                   className={`profil-tab ${profileTab === 'info-dd' ? 'is-active' : ''}`}
                   onClick={() => setProfileTab('info-dd')}
                 >
-                  <i className="la la-user" /> Informacije
+                  <i className="la la-user" /> {t('profile.tabInfo')}
                 </button>
               </div>
 
@@ -282,7 +277,7 @@ function Profile() {
                   {lista.initialLoading || !ulogovaniKorisnik ? (
                     <div className="profil-skeleton profil-skeleton-card" />
                   ) : prikazani.length === 0 ? (
-                    <div className="profil-empty">Nema dogadjaja za prikaz.</div>
+                    <div className="profil-empty">{t('events.empty')}</div>
                   ) : (
                     prikazani.map((dogadjaj) => (
                       <EventCard
@@ -305,7 +300,6 @@ function Profile() {
                   onCancel={() => setIzmenaProfila(false)}
                   onSaved={(novi) => {
                     setKorisnik(novi);
-                    setmojdatum(formatDate(novi.datum_rodjenja));
                     setIzmenaProfila(false);
                     notifyHeader(); // ime u headeru
                   }}
@@ -316,7 +310,7 @@ function Profile() {
                 <div className="profil-info">
                   {isOwnProfile && korisnik && (
                     <button type="button" className="profil-info-izmeni" onClick={() => setIzmenaProfila(true)}>
-                      <i className="la la-pencil" /> Izmeni podatke
+                      <i className="la la-pencil" /> {t('profile.editInfo')}
                     </button>
                   )}
                   {INFO_REDOVI.length === 0 ? (
@@ -338,11 +332,11 @@ function Profile() {
 
             <div className="col-lg-3">
               <aside className="profil-side-card">
-                <h3><i className="la la-heart" /> Omiljene kategorije</h3>
+                <h3><i className="la la-heart" /> {t('profile.favoriteCategories')}</h3>
                 {kategorije === null ? (
                   <div className="profil-skeleton profil-skeleton-line" />
                 ) : kategorije.length === 0 ? (
-                  <p className="profil-side-empty">Jos nema dogadjaja.</p>
+                  <p className="profil-side-empty">{t('profile.noEventsYet')}</p>
                 ) : (
                   <ul className="profil-kategorije">
                     {kategorije.slice(0, 5).map((k) => {
@@ -350,7 +344,7 @@ function Profile() {
                       return (
                         <li key={k.kategorija}>
                           <div className="profil-kategorija-info">
-                            <span>{k.kategorija}</span>
+                            <span>{categoryLabel(t, k.kategorija)}</span>
                             <b>{k.broj} <small>({procenat}%)</small></b>
                           </div>
                           <div className="profil-kategorija-bar">

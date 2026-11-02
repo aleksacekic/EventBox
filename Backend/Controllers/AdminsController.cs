@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Microsoft.Extensions.Localization;
+using Novi_backend_za_SWE;
 
 namespace EventBoxApi.Controllers
 {
@@ -15,10 +17,15 @@ namespace EventBoxApi.Controllers
     public class AdminsController : ControllerBase
     {
         public EventBoxContext Context;
-        public AdminsController(EventBoxContext context)
+        private readonly IStringLocalizer<SharedResource> _t;
+        public AdminsController(EventBoxContext context, IStringLocalizer<SharedResource> t)
         {
             this.Context = context;
+            _t = t;
         }
+
+        // Poruka na jeziku zahteva (Accept-Language), vidi SharedResource.cs
+        private string T(string kljuc, params object[] args) => _t[kljuc, args];
 
         public const int MaxNameLength = 50;
 
@@ -65,10 +72,10 @@ namespace EventBoxApi.Controllers
 
             if (zahtev == null || string.IsNullOrWhiteSpace(zahtev.KorisnickoIme)
                 || string.IsNullOrEmpty(zahtev.Lozinka) || zahtev.Lozinka.Length < 8)
-                return BadRequest("Korisnicko ime je obavezno, a lozinka mora imati najmanje 8 karaktera");
+                return BadRequest(T("AdminUsernamePasswordRequired"));
 
             zahtev.KorisnickoIme = UsernameRules.Normalize(zahtev.KorisnickoIme);
-            var greskaImena = UsernameRules.Validate(zahtev.KorisnickoIme);
+            var greskaImena = UsernameRules.Validate(zahtev.KorisnickoIme, _t);
             if (greskaImena != null)
                 return BadRequest(greskaImena);
 
@@ -76,14 +83,14 @@ namespace EventBoxApi.Controllers
             zahtev.Ime = zahtev.Ime?.Trim() ?? "";
             zahtev.Prezime = zahtev.Prezime?.Trim() ?? "";
             if (zahtev.Ime.Length == 0 || zahtev.Prezime.Length == 0)
-                return BadRequest("Ime i prezime su obavezni");
+                return BadRequest(T("NameRequired"));
             if (zahtev.Ime.Length > MaxNameLength || zahtev.Prezime.Length > MaxNameLength)
-                return BadRequest($"Ime i prezime mogu imati najvise {MaxNameLength} karaktera");
+                return BadRequest(T("NameMaxLength", MaxNameLength));
             zahtev.EmailAdresa = EmailRules.Normalize(zahtev.EmailAdresa);
-            if (EmailRules.Validate(zahtev.EmailAdresa) is string greskaEmaila)
+            if (EmailRules.Validate(zahtev.EmailAdresa, _t) is string greskaEmaila)
                 return BadRequest(greskaEmaila);
             if (await Context.Administratori.AnyAsync(p => p.Korisnicko_ime == zahtev.KorisnickoIme))
-                return Conflict("Administrator sa tim korisnickim imenom vec postoji");
+                return Conflict(T("AdminExists"));
 
             Administrator a = new Administrator();
             a.Ime = zahtev.Ime;
@@ -98,7 +105,7 @@ namespace EventBoxApi.Controllers
             }
             catch (DbUpdateException e) when (UsernameRules.IsDuplicate(e))
             {
-                return Conflict("Administrator sa tim korisnickim imenom vec postoji");
+                return Conflict(T("AdminExists"));
             }
             return Ok(ToPublic(a, GetCurrentAdminId())); // admin stranica ga odmah dodaje u listu
         }
@@ -115,15 +122,15 @@ namespace EventBoxApi.Controllers
                 return NotFound();
             // Sopstveni nalog ne: administrator bi sam sebe izbacio usred rada
             if (a.Id == GetCurrentAdminId())
-                return BadRequest("Ne mozete obrisati sopstveni nalog");
+                return BadRequest(T("CannotDeleteSelf"));
             // Bez ijednog administratora prvog bi opet mogao da napravi bilo ko sa servera
             // (vidi CreateAdmin) - poslednji se zato ne brise
             if (await Context.Administratori.CountAsync() == 1)
-                return Conflict("Ne moze se obrisati poslednji administrator");
+                return Conflict(T("CannotDeleteLastAdmin"));
 
             Context.Administratori.Remove(a);
             await Context.SaveChangesAsync();
-            return Ok("Uspesno ste izbrisali korisnika sa ID-em "+id);
+            return Ok(T("AdminDeleted", id));
         }
 
         // POST /api/admins/login
@@ -140,7 +147,7 @@ namespace EventBoxApi.Controllers
             if (loginProtection.GetRemainingLockout("a", ime) is TimeSpan preostalo)
             {
                 Response.Headers.RetryAfter = ((int)Math.Ceiling(preostalo.TotalSeconds)).ToString();
-                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = LoginProtection.LockoutMessage(preostalo) });
+                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = LoginProtection.LockoutMessage(preostalo, _t) });
             }
 
             Administrator a = await Context.Administratori.Where(p => p.Korisnicko_ime == ime).FirstOrDefaultAsync();
@@ -177,7 +184,7 @@ namespace EventBoxApi.Controllers
             a.Token = null;
             a.Validnost = null;
             await Context.SaveChangesAsync();
-            return Ok("Odjavljeni ste");
+            return Ok(T("LoggedOut"));
         }
     }
 }

@@ -4,10 +4,9 @@ import EventFeed from './EventFeed'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import { useEffect, useState } from 'react'
-import { registerLocale } from "react-datepicker"
-import srLatn from "date-fns/locale/sr-Latn";
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { formatDate } from '../utils/date';
+import { formatDate, datePickerLocale, datePickerFormat } from '../utils/date';
 import Avatar from './Avatar';
 import { useAuth } from '../auth';
 import { useNotifications, getNotificationText, formatDateTime } from '../notifications';
@@ -16,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 
 function Main({ onCreateEvent, noviDogadjaj }) {
 
+  const { t } = useTranslation();
   const { userId } = useAuth();
   const { notifications } = useNotifications();
   const [korisnik, setKorisnik] = useState(null);
@@ -30,7 +30,6 @@ function Main({ onCreateEvent, noviDogadjaj }) {
   // dodatne logike ovde za "vracanje" stare liste).
   const [feedKey, setFeedKey] = useState(0);
 
-  registerLocale("sr-Latn", srLatn);
   // za datum kod radio buttona
 
   const [datumPicker, setDatumPicker] = useState(() => new Date());
@@ -109,7 +108,7 @@ const openEvent = (id) => {
                           <div className="usr-pic">
                             <Avatar className="profilnaslikahomepage" slika={korisnik.korisnikImage} ime={korisnik.ime} />
                           </div>) : (
-                              <p>Korisnik nije dostupan</p>
+                              <p>{t('header.userUnavailable')}</p>
                             )}
                         </div>
                         {korisnik ? (
@@ -118,12 +117,12 @@ const openEvent = (id) => {
                           <span>@{korisnik.korisnicko_Ime}</span>
                         </div>
                      ) : (
-                      <p>Korisnik nije dostupan</p>
+                      <p>{t('header.userUnavailable')}</p>
                     )}
                       </div>{/*user-profile end*/}
                       <ul className="user-fw-status">
                         <li>
-                          <Link to="/profil">Vidi profil</Link>
+                          <Link to="/profil">{t('home.viewProfile')}</Link>
                         </li>
                       </ul>
                     </div>{/*user-data end*/}
@@ -138,13 +137,13 @@ const openEvent = (id) => {
                           <div className="usr-pic">
                             <Avatar className="profilnaslikahomepageobjava" slika={korisnik.korisnikImage} ime={korisnik.ime} />
                           </div>) : (
-                              <p>Korisnik nije dostupan</p>
+                              <p>{t('header.userUnavailable')}</p>
                             )}
                       </div>
                       <div className="post-st">
                         <ul>
                           {/* <li><a class="post_project" href="#" title="">Post a Project</a></li> */}
-                          <li><a className="post-jb active" href="#" onClick={(e) => { e.preventDefault(); onCreateEvent?.(); }}>Napravi dogadjaj</a></li>
+                          <li><a className="post-jb active" href="#" onClick={(e) => { e.preventDefault(); onCreateEvent?.(); }}>{t('home.createEvent')}</a></li>
                         </ul>
                       </div>{/*post-st end*/}
                     </div>{/*post-topbar end*/}
@@ -156,37 +155,37 @@ const openEvent = (id) => {
                           className={filterMode === 'sve' ? 'active' : ''}
                           onClick={resetFilter}
                         >
-                          Svi dogadjaji
+                          {t('home.filterAll')}
                         </button>
                         <button
                           type="button"
                           className={filterMode === 'datum' ? 'active' : ''}
                           onClick={() => setFilterMode('datum')}
                         >
-                          Po datumu
+                          {t('home.filterDate')}
                         </button>
                         <button
                           type="button"
                           className={filterMode === 'naziv' ? 'active' : ''}
                           onClick={() => setFilterMode('naziv')}
                         >
-                          Po nazivu
+                          {t('home.filterTitle')}
                         </button>
                       </div>
 
                       {filterMode === 'datum' && (
                         <div className="feed-filter-controls">
                           <DatePicker
-                            locale="sr-Latn"
+                            locale={datePickerLocale()}
                             minDate={new Date()}
                             selected={datumPicker}
                             onChange={(datum) => handleDateChange(datum)}
-                            placeholderText="Izaberite datum"
-                            dateFormat="d.M.yyyy."
+                            placeholderText={t('home.pickDate')}
+                            dateFormat={datePickerFormat()}
                             calendarClassName="eb-calendar"
                             className="feed-filter-input"
                           />
-                          <button className="feed-filter-search-btn" onClick={applyDateFilter}>Pretrazi</button>
+                          <button className="feed-filter-search-btn" onClick={applyDateFilter}>{t('home.search')}</button>
                         </div>
                       )}
 
@@ -195,11 +194,11 @@ const openEvent = (id) => {
                           <input
                             type="text"
                             className="feed-filter-input"
-                            placeholder="Naziv dogadjaja..."
+                            placeholder={t('home.titlePlaceholder')}
                             value={NazivPicker}
                             onChange={(event) => handleTitleChange(event)}
                           />
-                          <button className="feed-filter-search-btn" onClick={applyTitleFilter}>Pretrazi</button>
+                          <button className="feed-filter-search-btn" onClick={applyTitleFilter}>{t('home.search')}</button>
                         </div>
                       )}
 
@@ -207,10 +206,10 @@ const openEvent = (id) => {
                         <div className="feed-filter-active-note">
                           <span>
                             {NazivZaSlanje !== "default"
-                              ? `Prikazani dogadjaji po nazivu: "${NazivZaSlanje}"`
-                              : `Prikazani dogadjaji za datum: ${datumPicker.toLocaleDateString('sr-Latn')}`}
+                              ? t('home.showingByTitle', { title: NazivZaSlanje })
+                              : t('home.showingByDate', { date: formatDate(datumPicker) })}
                           </span>
-                          <button className="feed-filter-reset" onClick={resetFilter}>Prikazi sve</button>
+                          <button className="feed-filter-reset" onClick={resetFilter}>{t('home.showAll')}</button>
                         </div>
                       )}
                     </div>{/*feed-filter end*/}
@@ -236,7 +235,7 @@ const openEvent = (id) => {
                     {/*widget-about end*/}
                     <div className="widget widget-jobs">
                       <div className="sd-title">
-                        <h3>Notifikacije</h3>
+                        <h3>{t('home.notifications')}</h3>
                         <i className="la la-ellipsis-v" />
                       </div>
                       
@@ -255,7 +254,7 @@ const openEvent = (id) => {
                         ))
                       ) : (
                         <p style={{ textAlign: "center", color: "gray", marginTop: "10px" }}>
-                          Trenutno nema notifikacija.
+                          {t('home.noNotifications')}
                         </p>
                       )}
 

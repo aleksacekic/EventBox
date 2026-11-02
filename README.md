@@ -52,6 +52,7 @@ It started as a project for the *Software Engineering* course and was later rebu
 - Reporting events that break the community rules
 - User search and public profiles with favourite categories
 - Responsive layout with a bottom navigation bar on mobile
+- English and Serbian interface (English by default), switchable from the header; the choice is remembered
 
 **Administrators**
 - Reported events with reasons; dismiss a report or delete the event
@@ -64,8 +65,8 @@ It started as a project for the *Software Engineering* course and was later rebu
 
 | Layer | Technologies |
 |---|---|
-| Frontend | React 18, Vite 5, React Router 6, SignalR client, `@vis.gl/react-google-maps`, date-fns, react-toastify |
-| Backend | ASP.NET Core 9 Web API, Entity Framework Core 9, SignalR, Swagger |
+| Frontend | React 18, Vite 5, React Router 6, react-i18next, SignalR client, `@vis.gl/react-google-maps`, date-fns, react-toastify |
+| Backend | ASP.NET Core 9 Web API, Entity Framework Core 9, SignalR, ASP.NET Core localization, Swagger |
 | Database | Microsoft SQL Server (Azure SQL Database in production) |
 | Hosting | Vercel (frontend), Azure App Service (backend), Azure SQL Database |
 | CI/CD | GitHub Actions (backend), Vercel Git integration (frontend) |
@@ -94,6 +95,7 @@ The frontend is a static single-page app. All data comes from the REST API, and 
 - **Content Security Policy** generated from the API address at build time, CORS whitelist from configuration
 - **Resilience:** EF Core retry policy for the serverless Azure SQL database that pauses when idle
 - **Global error handler:** clients get a generic message and a trace ID, details stay in the server log
+- **Internationalization:** UI texts live in translation files (react-i18next, with Serbian plural forms); the API returns validation and error messages in the language the client sends in `Accept-Language` (`.resx` resources)
 
 ## API overview
 
@@ -119,12 +121,14 @@ EventBox/
 │   ├── Models/                 EF Core entities, DTOs and services
 │   ├── Auth/                   token authentication, password hashing, login protection
 │   ├── Repo/                   storage for uploaded images
+│   ├── Resources/              API messages in English and Serbian (.resx)
 │   ├── Migrations/             EF Core migrations
 │   └── Program.cs              startup: services, middleware, SignalR hub
 ├── Frontend/                   React + Vite single-page app
 │   └── src/
 │       ├── Pages/              route-level pages
 │       ├── components/         UI components
+│       ├── i18n/               translations (en.js, sr.js) and i18next setup
 │       ├── utils/              helpers (dates, events, admin)
 │       ├── api.js              fetch wrapper (base URL, auth header, errors)
 │       ├── auth.jsx            authentication context

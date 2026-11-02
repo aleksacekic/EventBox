@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AllFieldsRequired" xml:space="preserve">
+    <value>All fields are required and the password must have at least 8 characters.</value>
+  </data>
+  <data name="UsernameLength" xml:space="preserve">
+    <value>The username must have from {0} to {1} characters.</value>
+  </data>
+  <data name="UsernameChars" xml:space="preserve">
+    <value>The username can contain only letters (without diacritics), digits, dot, hyphen and underscore.</value>
+  </data>
+  <data name="InvalidEmail" xml:space="preserve">
+    <value>Enter a valid email address.</value>
+  </data>
+  <data name="UserRegistered" xml:space="preserve">
+    <value>User {0} has been registered.</value>
+  </data>
+  <data name="LoggedOut" xml:space="preserve">
+    <value>You have been logged out.</value>
+  </data>
+  <data name="UserNotFound" xml:space="preserve">
+    <value>User with ID {0} was not found.</value>
+  </data>
+  <data name="MissingData" xml:space="preserve">
+    <value>Data is missing.</value>
+  </data>
+  <data name="CheckInput" xml:space="preserve">
+    <value>Check the entered data.</value>
+  </data>
+  <data name="FirstNameLength" xml:space="preserve">
+    <value>The first name must have from 1 to 50 characters.</value>
+  </data>
+  <data name="LastNameLength" xml:space="preserve">
+    <value>The last name must have from 1 to 50 characters.</value>
+  </data>
+  <data name="InvalidBirthDate" xml:space="preserve">
+    <value>Date of birth is not valid.</value>
+  </data>
+  <data name="NewPasswordLength" xml:space="preserve">
+    <value>The new password must have at least 8 characters.</value>
+  </data>
+  <data name="EmailTaken" xml:space="preserve">
+    <value>This email address is already in use.</value>
+  </data>
+  <data name="UsernameTaken" xml:space="preserve">
+    <value>This username is already taken.</value>
+  </data>
+  <data name="WrongPassword" xml:space="preserve">
+    <value>Wrong password.</value>
+  </data>
+  <data name="UserDeleted" xml:space="preserve">
+    <value>User with ID {0} has been deleted.</value>
+  </data>
+  <data name="ImageDeleted" xml:space="preserve">
+    <value>The image has been deleted.</value>
+  </data>
+  <data name="InvalidCursor" xml:space="preserve">
+    <value>Invalid cursor.</value>
+  </data>
+  <data name="UserBlocked" xml:space="preserve">
+    <value>The user has been blocked.</value>
+  </data>
+  <data name="UserUnblocked" xml:space="preserve">
+    <value>The user has been unblocked.</value>
+  </data>
+  <data name="TooManyFailedAttempts" xml:space="preserve">
+    <value>Too many failed attempts. Try again in {0} min.</value>
+  </data>
+  <data name="TooManyRequests" xml:space="preserve">
+    <value>Too many requests from this address. Try again in {0} min.</value>
+  </data>
+  <data name="ServerError" xml:space="preserve">
+    <value>A server error occurred. Please try again.</value>
+  </data>
+  <data name="AdminUsernamePasswordRequired" xml:space="preserve">
+    <value>The username is required and the password must have at least 8 characters.</value>
+  </data>
+  <data name="NameRequired" xml:space="preserve">
+    <value>First and last name are required.</value>
+  </data>
+  <data name="NameMaxLength" xml:space="preserve">
+    <value>First and last name can have at most {0} characters.</value>
+  </data>
+  <data name="AdminExists" xml:space="preserve">
+    <value>An administrator with that username already exists.</value>
+  </data>
+  <data name="CannotDeleteSelf" xml:space="preserve">
+    <value>You cannot delete your own account.</value>
+  </data>
+  <data name="CannotDeleteLastAdmin" xml:space="preserve">
+    <value>The last administrator cannot be deleted.</value>
+  </data>
+  <data name="AdminDeleted" xml:space="preserve">
+    <value>Administrator with ID {0} has been deleted.</value>
+  </data>
+  <data name="TitleRequired" xml:space="preserve">
+    <value>The title is required.</value>
+  </data>
+  <data name="EventNotFound" xml:space="preserve">
+    <value>Event with ID {0} was not found.</value>
+  </data>
+  <data name="MissingEventData" xml:space="preserve">
+    <value>Event data is missing.</value>
+  </data>
+  <data name="EventDeleted" xml:space="preserve">
+    <value>Event with ID {0} has been deleted.</value>
+  </data>
+  <data name="EventTitleLength" xml:space="preserve">
+    <value>The title must have from {0} to {1} characters.</value>
+  </data>
+  <data name="EventDescriptionLength" xml:space="preserve">
+    <value>The description can have at most {0} characters.</value>
+  </data>
+  <data name="EventCategory" xml:space="preserve">
+    <value>Choose a category from the list.</value>
+  </data>
+  <data name="EventDateRequired" xml:space="preserve">
+    <value>Pick a date.</value>
+  </data>
+  <data name="EventDatePast" xml:space="preserve">
+    <value>The date cannot be in the past.</value>
+  </data>
+  <data name="EventDateTooFar" xml:space="preserve">
+    <value>The date can be at most two years ahead.</value>
+  </data>
+  <data name="EventTimeRequired" xml:space="preserve">
+    <value>Pick a start time.</value>
+  </data>
+  <data name="EventLocationRequired" xml:space="preserve">
+    <value>Mark the location on the map.</value>
+  </data>
+  <data name="CommentEmpty" xml:space="preserve">
+    <value>The comment cannot be empty.</value>
+  </data>
+  <data name="CommentTooLong" xml:space="preserve">
+    <value>The comment can have at most {0} characters.</value>
+  </data>
+  <data name="CommentDeleted" xml:space="preserve">
+    <value>Comment with ID {0} has been deleted.</value>
+  </data>
+  <data name="EventCommentsDeleted" xml:space="preserve">
+    <value>The event's comments have been deleted.</value>
+  </data>
+  <data name="InvalidEventIds" xml:space="preserve">
+    <value>Event IDs must be numbers separated by commas.</value>
+  </data>
+  <data name="UnknownReactionType" xml:space="preserve">
+    <value>Unknown reaction type: {0}</value>
+  </data>
+  <data name="ReactionAlreadySet" xml:space="preserve">
+    <value>The reaction has already been set.</value>
+  </data>
+  <data name="ReactionSet" xml:space="preserve">
+    <value>The reaction has been set.</value>
+  </data>
+  <data name="ReactionDeleted" xml:space="preserve">
+    <value>The reaction has been deleted.</value>
+  </data>
+  <data name="EventReactionsDeleted" xml:space="preserve">
+    <value>The event's reactions have been deleted.</value>
+  </data>
+  <data name="MessageEmpty" xml:space="preserve">
+    <value>The message cannot be empty.</value>
+  </data>
+  <data name="MessageTooLong" xml:space="preserve">
+    <value>The message can have at most {0} characters.</value>
+  </data>
+  <data name="CannotMessageSelf" xml:space="preserve">
+    <value>You cannot send a message to yourself.</value>
+  </data>
+  <data name="RecipientNotFound" xml:space="preserve">
+    <value>The recipient does not exist.</value>
+  </data>
+  <data name="MessageNotFound" xml:space="preserve">
+    <value>The message was not found.</value>
+  </data>
+  <data name="MessageDeleted" xml:space="preserve">
+    <value>The message has been deleted.</value>
+  </data>
+  <data name="UnknownReportReason" xml:space="preserve">
+    <value>Unknown report reason.</value>
+  </data>
+  <data name="ReportDescriptionTooLong" xml:space="preserve">
+    <value>The description can have at most {0} characters.</value>
+  </data>
+  <data name="CannotReportOwnEvent" xml:space="preserve">
+    <value>You cannot report your own event.</value>
+  </data>
+  <data name="AlreadyReported" xml:space="preserve">
+    <value>You have already reported this event.</value>
+  </data>
+  <data name="ReportConflict" xml:space="preserve">
+    <value>The report has already been saved, please try again.</value>
+  </data>
+  <data name="EventReported" xml:space="preserve">
+    <value>The event has been reported.</value>
+  </data>
+  <data name="ReportDismissed" xml:space="preserve">
+    <value>The report has been dismissed.</value>
+  </data>
+  <data name="NotificationNotFound" xml:space="preserve">
+    <value>The notification was not found.</value>
+  </data>
+  <data name="NotificationDeleted" xml:space="preserve">
+    <value>Notification with ID {0} has been deleted.</value>
+  </data>
+  <data name="ImageRequired" xml:space="preserve">
+    <value>Choose an image.</value>
+  </data>
+  <data name="ImageTooLarge" xml:space="preserve">
+    <value>The image can be at most {0} MB.</value>
+  </data>
+  <data name="ImageInvalidType" xml:space="preserve">
+    <value>Only JPG, PNG and WEBP images are allowed.</value>
+  </data>
+</root>

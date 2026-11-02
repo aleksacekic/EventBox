@@ -1,6 +1,8 @@
 import { api, ApiError } from '../api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../auth';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from './LanguageSwitcher';
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -8,6 +10,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 function AuthForm() {
 
   const { login, logout } = useAuth();
+  const { t } = useTranslation();
 
   // Ruta sa koje je RequireAuth izbacio korisnika - vracamo ga tamo posle prijave
   const location = useLocation();
@@ -40,7 +43,7 @@ function AuthForm() {
 
       if (field.value.trim() === '') {
         isGreska = true;
-        noveGreske[field.name] = 'Polje je obavezno.';
+        noveGreske[field.name] = t('auth.required');
       }
     }
 
@@ -59,7 +62,7 @@ function AuthForm() {
         // Nije obican korisnik -> probaj kao administrator
         await tryAdminLogin(username, password);
       } else if (data.blokiran !== undefined) {
-        toast.error("Vas nalog je blokiran.");
+        toast.error(t('auth.blocked'));
       } else {
         login({ token: data.token, userId: data.userID });
         navigate(from, { replace: true });
@@ -67,7 +70,7 @@ function AuthForm() {
     } catch (error) {
       console.error('Greska pri prijavi:', error);
       // 429: previse pokusaja - server kaze koliko jos treba sacekati
-      toast.error(error instanceof ApiError && error.status === 429 ? error.message : 'Prijava nije uspela. Pokusajte ponovo.');
+      toast.error(error instanceof ApiError && error.status === 429 ? error.message : t('auth.loginFailed'));
     }
   };
 
@@ -75,14 +78,14 @@ function AuthForm() {
     try {
       const data = await api.post('/api/admins/login', { korisnickoIme: username, lozinka: password });
       if (data.nema !== undefined) {
-        toast.error("Pogresno korisnicko ime ili lozinka.");
+        toast.error(t('auth.wrongCredentials'));
       } else {
         login({ token: data.token, isAdmin: true });
         navigate('/admin', { replace: true });
       }
     } catch (error) {
       console.error('Greska pri admin prijavi:', error);
-      toast.error(error instanceof ApiError && error.status === 429 ? error.message : "Pogresno korisnicko ime ili lozinka.");
+      toast.error(error instanceof ApiError && error.status === 429 ? error.message : t('auth.wrongCredentials'));
     }
   };
 // -----------------------------------------------------------------------------------------------
@@ -99,7 +102,7 @@ function AuthForm() {
 
       if (field.value.trim() === '') {
         isGreska = true;
-        noveGreske[field.name] = 'Polje je obavezno.';
+        noveGreske[field.name] = t('auth.required');
       }
     }
 
@@ -107,7 +110,7 @@ function AuthForm() {
     const korisnickoime = poljaForme.username1.value.trim();
     if (!noveGreske.username1 && !/^[A-Za-z0-9._-]{3,30}$/.test(korisnickoime)) {
       isGreska = true;
-      noveGreske.username1 = 'Od 3 do 30 karaktera: slova bez kvačica, cifre, tačka, crta i donja crta.';
+      noveGreske.username1 = t('validation.username');
     }
 
     if (isGreska) {
@@ -130,18 +133,18 @@ function AuthForm() {
         emailAdresa: mail,
       });
       if (odgovor?.odgovor === 'KORISNICKO_IME') {
-        toast.error("Korisnicko ime je zauzeto.");
+        toast.error(t('auth.usernameTaken'));
         return;
       }
       if (odgovor?.odgovor === 'EMAIL') {
-        toast.error("Ova email adresa je vec u upotrebi.");
+        toast.error(t('auth.emailTaken'));
         return;
       }
       if (odgovor?.odgovor === 'DATUM') {
-        toast.error("Datum rodjenja nije ispravan.");
+        toast.error(t('auth.invalidBirthDate'));
         return;
       }
-      toast.success("Uspesno ste registrovani! Sada se prijavite.");
+      toast.success(t('auth.registered'));
       e.target.reset();
       setErrors({});
       setActiveTab('tab-1');
@@ -150,19 +153,20 @@ function AuthForm() {
       // 400 sa servera nosi konkretnu poruku (npr. pravila za korisnicko ime)
       toast.error(error instanceof ApiError && (error.status === 400 || error.status === 429)
         ? error.message
-        : 'Došlo je do greške prilikom registracije.');
+        : t('auth.registerFailed'));
     }
   };
 
 
   return (
     <div className="auth-page">
+        <LanguageSwitcher className="auth-lang" />
         <div className="auth-card">
 
           <div className="auth-info">
             <img className="auth-logo" src="/images/eb-logo-dugi2.png" alt="EventBox" />
             <p className="auth-tagline">
-              Eventbox je inovativna društvena mreža koja predstavlja jedinstveno mesto za povezivanje ljudi koji žele da organizuju i učestvuju u raznovrsnim događajima.
+              {t('auth.tagline')}
             </p>
             <img className="auth-illustration" src="/images/cm-main-img.png" alt="" />
           </div>
@@ -175,7 +179,7 @@ function AuthForm() {
                   className={`nav-link ${activeTab === 'tab-1' ? 'active' : ''}`}
                   onClick={() => handleTabClick('tab-1')}
                 >
-                  Prijava
+                  {t('auth.login')}
                 </button>
               </li>
               <li className="nav-item">
@@ -184,7 +188,7 @@ function AuthForm() {
                   className={`nav-link ${activeTab === 'tab-2' ? 'active' : ''}`}
                   onClick={() => handleTabClick('tab-2')}
                 >
-                  Registracija
+                  {t('auth.register')}
                 </button>
               </li>
             </ul>
@@ -193,17 +197,17 @@ function AuthForm() {
               <form onSubmit={handleLogin}>
                 <div className="auth-field">
                   <i className="la la-at" />
-                  <input type="text" name="username" placeholder="Korisnicko ime" autoComplete="off" className="auth-input" />
+                  <input type="text" name="username" placeholder={t('auth.username')} autoComplete="off" className="auth-input" />
                 </div>
                 {errors.username && <span className="error-message">{errors.username}</span>}
 
                 <div className="auth-field">
                   <i className="la la-lock" />
-                  <input type="password" name="password" placeholder="Password" autoComplete="current-password" className="auth-input" />
+                  <input type="password" name="password" placeholder={t('auth.password')} autoComplete="current-password" className="auth-input" />
                 </div>
                 {errors.password && <span className="error-message">{errors.password}</span>}
 
-                <button type="submit" value="submit" className="auth-submit">Prijava</button>
+                <button type="submit" value="submit" className="auth-submit">{t('auth.login')}</button>
               </form>
             </div>
 
@@ -211,41 +215,41 @@ function AuthForm() {
               <form onSubmit={handleRegister}>
                 <div className="auth-field">
                   <i className="la la-user" />
-                  <input type="text" name="ime" placeholder="Ime" autoComplete="given-name" className="auth-input" />
+                  <input type="text" name="ime" placeholder={t('auth.firstName')} autoComplete="given-name" className="auth-input" />
                 </div>
                 {errors.ime && <span className="error-message">{errors.ime}</span>}
 
                 <div className="auth-field">
                   <i className="la la-user" />
-                  <input type="text" name="prezime" placeholder="Prezime" autoComplete="family-name" className="auth-input" />
+                  <input type="text" name="prezime" placeholder={t('auth.lastName')} autoComplete="family-name" className="auth-input" />
                 </div>
                 {errors.prezime && <span className="error-message">{errors.prezime}</span>}
 
                 <div className="auth-field">
                   <i className="la la-at" />
-                  <input type="text" name="username1" placeholder="Korisnicko ime" autoComplete="off" maxLength={30} className="auth-input" />
+                  <input type="text" name="username1" placeholder={t('auth.username')} autoComplete="off" maxLength={30} className="auth-input" />
                 </div>
                 {errors.username1 && <span className="error-message">{errors.username1}</span>}
 
                 <div className="auth-field">
                   <i className="la la-mail-forward" />
-                  <input type="email" name="email" placeholder="Mail adresa" autoComplete="email" className="auth-input" />
+                  <input type="email" name="email" placeholder={t('auth.email')} autoComplete="email" className="auth-input" />
                 </div>
                 {errors.email && <span className="error-message">{errors.email}</span>}
 
                 <div className="auth-field">
                   <i className="la la-calendar" />
-                  <input type="date" name="date" placeholder="Datum rodjenja" autoComplete="bday" className="auth-input" />
+                  <input type="date" name="date" placeholder={t('auth.birthDate')} autoComplete="bday" className="auth-input" />
                 </div>
                 {errors.date && <span className="error-message">{errors.date}</span>}
 
                 <div className="auth-field">
                   <i className="la la-lock" />
-                  <input type="password" name="password" placeholder="Lozinka" autoComplete="new-password" minLength={8} className="auth-input" />
+                  <input type="password" name="password" placeholder={t('auth.password')} autoComplete="new-password" minLength={8} className="auth-input" />
                 </div>
                 {errors.password && <span className="error-message">{errors.password}</span>}
 
-                <button type="submit" value="submit" className="auth-submit">Registruj se</button>
+                <button type="submit" value="submit" className="auth-submit">{t('auth.register')}</button>
               </form>
             </div>
           </div>
@@ -255,7 +259,7 @@ function AuthForm() {
         <p className="auth-copyright">
           <img src="/images/copy-icon.png" alt="" />Copyright {new Date().getFullYear()}
           <span className="auth-copyright-sep">&middot;</span>
-          Created by <a href="https://github.com/aleksacekic" target="_blank" rel="noopener noreferrer">aleksacekic</a>
+          {t('auth.createdBy')} <a href="https://github.com/aleksacekic" target="_blank" rel="noopener noreferrer">aleksacekic</a>
         </p>
     </div>
   )

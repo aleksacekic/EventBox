@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Microsoft.Extensions.Localization;
+using Novi_backend_za_SWE;
 
 namespace EventBoxApi.Controllers
 {
@@ -43,11 +45,16 @@ namespace EventBoxApi.Controllers
     {
         public EventBoxContext Context;
         private readonly NotificationService _notifications;
-        public CommentsController(EventBoxContext context, NotificationService notifications)
+        private readonly IStringLocalizer<SharedResource> _t;
+        public CommentsController(EventBoxContext context, NotificationService notifications, IStringLocalizer<SharedResource> t)
         {
             this.Context = context;
             _notifications = notifications;
+            _t = t;
         }
+
+        // Poruka na jeziku zahteva (Accept-Language), vidi SharedResource.cs
+        private string T(string kljuc, params object[] args) => _t[kljuc, args];
 
         // GET /api/events/{eventId}/comments - najnoviji prvi, stranicenje kursorom (Models/Pagination.cs):
         //   ?limit=10                 -> najnovijih 10 (+ ukupno)
@@ -59,7 +66,7 @@ namespace EventBoxApi.Controllers
         public async Task<ActionResult> GetComments(int eventId, [FromQuery] int limit = 10, [FromQuery] string? cursor = null)
         {
             if (!Pagination.TryDecodeCursor(cursor, out int? posle))
-                return BadRequest("Neispravan kursor");
+                return BadRequest(T("InvalidCursor"));
             var upit = Context.Komentari.Include(q => q.Autor).Where(q => q.Dogadjaj_Id.Id == eventId);
             if (!User.IsAdmin())
                 upit = upit.Where(q => q.Autor.Blokiran != -1); // komentari blokiranih se ne prikazuju
@@ -145,7 +152,7 @@ namespace EventBoxApi.Controllers
             Context.Komentari.Remove(k);
             await Context.SaveChangesAsync();
             await _notifications.NotifyRemovedAsync(uklonjene);
-            return Ok("Uspesno je izbrisan komentar sa ID-em: "+id);
+            return Ok(T("CommentDeleted", id));
         }
 
         // DELETE /api/events/{eventId}/comments - svi komentari dogadjaja (samo vlasnik dogadjaja)
@@ -164,12 +171,12 @@ namespace EventBoxApi.Controllers
             Context.Notifikacije.RemoveRange(Context.Notifikacije.Where(n => n.KomentarId != null && n.DogadjajId == eventId));
             Context.Komentari.RemoveRange(d.Lista_Komentara);
             await Context.SaveChangesAsync();
-            return Ok("Uspesno su obrisani komentari dogadjaja");
+            return Ok(T("EventCommentsDeleted"));
         }
 
-        private static string? ValidateText(string tekst)
-            => tekst.Length == 0 ? "Komentar ne sme biti prazan"
-             : tekst.Length > 1000 ? "Komentar moze imati najvise 1000 karaktera"
+        private string? ValidateText(string tekst)
+            => tekst.Length == 0 ? T("CommentEmpty")
+             : tekst.Length > 1000 ? T("CommentTooLong", 1000)
              : null;
     }
 }

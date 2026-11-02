@@ -6,13 +6,15 @@
 //
 //  Sad: sve ide kroz `api.get/post/put/del`. Na jednom mestu:
 //    - lepi se API_BASE (adresa backenda iz .env)
-//    - kaci se Authorization token (iz kolacica 'token')
+//    - kaci se Authorization token (iz kolacica 'token') i izabrani jezik
+//      (Accept-Language), pa server vraca poruke na tom jeziku
 //    - 401  -> brise auth kolacice i vraca na /login
 //    - ne-2xx -> baca ApiError sa statusom i porukom
 //    - telo se serijalizuje/parsira (JSON ili FormData)
 // ============================================================================
 import Cookies from 'js-cookie'
 import { clearAuthCookies } from './auth'
+import i18n from './i18n'
 
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5153'
 
@@ -46,6 +48,7 @@ async function request(method, path, { body, headers, ...rest } = {}) {
   const res = await fetch(url, {
     method,
     headers: {
+      'Accept-Language': i18n.resolvedLanguage || 'en',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(body != null && !isForm ? { 'Content-Type': 'application/json' } : {}),
       ...headers,
@@ -58,7 +61,7 @@ async function request(method, path, { body, headers, ...rest } = {}) {
   if (res.status === 401) {
     clearAuthCookies()
     if (window.location.pathname !== '/') window.location.assign('/')
-    throw new ApiError(401, 'Neautorizovano - prijavite se ponovo', url)
+    throw new ApiError(401, i18n.t('errors.unauthorized'), url)
   }
 
   const data = parseMaybeJson(await res.text())

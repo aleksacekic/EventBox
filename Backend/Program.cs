@@ -9,6 +9,10 @@ using Microsoft.OpenApi.Models;
 using EventBoxApi.Auth;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Localization;
+using System.Globalization;
+using Microsoft.Extensions.Localization;
+using Novi_backend_za_SWE;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,6 +50,9 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
     o.KnownProxies.Clear();
 });
 
+
+// Prevodi poruka koje API vraca (Resources/SharedResource*.resx)
+builder.Services.AddLocalization(o => o.ResourcesPath = "Resources");
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -88,6 +95,16 @@ var app = builder.Build();
 // Prvo: prava IP adresa i protokol iz zaglavlja proksija (vidi ForwardedHeadersOptions gore)
 app.UseForwardedHeaders();
 
+// Jezik poruka: frontend salje Accept-Language (en ili sr), podrazumevano je engleski. Menja se
+// samo jezik teksta (UI kultura); brojevi i datumi se citaju isto za oba jezika. Stoji pre
+// handlera gresaka, da i poruka o gresci na serveru bude na jeziku zahteva.
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("en"),
+    SupportedCultures = new[] { new CultureInfo("en") },
+    SupportedUICultures = new[] { new CultureInfo("en"), new CultureInfo("sr") },
+});
+
 // Globalni handler gresaka: svaki neocekivan izuzetak (baza nedostupna, bug u kodu...) se upise
 // u log sa svim detaljima, a klijent dobija 500 i opstu poruku - bez teksta izuzetka, jer bi
 // on otkrio semu baze i unutrasnjost servera. traceId povezuje odgovor sa zapisom u logu.
@@ -101,7 +118,7 @@ app.UseExceptionHandler(greska => greska.Run(async http =>
     http.Response.StatusCode = StatusCodes.Status500InternalServerError;
     await http.Response.WriteAsJsonAsync(new
     {
-        message = "Doslo je do greske na serveru. Pokusajte ponovo.",
+        message = http.RequestServices.GetRequiredService<IStringLocalizer<SharedResource>>()["ServerError"].Value,
         traceId = http.TraceIdentifier,
         // samo u razvoju (dotnet run): tekst izuzetka da se ne trazi po logu
         detalj = app.Environment.IsDevelopment() ? izuzetak?.Error.Message : null,

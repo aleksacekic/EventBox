@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Microsoft.Extensions.Localization;
+using Novi_backend_za_SWE;
 
 namespace EventBoxApi.Controllers
 {
@@ -27,11 +29,16 @@ namespace EventBoxApi.Controllers
     {
         public EventBoxContext Context;
         private readonly NotificationService _notifications;
-        public MessagesController(EventBoxContext context, NotificationService notifications)
+        private readonly IStringLocalizer<SharedResource> _t;
+        public MessagesController(EventBoxContext context, NotificationService notifications, IStringLocalizer<SharedResource> t)
         {
             this.Context = context;
             _notifications = notifications;
+            _t = t;
         }
+
+        // Poruka na jeziku zahteva (Accept-Language), vidi SharedResource.cs
+        private string T(string kljuc, params object[] args) => _t[kljuc, args];
 
         // GET /api/conversations - korisnici sa kojima je ulogovani korisnik komunicirao
         [HttpGet]
@@ -61,7 +68,7 @@ namespace EventBoxApi.Controllers
         {
             int ja = User.GetUserId();
             if (!Pagination.TryDecodeCursor(cursor, out int? posle))
-                return BadRequest("Neispravan kursor");
+                return BadRequest(T("InvalidCursor"));
 
             var upit = Context.Poruke.Where(m => (m.PosiljaocId == ja && m.PrimaocId == userId) ||
                                                  (m.PosiljaocId == userId && m.PrimaocId == ja));
@@ -80,13 +87,13 @@ namespace EventBoxApi.Controllers
 
             // Tekst ide u telu zahteva, ne u URL-u - inace znaci poput / ? # kvare rutu
             if (string.IsNullOrWhiteSpace(zahtev?.Poruka))
-                return BadRequest("Poruka ne sme biti prazna");
+                return BadRequest(T("MessageEmpty"));
             if (zahtev.Poruka.Length > 1000)
-                return BadRequest("Poruka moze imati najvise 1000 karaktera");
+                return BadRequest(T("MessageTooLong", 1000));
             if (userId == posiljaocId)
-                return BadRequest("Ne moze se slati poruka samom sebi");
+                return BadRequest(T("CannotMessageSelf"));
             if (!await Context.Korisnici.AnyAsync(k => k.Id == userId))
-                return NotFound("Primalac ne postoji");
+                return NotFound(T("RecipientNotFound"));
 
             Poruka p = new Poruka
             {
@@ -148,13 +155,13 @@ namespace EventBoxApi.Controllers
             var poruka = await Context.Poruke.FindAsync(id);
             if (poruka == null)
             {
-                return NotFound("Poruka nije pronadjena");
+                return NotFound(T("MessageNotFound"));
             }
             if (poruka.PosiljaocId != User.GetUserId())
                 return Forbid(); // brise samo posiljalac
             Context.Poruke.Remove(poruka);
             await Context.SaveChangesAsync();
-            return Ok("Poruka uspesno obrisana");
+            return Ok(T("MessageDeleted"));
         }
     }
 }

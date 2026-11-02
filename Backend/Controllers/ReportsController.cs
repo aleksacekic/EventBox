@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using Models;
+using Microsoft.Extensions.Localization;
+using Novi_backend_za_SWE;
 
 namespace EventBoxApi.Controllers
 {
@@ -25,12 +27,17 @@ namespace EventBoxApi.Controllers
     {
         public EventBoxContext Context { get; set; }
         private readonly NotificationService _notifications;
+        private readonly IStringLocalizer<SharedResource> _t;
 
-        public ReportsController(EventBoxContext context, NotificationService notifications)
+        public ReportsController(EventBoxContext context, NotificationService notifications, IStringLocalizer<SharedResource> t)
         {
             Context = context;
             _notifications = notifications;
+            _t = t;
         }
+
+        // Poruka na jeziku zahteva (Accept-Language), vidi SharedResource.cs
+        private string T(string kljuc, params object[] args) => _t[kljuc, args];
 
         // POST /api/events/{eventId}/reports  { "razlog": "...", "opis": "..." }
         // Prijava je JEDAN zahtev (razlog u telu): u istoj transakciji se pravi/pronalazi prijava
@@ -47,19 +54,19 @@ namespace EventBoxApi.Controllers
             int prijavio = User.GetUserId();
 
             if (zahtev == null || !Razlog.Dozvoljeni.Contains(zahtev.Razlog))
-                return BadRequest("Nepoznat razlog prijave");
+                return BadRequest(T("UnknownReportReason"));
             string opis = zahtev.Razlog == "ostalo" ? (zahtev.Opis ?? "").Trim() : "";
             if (opis.Length > 500)
-                return BadRequest("Opis moze imati najvise 500 karaktera");
+                return BadRequest(T("ReportDescriptionTooLong", 500));
 
             Dogadjaj d = await Context.Dogadjaji.FindAsync(eventId);
             if (d == null)
                 return NotFound();
             if (d.ID_Kreatora == prijavio)
-                return BadRequest("Ne moze se prijaviti sopstveni dogadjaj");
+                return BadRequest(T("CannotReportOwnEvent"));
 
             if (await Context.Razlozi.AnyAsync(r => r.PrijavioId == prijavio && r.Prijavljeni_dogadjaj_Id.Dogadjaj_Id.Id == eventId))
-                return Conflict("Vec ste prijavili ovaj dogadjaj");
+                return Conflict(T("AlreadyReported"));
 
             // Retry (EnableRetryOnFailure u Program.cs) ne radi sa rucnom transakcijom, pa cela
             // transakcija ide kroz execution strategy: ako baza privremeno nije dostupna, ponovi se ceo blok.
@@ -108,11 +115,11 @@ namespace EventBoxApi.Controllers
                 await transakcija.CommitAsync();
             });
             if (vecPrijavljeno)
-                return Conflict("Prijava je vec upisana, pokusajte ponovo");
+                return Conflict(T("ReportConflict"));
 
             // Vlasnik saznaje razlog, ali ne i ko je prijavio
             await _notifications.NotifyOwnerAsync(d, null, NotificationType.Report, zahtev.Razlog);
-            return Ok("Dogadjaj je prijavljen");
+            return Ok(T("EventReported"));
         }
 
         // GET /api/reports - lista prijavljenih dogadjaja za admina: najnovija prijava prva,
@@ -124,7 +131,7 @@ namespace EventBoxApi.Controllers
         public async Task<ActionResult> GetReports([FromQuery] int limit = 4, [FromQuery] string? cursor = null)
         {
             if (!Pagination.TryDecodeCursor(cursor, out int? posle))
-                return BadRequest("Neispravan kursor");
+                return BadRequest(T("InvalidCursor"));
 
             var upit = Context.Prijavljeni_dogadjaji
                 .Include(p => p.Dogadjaj_Id).ThenInclude(d => d.KreatorId)
@@ -147,7 +154,7 @@ namespace EventBoxApi.Controllers
             // Razlozi se brisu kaskadno u bazi
             Context.Prijavljeni_dogadjaji.Remove(pr_dog);
             await Context.SaveChangesAsync();
-            return Ok("Uspesno je obrisan prijavljeni dogadjaj");
+            return Ok(T("ReportDismissed"));
         }
     }
 }

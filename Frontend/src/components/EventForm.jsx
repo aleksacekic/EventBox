@@ -3,8 +3,9 @@ import React from 'react'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import { useEffect, useState, useCallback } from 'react'
-import { registerLocale } from "react-datepicker"
-import srLatn from "date-fns/locale/sr-Latn";
+import { useTranslation } from 'react-i18next';
+import { datePickerLocale, datePickerFormat } from '../utils/date';
+import { CATEGORIES } from '../utils/event';
 import { format } from 'date-fns';
 import TimePicker from './TimePicker'
 import LocationPicker from './LocationPicker'
@@ -18,7 +19,7 @@ function EventForm({ otvorena = false, onClose = () => {}, onSaved = () => {}, d
   const pid = izmena ? 'cei' : 'ced'; // prefiks id-jeva, da se ne sudare sa formom za novi dogadjaj
 
 
-  registerLocale("sr-Latn", srLatn);  
+  const { t } = useTranslation();
 
 const [naslov, setNaslov] = useState(postojeci?.naslov ?? '');
 const [kategorija, setKategorija] = useState(postojeci?.kategorija ?? 'Ostalo');
@@ -42,10 +43,10 @@ const [salje, setSalje] = useState(false);
 const validate = () => {
   const g = {};
   const n = naslov.trim();
-  if (n.length < 3 || n.length > 100) g.naslov = 'Naziv mora imati od 3 do 100 karaktera.';
-  if (!(datumDogadjaja instanceof Date)) g.datum = 'Izaberite datum.';
-  if (!vremePocetka) g.vreme = 'Izaberite vreme pocetka.';
-  if (x === '' || y === '') g.lokacija = 'Oznacite lokaciju na mapi.';
+  if (n.length < 3 || n.length > 100) g.naslov = t('eventForm.errors.title');
+  if (!(datumDogadjaja instanceof Date)) g.datum = t('eventForm.errors.date');
+  if (!vremePocetka) g.vreme = t('eventForm.errors.time');
+  if (x === '' || y === '') g.lokacija = t('eventForm.errors.location');
   return g;
 };
 
@@ -85,7 +86,7 @@ const handleSubmit = async (e) => {
         dogadjaj.dogadjajImage = ime;
       } catch (error) {
         // Dogadjaj je napravljen, samo slika nije prosla - ne brisemo ga, javimo
-        toast.warn(`Dogadjaj je ${izmena ? 'sacuvan' : 'napravljen'}, ali slika nije sacuvana: ` + (error instanceof ApiError ? error.message : error));
+        toast.warn(t(izmena ? 'eventForm.savedNoImage' : 'eventForm.createdNoImage', { error: error instanceof ApiError ? error.message : String(error) }));
       }
     }
 
@@ -98,7 +99,7 @@ const handleSubmit = async (e) => {
     } else {
       const poruka = error instanceof ApiError ? error.message : String(error);
       console.error('Kreiranje dogadjaja nije uspelo:', poruka);
-      setGreske({ opste: `${izmena ? 'Cuvanje' : 'Kreiranje'} dogadjaja nije uspelo. Pokusajte ponovo.` });
+      setGreske({ opste: t(izmena ? 'eventForm.saveFailed' : 'eventForm.createFailed') });
     }
   } finally {
     setSalje(false);
@@ -137,8 +138,8 @@ const handleImageChange = (e) => {
   e.target.value = '';
   if (!fajl) return;
   const greska = !['image/jpeg', 'image/png', 'image/webp'].includes(fajl.type)
-    ? 'Dozvoljene su samo JPG, PNG i WEBP slike.'
-    : fajl.size > 5 * 1024 * 1024 ? 'Slika moze imati najvise 5 MB.' : null;
+    ? t('validation.imageType')
+    : fajl.size > 5 * 1024 * 1024 ? t('validation.imageSize') : null;
   setGreske((g) => ({ ...g, slika: greska }));
   setSlika(greska ? null : fajl);
 };
@@ -167,12 +168,12 @@ const handleOverlayClick = useCallback((e) => {
       >
         <div className="create-event-card">
           <div className="create-event-header">
-            <h3>{izmena ? 'Izmeni dogadjaj' : 'Napravi dogadjaj'}</h3>
+            <h3>{izmena ? t('eventForm.editTitle') : t('eventForm.createTitle')}</h3>
             <button
               type="button"
               className="create-event-close"
               onClick={onClose}
-              aria-label="Zatvori"
+              aria-label={t('common.close')}
             >
               <i className="la la-times" />
             </button>
@@ -180,12 +181,12 @@ const handleOverlayClick = useCallback((e) => {
 
           <form onSubmit={handleSubmit} className="create-event-form">
             <div className="create-event-field">
-              <label htmlFor={`${pid}-naziv`}>Naziv</label>
+              <label htmlFor={`${pid}-naziv`}>{t('eventForm.title')}</label>
               <input
                 id={`${pid}-naziv`}
                 type="text"
                 name="title"
-                placeholder="Naziv dogadjaja"
+                placeholder={t('eventForm.titlePlaceholder')}
                 className={`create-event-input ${greske.naslov ? 'create-event-input-invalid' : ''}`}
                 maxLength={100}
                 value={naslov}
@@ -196,28 +197,25 @@ const handleOverlayClick = useCallback((e) => {
 
             <div className="create-event-row">
               <div className="create-event-field">
-                <label htmlFor={`${pid}-kategorija`}>Kategorija</label>
+                <label htmlFor={`${pid}-kategorija`}>{t('eventForm.category')}</label>
                 <select
                   id={`${pid}-kategorija`}
                   className="create-event-input create-event-select"
                   value={kategorija}
                   onChange={(e) => setKategorija(e.target.value)}
                 >
-                  <option>Ostalo</option>
-                  <option>Zurka</option>
-                  <option>Humanitarna akcija</option>
-                  <option>Ekoloska akcija</option>
-                  <option>Sportski dogadjaj</option>
-                  <option>Koncert</option>
+                  {CATEGORIES.map((k) => (
+                    <option key={k} value={k}>{t(`categories.${k}`)}</option>
+                  ))}
                 </select>
                 {greske.kategorija && <span className="create-event-error">{greske.kategorija}</span>}
               </div>
 
               <div className="create-event-field">
-                <label htmlFor={`${pid}-slika`}>Slika</label>
+                <label htmlFor={`${pid}-slika`}>{t('eventForm.image')}</label>
                 <label htmlFor={`${pid}-slika`} className="create-event-file">
                   <i className="la la-image" />
-                  <span>{slika ? slika.name : izmena && postojeci.dogadjajImage && !ukloniSliku ? 'Zameni sliku...' : 'Dodaj sliku...'}</span>
+                  <span>{slika ? slika.name : izmena && postojeci.dogadjajImage && !ukloniSliku ? t('eventForm.replaceImage') : t('eventForm.addImage')}</span>
                 </label>
                 <input
                   id={`${pid}-slika`}
@@ -230,7 +228,7 @@ const handleOverlayClick = useCallback((e) => {
                 {izmena && postojeci.dogadjajImage && !slika && (
                   <label className="izmena-profila-check">
                     <input type="checkbox" checked={ukloniSliku} onChange={(e) => setUkloniSliku(e.target.checked)} />
-                    Ukloni postojecu sliku
+                    {t('eventForm.removeImage')}
                   </label>
                 )}
               </div>
@@ -238,19 +236,19 @@ const handleOverlayClick = useCallback((e) => {
 
             <div className="create-event-row">
               <div className="create-event-field">
-                <label htmlFor={`${pid}-datum`}>Datum</label>
+                <label htmlFor={`${pid}-datum`}>{t('eventForm.date')}</label>
                 <DatePicker
                   id={`${pid}-datum`}
                   selected={datumDogadjaja}
                   onChange={handleDatePickerChange}
-                  locale="sr-Latn"
+                  locale={datePickerLocale()}
                   minDate={izmena && datumDogadjaja instanceof Date && datumDogadjaja < new Date() ? datumDogadjaja : new Date()}
-                  dateFormat="d.M.yyyy."
+                  dateFormat={datePickerFormat()}
                   calendarClassName="eb-calendar"
                   dayClassName={(date) =>
                     date.getDay() === 0 || date.getDay() === 6 ? "weekend-day" : ""
                   }
-                  placeholderText="Izaberite datum"
+                  placeholderText={t('eventForm.pickDate')}
                   className="create-event-input"
                   wrapperClassName="create-event-date-wrapper"
                 />
@@ -258,7 +256,7 @@ const handleOverlayClick = useCallback((e) => {
               </div>
 
               <div className="create-event-field">
-                <label htmlFor="time">Vreme</label>
+                <label htmlFor="time">{t('eventForm.time')}</label>
                 <TimePicker
                   value={vremePocetka}
                   onChange={(value) => setVremePocetka(value)}
@@ -268,7 +266,7 @@ const handleOverlayClick = useCallback((e) => {
             </div>
 
             <div className="create-event-field">
-              <label>Lokacija</label>
+              <label>{t('eventForm.location')}</label>
               <div className="create-event-map">
                 <LocationPicker
                   x={x}
@@ -280,11 +278,11 @@ const handleOverlayClick = useCallback((e) => {
             </div>
 
             <div className="create-event-field">
-              <label htmlFor={`${pid}-opis`}>Opis</label>
+              <label htmlFor={`${pid}-opis`}>{t('eventForm.description')}</label>
               <textarea
                 id={`${pid}-opis`}
                 name="description"
-                placeholder="Opis dogadjaja (max 200 karaktera)"
+                placeholder={t('eventForm.descriptionPlaceholder')}
                 className="create-event-input create-event-textarea"
                 maxLength={200}
                 value={opis}
@@ -296,9 +294,9 @@ const handleOverlayClick = useCallback((e) => {
             {greske.opste && <span className="create-event-error">{greske.opste}</span>}
             <div className="create-event-actions">
               <button type="submit" className="create-event-submit" disabled={salje}>
-                {salje ? (izmena ? 'Cuvam...' : 'Pravim...') : (izmena ? 'Sacuvaj' : 'Napravi')}
+                {salje ? (izmena ? t('common.saving') : t('eventForm.creating')) : (izmena ? t('common.save') : t('eventForm.create'))}
               </button>
-              <button type="button" className="create-event-cancel" onClick={onClose}>Otkazi</button>
+              <button type="button" className="create-event-cancel" onClick={onClose}>{t('common.cancel')}</button>
             </div>
           </form>
         </div>{/*create-event-card end*/}

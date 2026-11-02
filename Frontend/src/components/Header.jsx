@@ -3,13 +3,15 @@ import { useAuth } from '../auth';
 import { useNotifications } from '../notifications';
 import { ADMIN_TABOVI, adminUserUrl, adminTabUrl } from '../utils/admin';
 import Avatar from './Avatar';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 const NAV_STAVKE = [
-  { to: "/pocetna", label: "Pocetna", ikona: "la-home" },
-  { to: "/profil", label: "Profil", ikona: "la-user" },
-  { to: "/chat", label: "Poruke", ikona: "la-envelope" },
+  { to: "/pocetna", labelKey: "nav.home", ikona: "la-home" },
+  { to: "/profil", labelKey: "nav.profile", ikona: "la-user" },
+  { to: "/chat", labelKey: "nav.messages", ikona: "la-envelope" },
 ];
 
 // Isti header za korisnika i administratora. Administrator ima drugu boju (app-header--admin),
@@ -17,6 +19,7 @@ const NAV_STAVKE = [
 // ista, samo kod administratora rezultat otvara admin pregled korisnika umesto profila.
 function Header() {
   const { userId, isAdmin } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
@@ -114,7 +117,7 @@ function Header() {
     <header className={`app-header ${isAdmin ? "app-header--admin" : ""}`}>
       <div className="app-header-inner container">
         <div className="app-header-left">
-          <Link to={isAdmin ? "/admin" : "/pocetna"} className="app-header-logo" aria-label={isAdmin ? "Administracija" : "Pocetna"}>
+          <Link to={isAdmin ? "/admin" : "/pocetna"} className="app-header-logo" aria-label={isAdmin ? t('nav.admin') : t('nav.home')}>
             <img src="/images/logosajt(4).ico" alt="EventBox" />
           </Link>
 
@@ -124,8 +127,8 @@ function Header() {
               <input
                 type="text"
                 name="search"
-                placeholder="Pretrazi korisnike..."
-                aria-label="Pretrazi korisnike"
+                placeholder={t('header.searchUsers')}
+                aria-label={t('header.searchUsersLabel')}
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
                 autoComplete="off"
@@ -152,27 +155,27 @@ function Header() {
           </div>
         </div>
 
-        <div className="app-header-nav" role="navigation" aria-label="Glavna navigacija">
+        <div className="app-header-nav" role="navigation" aria-label={t('header.mainNav')}>
           {isAdmin
             ? ADMIN_TABOVI.map((stavka) => (
                 <Link
                   key={stavka.tab}
                   to={adminTabUrl(stavka.tab)}
-                  title={stavka.label}
+                  title={t(stavka.labelKey)}
                   aria-current={aktivniTab === stavka.tab ? "page" : undefined}
                   className={`app-header-link ${aktivniTab === stavka.tab ? "is-active" : ""}`}
                 >
                   <span className="app-header-link-icon">
                     <i className={`la ${stavka.ikona}`} />
                   </span>
-                  <span className="app-header-link-label">{stavka.label}</span>
+                  <span className="app-header-link-label">{t(stavka.labelKey)}</span>
                 </Link>
               ))
             : NAV_STAVKE.map((stavka) => (
                 <NavLink
                   key={stavka.to}
                   to={stavka.to}
-                  title={stavka.label}
+                  title={t(stavka.labelKey)}
                   className={({ isActive }) => `app-header-link ${isActive ? "is-active" : ""}`}
                 >
                   <span className="app-header-link-icon">
@@ -183,12 +186,13 @@ function Header() {
                       </span>
                     )}
                   </span>
-                  <span className="app-header-link-label">{stavka.label}</span>
+                  <span className="app-header-link-label">{t(stavka.labelKey)}</span>
                 </NavLink>
               ))}
         </div>
 
         <div className="app-header-right" ref={profilRef}>
+          <LanguageSwitcher />
           {isAdmin || korisnik ? (
             <>
               <button
@@ -201,9 +205,9 @@ function Header() {
                 <Avatar
                   className="app-header-avatar"
                   slika={isAdmin ? null : korisnik.korisnikImage}
-                  ime={isAdmin ? "Administrator" : korisnik.ime}
+                  ime={isAdmin ? t('header.administrator') : korisnik.ime}
                 />
-                <span className="app-header-profile-name">{isAdmin ? "Administrator" : korisnik.ime}</span>
+                <span className="app-header-profile-name">{isAdmin ? t('header.administrator') : korisnik.ime}</span>
                 <i className="la la-angle-down app-header-chevron" />
               </button>
 
@@ -211,22 +215,22 @@ function Header() {
                 <div className="app-header-menu" role="menu">
                   {isAdmin ? (
                     <Link to={adminTabUrl("administratori")} role="menuitem" onClick={() => setMeniOtvoren(false)}>
-                      <i className="la la-user-secret" /> Administratori
+                      <i className="la la-user-secret" /> {t('admin.tabs.admins')}
                     </Link>
                   ) : (
                     <Link to="/profil" role="menuitem" onClick={() => setMeniOtvoren(false)}>
-                      <i className="la la-user" /> Moj profil
+                      <i className="la la-user" /> {t('header.myProfile')}
                     </Link>
                   )}
                   {/* Strana za prijavu pri otvaranju poziva logout() (odjava i na serveru) */}
                   <Link to="/" role="menuitem" className="is-danger">
-                    <i className="la la-sign-out" /> Odjavi se
+                    <i className="la la-sign-out" /> {t('header.logout')}
                   </Link>
                 </div>
               )}
             </>
           ) : (
-            <span className="app-header-profile-name">Korisnik nije dostupan</span>
+            <span className="app-header-profile-name">{t('header.userUnavailable')}</span>
           )}
         </div>
       </div>

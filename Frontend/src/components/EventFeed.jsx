@@ -9,17 +9,14 @@ import { format } from 'date-fns';
 import { useAuth } from '../auth';
 import { useNotifications } from '../notifications';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 
 // Main.jsx koristi ovaj datum kao "datum nije izabran"
 const NEMA_DATUMA = new Date("2000-01-01").getTime();
 
-const withFormattedDate = (d) => ({
-  ...d,
-  formattedDatum: formatDate(d.datum_Objave),
-});
-
 function EventFeed({ primljenDatum, primljenNaziv, noviDogadjaj }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { userId } = useAuth();
   const { loadNotifications } = useNotifications();
@@ -38,7 +35,7 @@ function EventFeed({ primljenDatum, primljenNaziv, noviDogadjaj }) {
     : '/api/events';
 
   // Dogadjaji se ucitavaju 3 po 3 kako korisnik skroluje (vidi useInfiniteList)
-  const lista = useInfiniteList(putanja, { mapItem: withFormattedDate });
+  const lista = useInfiniteList(putanja);
 
   const [korisnik, setKorisnik] = useState(null);
   const [korisnik_Id, setKorisnikId] = useState(null);
@@ -49,7 +46,7 @@ function EventFeed({ primljenDatum, primljenNaziv, noviDogadjaj }) {
   // da odigra kratku "evo tvog posta" animaciju - ne ide na backend.
   useEffect(() => {
     if (!noviDogadjaj) return;
-    lista.setItems(prev => [{ ...withFormattedDate(noviDogadjaj), _isNovi: true }, ...prev]);
+    lista.setItems(prev => [{ ...noviDogadjaj, _isNovi: true }, ...prev]);
   }, [noviDogadjaj]);
 
 
@@ -94,11 +91,11 @@ function EventFeed({ primljenDatum, primljenNaziv, noviDogadjaj }) {
   }, [korisnik_Id]);
 
   if (ucitavaSe) {
-    return <p>Učitavanje...</p>;
+    return <p>{t('common.loading')}</p>;
   }
 
   if (!korisnik) {
-    return <p>Niste prijavljeni.</p>;
+    return <p>{t('common.notLoggedIn')}</p>;
   }
 
   const openEvent = (dogadjaj) => {
@@ -117,7 +114,7 @@ function EventFeed({ primljenDatum, primljenNaziv, noviDogadjaj }) {
         />
       ))}
       {!lista.initialLoading && !lista.error && lista.items.length === 0 && (
-        <div className="lista-prazno">Nema dogadjaja za prikaz.</div>
+        <div className="lista-prazno">{t('events.empty')}</div>
       )}
       <InfiniteScrollFooter lista={lista} />
     </div>

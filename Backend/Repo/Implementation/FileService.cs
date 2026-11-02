@@ -1,4 +1,6 @@
 using EventBoxApi.Repo.Abstract;
+using Microsoft.Extensions.Localization;
+using Novi_backend_za_SWE;
 
 namespace EventBoxApi.Repo.Implementation
 {
@@ -10,11 +12,13 @@ namespace EventBoxApi.Repo.Implementation
 
         private readonly string _folder;
         private readonly ILogger<FileService> _log;
+        private readonly IStringLocalizer<SharedResource> _t;
 
-        public FileService(IWebHostEnvironment env, IConfiguration config, ILogger<FileService> log)
+        public FileService(IWebHostEnvironment env, IConfiguration config, ILogger<FileService> log, IStringLocalizer<SharedResource> t)
         {
             _folder = GetFolder(config, env);
             _log = log;
+            _t = t;
         }
 
         // Folder za slike: Uploads:Folder iz konfiguracije (lokalno "Uploads" pored projekta).
@@ -26,9 +30,9 @@ namespace EventBoxApi.Repo.Implementation
         public async Task<ImageSaveResult> SaveImageAsync(IFormFile? fajl)
         {
             if (fajl == null || fajl.Length == 0)
-                return new(null, "Izaberite sliku.");
+                return new(null, _t["ImageRequired"].Value);
             if (fajl.Length > MaxFileSize)
-                return new(null, $"Slika moze imati najvise {MaxFileSize / (1024 * 1024)} MB.");
+                return new(null, _t["ImageTooLarge", MaxFileSize / (1024 * 1024)].Value);
 
             // Vrsta slike se odredjuje iz SADRZAJA (prvih bajtova), ne iz imena fajla: preimenovan
             // .exe ili .html u .png se odbija, a "SLIKA.JPG" ili slika bez ekstenzije prolazi.
@@ -38,7 +42,7 @@ namespace EventBoxApi.Repo.Implementation
                 procitano = await s.ReadAtLeastAsync(zaglavlje, zaglavlje.Length, throwOnEndOfStream: false);
             string? ekstenzija = DetectImageExtension(zaglavlje.AsSpan(0, procitano));
             if (ekstenzija == null)
-                return new(null, "Dozvoljene su samo JPG, PNG i WEBP slike.");
+                return new(null, _t["ImageInvalidType"].Value);
 
             Directory.CreateDirectory(_folder);
             string ime = Guid.NewGuid().ToString() + ekstenzija;

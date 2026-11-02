@@ -21,6 +21,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr'
 import { api, API_BASE } from './api'
 import { useAuth } from './auth'
+import i18n from './i18n'
 
 const NotificationsContext = createContext(null)
 const MAX_NOTIFIKACIJA = 5
@@ -136,18 +137,21 @@ export function useNotifications() {
 // Server cuva vreme u UTC (vidi utils/date.js)
 export { parseUtcDate, formatDateTime } from './utils/date'
 
-const REAKCIJE = {
-  Zainteresovan: 'je zainteresovan za',
-  Mozda: 'mozda dolazi na',
-  Nezainteresovan: 'nije zainteresovan za',
-}
+const TIPOVI_REAKCIJA = ['Zainteresovan', 'Mozda', 'Nezainteresovan']
 
-// Tekst notifikacije za prikaz
+// Tekst notifikacije za prikaz, na izabranom jeziku (n.tip i n.sadrzaj su vrednosti iz baze)
 export function getNotificationText(n) {
-  const ko = n.korisnikKojiReaguje || 'Neko'
-  const gde = `"${n.naslovDogadjaja}"`
-  if (n.tip === 'Reakcija') return `${ko} ${REAKCIJE[n.sadrzaj] || 'je reagovao na'} vas dogadjaj ${gde}.`
-  if (n.tip === 'Komentar') return `${ko} je komentarisao vas dogadjaj ${gde}: "${n.sadrzaj}"`
-  if (n.tip === 'Prijava') return `Vas dogadjaj ${gde} je prijavljen${n.sadrzaj ? ` (razlog: ${n.sadrzaj.replace(/_/g, ' ')})` : ''}.`
-  return `Nova aktivnost na vasem dogadjaju ${gde}.`
+  const who = n.korisnikKojiReaguje || i18n.t('notifications.someone')
+  const title = n.naslovDogadjaja
+  if (n.tip === 'Reakcija') {
+    const tip = TIPOVI_REAKCIJA.includes(n.sadrzaj) ? n.sadrzaj : 'other'
+    return i18n.t(`notifications.reactions.${tip}`, { who, title })
+  }
+  if (n.tip === 'Komentar') return i18n.t('notifications.comment', { who, title, text: n.sadrzaj })
+  if (n.tip === 'Prijava') {
+    if (!n.sadrzaj) return i18n.t('notifications.report', { title })
+    const reason = i18n.t(`reportReasons.${n.sadrzaj}`, { defaultValue: n.sadrzaj.replace(/_/g, ' ') })
+    return i18n.t('notifications.reportWithReason', { title, reason })
+  }
+  return i18n.t('notifications.other', { title })
 }

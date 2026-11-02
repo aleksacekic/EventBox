@@ -10,6 +10,8 @@ using EventBoxApi.Repo.Abstract;
 using EventBoxApi.Repo.Implementation;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Localization;
+using Novi_backend_za_SWE;
 
 namespace EventBoxApi.Controllers
 {
@@ -24,14 +26,16 @@ namespace EventBoxApi.Controllers
         public IFileService _fileService;
         private readonly NotificationService _notifications;
         private readonly LoginProtection _loginProtection;
+        private readonly IStringLocalizer<SharedResource> _t;
 
 
-        public UsersController(EventBoxContext context, IFileService fs, NotificationService notifications, LoginProtection loginProtection)
+        public UsersController(EventBoxContext context, IFileService fs, NotificationService notifications, LoginProtection loginProtection, IStringLocalizer<SharedResource> t)
         {
             Context = context;
             this._fileService = fs;
             _notifications = notifications;
             _loginProtection = loginProtection;
+            _t = t;
         }
 
 
@@ -45,15 +49,15 @@ namespace EventBoxApi.Controllers
             if (zahtev == null || string.IsNullOrWhiteSpace(zahtev.Ime) || string.IsNullOrWhiteSpace(zahtev.Prezime)
                 || string.IsNullOrWhiteSpace(zahtev.KorisnickoIme) || string.IsNullOrWhiteSpace(zahtev.EmailAdresa)
                 || string.IsNullOrEmpty(zahtev.Lozinka) || zahtev.Lozinka.Length < 8)
-                return BadRequest("Sva polja su obavezna, a lozinka mora imati najmanje 8 karaktera");
+                return BadRequest(T("AllFieldsRequired"));
 
             zahtev.KorisnickoIme = UsernameRules.Normalize(zahtev.KorisnickoIme);
-            var greskaImena = UsernameRules.Validate(zahtev.KorisnickoIme);
+            var greskaImena = UsernameRules.Validate(zahtev.KorisnickoIme, _t);
             if (greskaImena != null)
                 return BadRequest(greskaImena);
 
             zahtev.EmailAdresa = EmailRules.Normalize(zahtev.EmailAdresa);
-            if (EmailRules.Validate(zahtev.EmailAdresa) is string greskaEmaila)
+            if (EmailRules.Validate(zahtev.EmailAdresa, _t) is string greskaEmaila)
                 return BadRequest(greskaEmaila);
 
             // Datum rodjenja mora biti izmedju 1900. i danas
@@ -92,7 +96,7 @@ namespace EventBoxApi.Controllers
                 // Neko je isto ime zauzeo izmedju provere gore i upisa
                 return Ok(new {odgovor = "KORISNICKO_IME"});
             }
-            return Ok("Uspesno je upisan korisnik sa korisnickim imenom " + zahtev.KorisnickoIme);
+            return Ok(T("UserRegistered", zahtev.KorisnickoIme));
         }
 
         // POST /api/users/login
@@ -153,7 +157,7 @@ namespace EventBoxApi.Controllers
             k.Token = GenerateToken();
             k.Validnost = DateTime.UtcNow;
             await Context.SaveChangesAsync();
-            return Ok("Odjavljeni ste");
+            return Ok(T("LoggedOut"));
         }
 
         // GET /api/users - svi korisnici osim ulogovanog (lista za novi razgovor u cetu), samo javna polja
@@ -221,7 +225,7 @@ namespace EventBoxApi.Controllers
                 .Select(KorisnikJavniDto.Projekcija)
                 .FirstOrDefaultAsync();
             if(k == null)
-                return NotFound($"Korisnik sa ID-em {id} nije pronadjen");
+                return NotFound(T("UserNotFound", id));
             return Ok(k);
         }
 
@@ -238,24 +242,24 @@ namespace EventBoxApi.Controllers
             if (k == null)
                 return Forbid(); // administrator nema korisnicki profil
             if (zahtev == null)
-                return BadRequest("Nedostaju podaci");
+                return BadRequest(T("MissingData"));
 
             var greske = new Dictionary<string, string>();
             zahtev.Ime = zahtev.Ime?.Trim() ?? "";
             zahtev.Prezime = zahtev.Prezime?.Trim() ?? "";
             zahtev.EmailAdresa = EmailRules.Normalize(zahtev.EmailAdresa);
-            if (zahtev.Ime.Length is < 1 or > 50) greske["ime"] = "Ime mora imati od 1 do 50 karaktera.";
-            if (zahtev.Prezime.Length is < 1 or > 50) greske["prezime"] = "Prezime mora imati od 1 do 50 karaktera.";
+            if (zahtev.Ime.Length is < 1 or > 50) greske["ime"] = T("FirstNameLength");
+            if (zahtev.Prezime.Length is < 1 or > 50) greske["prezime"] = T("LastNameLength");
             zahtev.KorisnickoIme = UsernameRules.Normalize(zahtev.KorisnickoIme);
-            if (UsernameRules.Validate(zahtev.KorisnickoIme) is string greskaImena) greske["korisnickoIme"] = greskaImena;
-            if (EmailRules.Validate(zahtev.EmailAdresa) is string greskaEmaila)
+            if (UsernameRules.Validate(zahtev.KorisnickoIme, _t) is string greskaImena) greske["korisnickoIme"] = greskaImena;
+            if (EmailRules.Validate(zahtev.EmailAdresa, _t) is string greskaEmaila)
                 greske["emailAdresa"] = greskaEmaila;
             if (zahtev.DatumRodjenja < new DateTime(1900, 1, 1) || zahtev.DatumRodjenja > DateTime.Today)
-                greske["datumRodjenja"] = "Datum rodjenja nije ispravan.";
+                greske["datumRodjenja"] = T("InvalidBirthDate");
             if (!string.IsNullOrEmpty(zahtev.Lozinka) && zahtev.Lozinka.Length < 8)
-                greske["lozinka"] = "Nova lozinka mora imati najmanje 8 karaktera.";
+                greske["lozinka"] = T("NewPasswordLength");
             if (greske.Count > 0)
-                return BadRequest(new { message = "Proverite unete podatke.", greske });
+                return BadRequest(new { message = T("CheckInput"), greske });
 
             if (!string.IsNullOrEmpty(zahtev.Lozinka))
             {
@@ -330,7 +334,7 @@ namespace EventBoxApi.Controllers
             await ReactionCounters.RefreshAsync(Context, reagovaoNa);
             await _notifications.NotifyRemovedAsync(uklonjene); // vlasnicima tih objava nestaju uzivo
             slike.ForEach(_fileService.DeleteImage);
-            return Ok("Uspesno je obrisan korisnik sa id-em " + id);
+            return Ok(T("UserDeleted", id));
         }
 
         // PUT /api/users/{id}/image - postavlja ili menja profilnu sliku (multipart, polje "fajl").
@@ -376,14 +380,14 @@ namespace EventBoxApi.Controllers
                 return Forbid();
             Korisnik k = await Context.Korisnici.FindAsync(id);
             if(k == null)
-                return BadRequest("Korisnik ne postoji");
+                return BadRequest(T("UserNotFound", id));
 
             // Fajl moze vec da fali na disku - referenca u bazi se svakako cisti
             string? stara = k.KorisnikImage;
             k.KorisnikImage = null;
             await Context.SaveChangesAsync();
             _fileService.DeleteImage(stara);
-            return Ok("Uspesno izbrisana slika");
+            return Ok(T("ImageDeleted"));
         }
 
         // GET /api/users/{id}/categories - koliko dogadjaja korisnik ima po kategoriji
@@ -412,7 +416,7 @@ namespace EventBoxApi.Controllers
         public async Task<ActionResult> GetUserEvents(int id, [FromQuery] int limit = Pagination.DefaultPageSize, [FromQuery] string? cursor = null)
         {
             if (!Pagination.TryDecodeCursor(cursor, out int? posle))
-                return BadRequest("Neispravan kursor");
+                return BadRequest(T("InvalidCursor"));
             if (!await Context.Korisnici.AnyAsync(k => k.Id == id))
                 return NotFound();
 
@@ -434,12 +438,12 @@ namespace EventBoxApi.Controllers
         {
             Korisnik? k = await Context.Korisnici.FindAsync(id);
             if (k == null)
-                return NotFound($"Korisnik sa id-em {id} ne postoji");
+                return NotFound(T("UserNotFound", id));
             k.Blokiran = -1;
             k.Token = GenerateToken();
             k.Validnost = DateTime.UtcNow;
             await Context.SaveChangesAsync();
-            return Ok("Korisnik je blokiran");
+            return Ok(T("UserBlocked"));
         }
 
         // DELETE /api/users/{id}/block - odblokiranje (samo administrator)
@@ -451,10 +455,10 @@ namespace EventBoxApi.Controllers
         {
             Korisnik? k = await Context.Korisnici.FindAsync(id);
             if (k == null)
-                return NotFound($"Korisnik sa id-em {id} ne postoji");
+                return NotFound(T("UserNotFound", id));
             k.Blokiran = 0;
             await Context.SaveChangesAsync();
-            return Ok("Korisnik je odblokiran");
+            return Ok(T("UserUnblocked"));
         }
 
         // GET /api/users/{id}/details - admin: pregled jednog korisnika - javni podaci + status naloga
@@ -482,7 +486,7 @@ namespace EventBoxApi.Controllers
                 })
                 .FirstOrDefaultAsync();
             if (k == null)
-                return NotFound($"Korisnik sa id-em {id} ne postoji");
+                return NotFound(T("UserNotFound", id));
             return Ok(k);
         }
 
@@ -495,17 +499,20 @@ namespace EventBoxApi.Controllers
         public async Task<ActionResult> GetBlockedUsers([FromQuery] int limit = 20, [FromQuery] string? cursor = null)
         {
             if (!Pagination.TryDecodeCursor(cursor, out int? posle))
-                return BadRequest("Neispravan kursor");
+                return BadRequest(T("InvalidCursor"));
             var strana = await Pagination.GetPageAsync(Context.Korisnici.Where(k => k.Blokiran == -1), posle, limit);
             var javni = KorisnikJavniDto.Projekcija.Compile();
             return Ok(new { stavke = strana.Stavke.Select(javni), strana.SledeciKursor, strana.ImaJos, strana.Ukupno });
         }
 
+        // Poruka na jeziku zahteva (Accept-Language), vidi SharedResource.cs
+        private string T(string kljuc, params object[] args) => _t[kljuc, args];
+
         private BadRequestObjectResult EmailTaken()
-            => BadRequest(new { message = "Proverite unete podatke.", greske = new Dictionary<string, string> { ["emailAdresa"] = "Email adresa je vec u upotrebi." } });
+            => BadRequest(new { message = T("CheckInput"), greske = new Dictionary<string, string> { ["emailAdresa"] = T("EmailTaken") } });
 
         private BadRequestObjectResult UsernameTaken()
-            => BadRequest(new { message = "Proverite unete podatke.", greske = new Dictionary<string, string> { ["korisnickoIme"] = "Korisnicko ime je zauzeto." } });
+            => BadRequest(new { message = T("CheckInput"), greske = new Dictionary<string, string> { ["korisnickoIme"] = T("UsernameTaken") } });
 
         // Potvrda lozinkom za osetljive akcije. Pogresna lozinka se broji kao neuspela prijava
         // (LoginProtection), pa ni ovde ne moze da se pogadja. null = lozinka je tacna.
@@ -516,7 +523,7 @@ namespace EventBoxApi.Controllers
             if (string.IsNullOrEmpty(lozinka) || !Passwords.Verify(k.Lozinka_Hashirana, lozinka, out _))
             {
                 _loginProtection.RecordFailure("k", k.Korisnicko_Ime);
-                return BadRequest(new { message = "Pogresna lozinka.", greske = new Dictionary<string, string> { [polje] = "Pogresna lozinka." } });
+                return BadRequest(new { message = T("WrongPassword"), greske = new Dictionary<string, string> { [polje] = T("WrongPassword") } });
             }
             return null;
         }
@@ -524,7 +531,7 @@ namespace EventBoxApi.Controllers
         private ObjectResult LockedOut(TimeSpan preostalo)
         {
             Response.Headers.RetryAfter = ((int)Math.Ceiling(preostalo.TotalSeconds)).ToString();
-            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = LoginProtection.LockoutMessage(preostalo) });
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = LoginProtection.LockoutMessage(preostalo, _t) });
         }
 
         // Nasumican token od 256 bita (64 hex znaka)

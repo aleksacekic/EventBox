@@ -1,6 +1,8 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Localization;
+using Novi_backend_za_SWE;
 
 namespace EventBoxApi.Auth
 {
@@ -76,8 +78,8 @@ namespace EventBoxApi.Auth
 
         public void RecordSuccess(string vrsta, string ime) => _cache.Remove(CacheKey(vrsta, ime));
 
-        public static string LockoutMessage(TimeSpan preostalo)
-            => $"Previse neuspelih pokusaja. Pokusajte ponovo za {Math.Max(1, (int)Math.Ceiling(preostalo.TotalMinutes))} min.";
+        public static string LockoutMessage(TimeSpan preostalo, IStringLocalizer t)
+            => t["TooManyFailedAttempts", Math.Max(1, (int)Math.Ceiling(preostalo.TotalMinutes))].Value;
 
         // Politike po IP adresi; poziva se iz Program.cs
         public static void Configure(RateLimiterOptions o)
@@ -107,8 +109,9 @@ namespace EventBoxApi.Auth
                     cekaj = ra;
                 ctx.HttpContext.Response.Headers.RetryAfter = ((int)Math.Ceiling(cekaj.TotalSeconds)).ToString();
                 int min = Math.Max(1, (int)Math.Ceiling(cekaj.TotalMinutes));
+                var t = ctx.HttpContext.RequestServices.GetRequiredService<IStringLocalizer<SharedResource>>();
                 await ctx.HttpContext.Response.WriteAsJsonAsync(
-                    new { message = $"Previse zahteva sa ove adrese. Pokusajte ponovo za {min} min." }, ct);
+                    new { message = t["TooManyRequests", min].Value }, ct);
             };
         }
     }

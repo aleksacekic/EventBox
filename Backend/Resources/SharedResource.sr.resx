@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AllFieldsRequired" xml:space="preserve">
+    <value>Sva polja su obavezna, a lozinka mora imati najmanje 8 karaktera.</value>
+  </data>
+  <data name="UsernameLength" xml:space="preserve">
+    <value>Korisničko ime mora imati od {0} do {1} karaktera.</value>
+  </data>
+  <data name="UsernameChars" xml:space="preserve">
+    <value>Korisničko ime sme da sadrži samo slova (bez kvačica), cifre, tačku, crtu i donju crtu.</value>
+  </data>
+  <data name="InvalidEmail" xml:space="preserve">
+    <value>Unesite ispravnu email adresu.</value>
+  </data>
+  <data name="UserRegistered" xml:space="preserve">
+    <value>Uspešno je upisan korisnik sa korisničkim imenom {0}.</value>
+  </data>
+  <data name="LoggedOut" xml:space="preserve">
+    <value>Odjavljeni ste.</value>
+  </data>
+  <data name="UserNotFound" xml:space="preserve">
+    <value>Korisnik sa ID-em {0} nije pronađen.</value>
+  </data>
+  <data name="MissingData" xml:space="preserve">
+    <value>Nedostaju podaci.</value>
+  </data>
+  <data name="CheckInput" xml:space="preserve">
+    <value>Proverite unete podatke.</value>
+  </data>
+  <data name="FirstNameLength" xml:space="preserve">
+    <value>Ime mora imati od 1 do 50 karaktera.</value>
+  </data>
+  <data name="LastNameLength" xml:space="preserve">
+    <value>Prezime mora imati od 1 do 50 karaktera.</value>
+  </data>
+  <data name="InvalidBirthDate" xml:space="preserve">
+    <value>Datum rođenja nije ispravan.</value>
+  </data>
+  <data name="NewPasswordLength" xml:space="preserve">
+    <value>Nova lozinka mora imati najmanje 8 karaktera.</value>
+  </data>
+  <data name="EmailTaken" xml:space="preserve">
+    <value>Email adresa je već u upotrebi.</value>
+  </data>
+  <data name="UsernameTaken" xml:space="preserve">
+    <value>Korisničko ime je zauzeto.</value>
+  </data>
+  <data name="WrongPassword" xml:space="preserve">
+    <value>Pogrešna lozinka.</value>
+  </data>
+  <data name="UserDeleted" xml:space="preserve">
+    <value>Uspešno je obrisan korisnik sa ID-em {0}.</value>
+  </data>
+  <data name="ImageDeleted" xml:space="preserve">
+    <value>Slika je uspešno obrisana.</value>
+  </data>
+  <data name="InvalidCursor" xml:space="preserve">
+    <value>Neispravan kursor.</value>
+  </data>
+  <data name="UserBlocked" xml:space="preserve">
+    <value>Korisnik je blokiran.</value>
+  </data>
+  <data name="UserUnblocked" xml:space="preserve">
+    <value>Korisnik je odblokiran.</value>
+  </data>
+  <data name="TooManyFailedAttempts" xml:space="preserve">
+    <value>Previše neuspelih pokušaja. Pokušajte ponovo za {0} min.</value>
+  </data>
+  <data name="TooManyRequests" xml:space="preserve">
+    <value>Previše zahteva sa ove adrese. Pokušajte ponovo za {0} min.</value>
+  </data>
+  <data name="ServerError" xml:space="preserve">
+    <value>Došlo je do greške na serveru. Pokušajte ponovo.</value>
+  </data>
+  <data name="AdminUsernamePasswordRequired" xml:space="preserve">
+    <value>Korisničko ime je obavezno, a lozinka mora imati najmanje 8 karaktera.</value>
+  </data>
+  <data name="NameRequired" xml:space="preserve">
+    <value>Ime i prezime su obavezni.</value>
+  </data>
+  <data name="NameMaxLength" xml:space="preserve">
+    <value>Ime i prezime mogu imati najviše {0} karaktera.</value>
+  </data>
+  <data name="AdminExists" xml:space="preserve">
+    <value>Administrator sa tim korisničkim imenom već postoji.</value>
+  </data>
+  <data name="CannotDeleteSelf" xml:space="preserve">
+    <value>Ne možete obrisati sopstveni nalog.</value>
+  </data>
+  <data name="CannotDeleteLastAdmin" xml:space="preserve">
+    <value>Ne može se obrisati poslednji administrator.</value>
+  </data>
+  <data name="AdminDeleted" xml:space="preserve">
+    <value>Uspešno je obrisan administrator sa ID-em {0}.</value>
+  </data>
+  <data name="TitleRequired" xml:space="preserve">
+    <value>Naziv je obavezan.</value>
+  </data>
+  <data name="EventNotFound" xml:space="preserve">
+    <value>Događaj sa ID-em {0} nije pronađen.</value>
+  </data>
+  <data name="MissingEventData" xml:space="preserve">
+    <value>Nedostaju podaci o događaju.</value>
+  </data>
+  <data name="EventDeleted" xml:space="preserve">
+    <value>Uspešno je obrisan događaj sa ID-em {0}.</value>
+  </data>
+  <data name="EventTitleLength" xml:space="preserve">
+    <value>Naziv mora imati od {0} do {1} karaktera.</value>
+  </data>
+  <data name="EventDescriptionLength" xml:space="preserve">
+    <value>Opis može imati najviše {0} karaktera.</value>
+  </data>
+  <data name="EventCategory" xml:space="preserve">
+    <value>Izaberite kategoriju sa liste.</value>
+  </data>
+  <data name="EventDateRequired" xml:space="preserve">
+    <value>Izaberite datum.</value>
+  </data>
+  <data name="EventDatePast" xml:space="preserve">
+    <value>Datum ne može biti u prošlosti.</value>
+  </data>
+  <data name="EventDateTooFar" xml:space="preserve">
+    <value>Datum može biti najviše dve godine unapred.</value>
+  </data>
+  <data name="EventTimeRequired" xml:space="preserve">
+    <value>Izaberite vreme početka.</value>
+  </data>
+  <data name="EventLocationRequired" xml:space="preserve">
+    <value>Označite lokaciju na mapi.</value>
+  </data>
+  <data name="CommentEmpty" xml:space="preserve">
+    <value>Komentar ne sme biti prazan.</value>
+  </data>
+  <data name="CommentTooLong" xml:space="preserve">
+    <value>Komentar može imati najviše {0} karaktera.</value>
+  </data>
+  <data name="CommentDeleted" xml:space="preserve">
+    <value>Uspešno je obrisan komentar sa ID-em {0}.</value>
+  </data>
+  <data name="EventCommentsDeleted" xml:space="preserve">
+    <value>Komentari događaja su obrisani.</value>
+  </data>
+  <data name="InvalidEventIds" xml:space="preserve">
+    <value>ID-jevi događaja moraju biti brojevi odvojeni zarezom.</value>
+  </data>
+  <data name="UnknownReactionType" xml:space="preserve">
+    <value>Nepoznat tip reakcije: {0}</value>
+  </data>
+  <data name="ReactionAlreadySet" xml:space="preserve">
+    <value>Reakcija je već postavljena.</value>
+  </data>
+  <data name="ReactionSet" xml:space="preserve">
+    <value>Reakcija je postavljena.</value>
+  </data>
+  <data name="ReactionDeleted" xml:space="preserve">
+    <value>Reakcija je obrisana.</value>
+  </data>
+  <data name="EventReactionsDeleted" xml:space="preserve">
+    <value>Reakcije događaja su obrisane.</value>
+  </data>
+  <data name="MessageEmpty" xml:space="preserve">
+    <value>Poruka ne sme biti prazna.</value>
+  </data>
+  <data name="MessageTooLong" xml:space="preserve">
+    <value>Poruka može imati najviše {0} karaktera.</value>
+  </data>
+  <data name="CannotMessageSelf" xml:space="preserve">
+    <value>Ne može se slati poruka samom sebi.</value>
+  </data>
+  <data name="RecipientNotFound" xml:space="preserve">
+    <value>Primalac ne postoji.</value>
+  </data>
+  <data name="MessageNotFound" xml:space="preserve">
+    <value>Poruka nije pronađena.</value>
+  </data>
+  <data name="MessageDeleted" xml:space="preserve">
+    <value>Poruka je obrisana.</value>
+  </data>
+  <data name="UnknownReportReason" xml:space="preserve">
+    <value>Nepoznat razlog prijave.</value>
+  </data>
+  <data name="ReportDescriptionTooLong" xml:space="preserve">
+    <value>Opis može imati najviše {0} karaktera.</value>
+  </data>
+  <data name="CannotReportOwnEvent" xml:space="preserve">
+    <value>Ne može se prijaviti sopstveni događaj.</value>
+  </data>
+  <data name="AlreadyReported" xml:space="preserve">
+    <value>Već ste prijavili ovaj događaj.</value>
+  </data>
+  <data name="ReportConflict" xml:space="preserve">
+    <value>Prijava je već upisana, pokušajte ponovo.</value>
+  </data>
+  <data name="EventReported" xml:space="preserve">
+    <value>Događaj je prijavljen.</value>
+  </data>
+  <data name="ReportDismissed" xml:space="preserve">
+    <value>Prijava je odbačena.</value>
+  </data>
+  <data name="NotificationNotFound" xml:space="preserve">
+    <value>Notifikacija nije pronađena.</value>
+  </data>
+  <data name="NotificationDeleted" xml:space="preserve">
+    <value>Uspešno je obrisana notifikacija sa ID-em {0}.</value>
+  </data>
+  <data name="ImageRequired" xml:space="preserve">
+    <value>Izaberite sliku.</value>
+  </data>
+  <data name="ImageTooLarge" xml:space="preserve">
+    <value>Slika može imati najviše {0} MB.</value>
+  </data>
+  <data name="ImageInvalidType" xml:space="preserve">
+    <value>Dozvoljene su samo JPG, PNG i WEBP slike.</value>
+  </data>
+</root>

@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Microsoft.Extensions.Localization;
+using Novi_backend_za_SWE;
 
 namespace EventBoxApi.Controllers
 {
@@ -26,11 +28,16 @@ namespace EventBoxApi.Controllers
         public EventBoxContext Context;
 
         private readonly NotificationService _notifications;
-        public ReactionsController(EventBoxContext context, NotificationService notifications)
+        private readonly IStringLocalizer<SharedResource> _t;
+        public ReactionsController(EventBoxContext context, NotificationService notifications, IStringLocalizer<SharedResource> t)
         {
             this.Context = context;
             _notifications = notifications;
+            _t = t;
         }
+
+        // Poruka na jeziku zahteva (Accept-Language), vidi SharedResource.cs
+        private string T(string kljuc, params object[] args) => _t[kljuc, args];
 
         // GET /api/reactions/mine?eventIds=1,2,3 - reakcije ulogovanog korisnika na zadatim
         // dogadjajima (ID-jevi odvojeni zarezom), jednim upitom
@@ -45,7 +52,7 @@ namespace EventBoxApi.Controllers
             foreach (var d in delovi)
             {
                 if (!int.TryParse(d, out int idDogadjaja))
-                    return BadRequest("ID-jevi dogadjaja moraju biti brojevi odvojeni zarezom");
+                    return BadRequest(T("InvalidEventIds"));
                 lista.Add(idDogadjaja);
             }
             var reakcije = await Context.Reakcije
@@ -67,7 +74,7 @@ namespace EventBoxApi.Controllers
                 return Forbid(); // administrator nije korisnik i ne reaguje
             string? tip = zahtev?.Tip;
             if (tip == null || !Reakcija.Tipovi.Contains(tip))
-                return BadRequest("Nepoznat tip reakcije: " + tip);
+                return BadRequest(T("UnknownReactionType", tip ?? ""));
             int korisnikId = User.GetUserId();
             Dogadjaj d = await Context.Dogadjaji.FindAsync(eventId);
             if (d == null)
@@ -91,13 +98,13 @@ namespace EventBoxApi.Controllers
             catch (DbUpdateException)
             {
                 // Dva istovremena zahteva istog korisnika: drugi udara u jedinstven indeks
-                return Conflict("Reakcija je vec postavljena");
+                return Conflict(T("ReactionAlreadySet"));
             }
             await ReactionCounters.RefreshAsync(Context, eventId);
 
             await _notifications.NotifyOwnerAsync(d, korisnikId, NotificationType.Reaction, tip, reakcijaId: r.Id);
 
-            return Ok("Uspesno je postavljena reakcija");
+            return Ok(T("ReactionSet"));
         }
 
         // DELETE /api/events/{eventId}/reaction - brise reakciju ulogovanog korisnika, kog god tipa bila
@@ -117,7 +124,7 @@ namespace EventBoxApi.Controllers
             await Context.SaveChangesAsync();
             await ReactionCounters.RefreshAsync(Context, eventId);
             await _notifications.NotifyRemovedAsync(uklonjene);
-            return Ok("Uspesno je obrisana reakcija");
+            return Ok(T("ReactionDeleted"));
         }
 
         // DELETE /api/events/{eventId}/reactions - sve reakcije dogadjaja (samo vlasnik dogadjaja)
@@ -135,7 +142,7 @@ namespace EventBoxApi.Controllers
             await Context.Notifikacije.Where(n => n.ReakcijaId != null && n.DogadjajId == eventId).ExecuteDeleteAsync();
             await Context.Reakcije.Where(r => r.Dogadjaj_ID.Id == eventId).ExecuteDeleteAsync();
             await ReactionCounters.RefreshAsync(Context, eventId);
-            return Ok("Uspesno su obrisane reakije dogadjaja");
+            return Ok(T("EventReactionsDeleted"));
         }
     }
 }

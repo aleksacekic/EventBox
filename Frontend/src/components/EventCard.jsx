@@ -2,13 +2,14 @@ import { api, API_BASE, ApiError } from '../api';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import EventForm from './EventForm';
 import Avatar from './Avatar';
 import MapToggle from './MapToggle';
 import CommentSection from './CommentSection';
 import ReactionButtons from './ReactionButtons';
 import { formatDate } from '../utils/date';
-import { isEventFinished } from '../utils/event';
+import { isEventFinished, categoryLabel } from '../utils/event';
 
 // Jedna kartica dogadjaja - ceo prikaz (topbar, opis, mapa, reakcije, komentari,
 // prijava sadrzaja) na jednom mestu. Koristi ga i feed (EventFeed.jsx, lista) i
@@ -25,6 +26,7 @@ import { isEventFinished } from '../utils/event';
 // Napomena o CSS klasama: kartica koristi sopstveni "dogadjaj-card-*" namespace
 // (public/css/style.css), NE stare "post-bar/job_descp/..." klase iz pocetne teme.
 function EventCard({ dogadjaj: izListe, korisnik, onOpen, onDelete, idsZaReakcije, className = 'dogadjaj-card' }) {
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   // Izmena: forma se otvara iz kartice, a izmenjeni podaci se prikazuju odmah (bez ponovnog ucitavanja liste)
   const [izmenaOtvorena, setIzmenaOtvorena] = useState(false);
@@ -56,7 +58,7 @@ function EventCard({ dogadjaj: izListe, korisnik, onOpen, onDelete, idsZaReakcij
   const submitReport = async (e) => {
     stopClick(e);
     if (!selectedOption) {
-      toast.warn('Molimo odaberite razlog prijave.');
+      toast.warn(t('report.chooseReason'));
       return;
     }
 
@@ -72,7 +74,7 @@ function EventCard({ dogadjaj: izListe, korisnik, onOpen, onDelete, idsZaReakcij
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         // Server pamti ko je prijavio: isti dogadjaj se ne prijavljuje dvaput
-        toast.info('Vec ste prijavili ovaj dogadjaj.');
+        toast.info(t('report.alreadyReported'));
         closeReportForm();
         setPrijavaPoslata(true);
         return;
@@ -92,18 +94,18 @@ function EventCard({ dogadjaj: izListe, korisnik, onOpen, onDelete, idsZaReakcij
           <Avatar className="dogadjaj-card-avatar" slika={dogadjaj.slikaKorisnika} ime={dogadjaj.userName_Kreatora} />
           <div className="dogadjaj-card-author-info">
             <h3>@{dogadjaj.userName_Kreatora}</h3>
-            <span><i className="la la-clock-o" />{dogadjaj.formattedDatum}</span>
+            <span><i className="la la-clock-o" />{formatDate(dogadjaj.datum_Objave)}</span>
           </div>
         </div>
 
         {jeVlasnik && (
           <div className={`dogadjaj-card-menu ${menuOpen ? 'is-open' : ''}`} onClick={stopClick}>
-            <button type="button" className="dogadjaj-card-menu-btn" onClick={(e) => { stopClick(e); setMenuOpen(v => !v); }} aria-label="Opcije">
+            <button type="button" className="dogadjaj-card-menu-btn" onClick={(e) => { stopClick(e); setMenuOpen(v => !v); }} aria-label={t('common.options')}>
               <i className="la la-ellipsis-v" />
             </button>
             <ul className="dogadjaj-card-menu-list">
-              <li><button type="button" onClick={(e) => { stopClick(e); setMenuOpen(false); setIzmenaOtvorena(true); }}>Izmeni objavu</button></li>
-              <li><button type="button" onClick={(e) => { stopClick(e); onDelete(dogadjaj.id); }}>Obrisi objavu</button></li>
+              <li><button type="button" onClick={(e) => { stopClick(e); setMenuOpen(false); setIzmenaOtvorena(true); }}>{t('events.edit')}</button></li>
+              <li><button type="button" onClick={(e) => { stopClick(e); onDelete(dogadjaj.id); }}>{t('events.delete')}</button></li>
             </ul>
           </div>
         )}
@@ -112,11 +114,11 @@ function EventCard({ dogadjaj: izListe, korisnik, onOpen, onDelete, idsZaReakcij
       <div className="dogadjaj-card-body">
         <h3 className="dogadjaj-card-title">{dogadjaj.naslov}</h3>
         <div className="dogadjaj-card-meta">
-          <span className="dogadjaj-card-badge">{dogadjaj.kategorija}</span>
-          {zavrsen && <span className="dogadjaj-card-badge dogadjaj-card-badge-zavrsen">Zavrsen</span>}
+          <span className="dogadjaj-card-badge">{categoryLabel(t, dogadjaj.kategorija)}</span>
+          {zavrsen && <span className="dogadjaj-card-badge dogadjaj-card-badge-zavrsen">{t('events.finished')}</span>}
           <span className="dogadjaj-card-when">
             <i className="la la-calendar" />
-            {formatDate(dogadjaj.datum_Dogadjaja)}. od {dogadjaj.vreme_pocetka}
+            {t('events.when', { date: formatDate(dogadjaj.datum_Dogadjaja), time: dogadjaj.vreme_pocetka })}
           </span>
         </div>
         {dogadjaj.opis && <p className="dogadjaj-card-desc">{dogadjaj.opis}</p>}
@@ -138,35 +140,35 @@ function EventCard({ dogadjaj: izListe, korisnik, onOpen, onDelete, idsZaReakcij
 
       <div className="dogadjaj-card-actions">
         <button type="button" className="dogadjaj-card-action" onClick={(e) => { stopClick(e); setPrikaziKomentare(v => !v); }}>
-          <i className="la la-comment" /> Komentar
+          <i className="la la-comment" /> {t('events.comment')}
         </button>
         <button type="button" className="dogadjaj-card-action" onClick={openReportForm}>
-          <i className="la la-flag" /> Prijavi objavu
+          <i className="la la-flag" /> {t('events.report')}
         </button>
       </div>
 
       {prijaviFormaOtvorena && (
         <div className="dogadjaj-modal-overlay" onClick={(e) => { stopClick(e); closeReportForm(); }}>
           <div className="dogadjaj-modal-card" onClick={stopClick}>
-            <h4>Prijavi objavu</h4>
+            <h4>{t('report.title')}</h4>
             <div className="dogadjaj-report-options">
-              <label><input type="radio" name={`opcija-${dogadjaj.id}`} defaultChecked onChange={() => setSelectedOption('nepozeljan')} /> Nepozeljan sadrzaj</label>
-              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('nasilje')} /> Nasilje</label>
-              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('terorizam')} /> Terorizam</label>
-              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('govor_mrznje')} /> Govor mrznje</label>
-              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('lazne_informacije')} /> Lazne informacije</label>
-              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('uznemiravanje')} /> Uznemiravanje</label>
-              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('ostalo')} /> Ostalo</label>
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} defaultChecked onChange={() => setSelectedOption('nepozeljan')} /> {t('reportReasons.nepozeljan')}</label>
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('nasilje')} /> {t('reportReasons.nasilje')}</label>
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('terorizam')} /> {t('reportReasons.terorizam')}</label>
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('govor_mrznje')} /> {t('reportReasons.govor_mrznje')}</label>
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('lazne_informacije')} /> {t('reportReasons.lazne_informacije')}</label>
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('uznemiravanje')} /> {t('reportReasons.uznemiravanje')}</label>
+              <label><input type="radio" name={`opcija-${dogadjaj.id}`} onChange={() => setSelectedOption('ostalo')} /> {t('reportReasons.ostalo')}</label>
             </div>
             {selectedOption === 'ostalo' && (
               <div className="dogadjaj-report-ostalo">
-                <label>Opisite nam razlog prijave:</label>
+                <label>{t('report.describe')}</label>
                 <textarea rows={3} value={opis} onChange={(e) => setOpis(e.target.value)} />
               </div>
             )}
             <div className="dogadjaj-modal-actions">
-              <button type="button" className="dogadjaj-modal-cancel" onClick={(e) => { stopClick(e); closeReportForm(); }}>Otkazi</button>
-              <button type="button" className="dogadjaj-modal-submit" onClick={submitReport}>Prijavi</button>
+              <button type="button" className="dogadjaj-modal-cancel" onClick={(e) => { stopClick(e); closeReportForm(); }}>{t('common.cancel')}</button>
+              <button type="button" className="dogadjaj-modal-submit" onClick={submitReport}>{t('report.submit')}</button>
             </div>
           </div>
         </div>
@@ -175,8 +177,8 @@ function EventCard({ dogadjaj: izListe, korisnik, onOpen, onDelete, idsZaReakcij
       {prijavaPoslata && (
         <div className="dogadjaj-modal-overlay" onClick={(e) => { stopClick(e); setPrijavaPoslata(false); }}>
           <div className="dogadjaj-modal-card dogadjaj-modal-card-sm" onClick={stopClick}>
-            <button type="button" className="dogadjaj-modal-close" onClick={(e) => { stopClick(e); setPrijavaPoslata(false); }} aria-label="Zatvori">×</button>
-            <p>Uspesno ste prijavili objavu koja krsi pravila zajednice. Administrator ce uskoro pregledati vasu prijavu. Hvala!</p>
+            <button type="button" className="dogadjaj-modal-close" onClick={(e) => { stopClick(e); setPrijavaPoslata(false); }} aria-label={t('common.close')}>×</button>
+            <p>{t('report.success')}</p>
           </div>
         </div>
       )}

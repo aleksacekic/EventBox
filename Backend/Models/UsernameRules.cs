@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Localization;
 
 namespace Models
 {
@@ -13,13 +14,13 @@ namespace Models
 
         public static string Normalize(string? ime) => (ime ?? "").Trim();
 
-        // null = ispravno, inace poruka o gresci
-        public static string? Validate(string ime)
+        // null = ispravno, inace poruka o gresci (na jeziku zahteva)
+        public static string? Validate(string ime, IStringLocalizer t)
         {
             if (ime.Length < MinLength || ime.Length > MaxLength)
-                return $"Korisnicko ime mora imati od {MinLength} do {MaxLength} karaktera";
+                return t["UsernameLength", MinLength, MaxLength].Value;
             if (!AllowedPattern.IsMatch(ime))
-                return "Korisnicko ime sme da sadrzi samo slova (bez kvacica), cifre, tacku, crtu i donju crtu";
+                return t["UsernameChars"].Value;
             return null;
         }
 

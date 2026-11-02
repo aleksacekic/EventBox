@@ -5,12 +5,14 @@ import { useState } from 'react';
 import { formatDateTime } from '../utils/date';
 import { useInfiniteList } from '../useInfiniteList';
 import Avatar from './Avatar';
+import { useTranslation } from 'react-i18next';
 
 
 
 function CommentSection({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, korisnikovoIme }) {
 
   const { userId } = useAuth();
+  const { t } = useTranslation();
   // Najnovijih 10, a starije na dugme "Prikazi starije komentare". Lista je od starijih ka
   // novijim (direction 'up'), kao i do sada. Izmene (novi, izmenjen, obrisan) se primenjuju
   // lokalno, bez ponovnog ucitavanja svih komentara.
@@ -84,7 +86,7 @@ function CommentSection({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, koris
     <div className="komentar-wrap">
       {lista.hasMore && dogadjajId === prikazaniDogadjaj && (
         <button type="button" className="komentar-starije" onClick={lista.loadMore} disabled={lista.loading}>
-          {lista.loading ? 'Ucitavam...' : `Prikazi starije komentare${josStarijih ? ` (${josStarijih})` : ''}`}
+          {lista.loading ? t('common.loading') : josStarijih ? t('comments.showOlderCount', { n: josStarijih }) : t('comments.showOlder')}
         </button>
       )}
       {listaKomentara.length > 0 && dogadjajId === prikazaniDogadjaj ? (
@@ -118,19 +120,19 @@ function CommentSection({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, koris
                       {izabraniKomentarId === komentar.id ? (
                         <>
                           <button type="button" onClick={() => handleUpdateComment(komentar.id)}>
-                            Sacuvaj
+                            {t('common.save')}
                           </button>
                           <button type="button" onClick={() => setIzabraniKomentarId(null)}>
-                            Odustani
+                            {t('common.cancel')}
                           </button>
                         </>
                       ) : (
                         <button type="button" onClick={() => handleEditComment(komentar.id, komentar.tekst)}>
-                          Izmeni
+                          {t('common.edit')}
                         </button>
                       )}
                       <button type="button" className="komentar-akcija-obrisi" onClick={() => handleDeleteComment(komentar.id)}>
-                        Obrisi
+                        {t('common.delete')}
                       </button>
                     </div>
                   )}
@@ -140,9 +142,9 @@ function CommentSection({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, koris
           ))}
         </ul>
       ) : lista.initialLoading ? (
-        <p className="komentar-prazno">Ucitavam komentare...</p>
+        <p className="komentar-prazno">{t('comments.loading')}</p>
       ) : (
-        <p className="komentar-prazno">Trenutno nema komentara.</p>
+        <p className="komentar-prazno">{t('comments.empty')}</p>
       )}
 
 
@@ -152,10 +154,10 @@ function CommentSection({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, koris
           className="komentar-input"
           type="text"
           maxLength={1000}
-          placeholder="Postavi komentar"
+          placeholder={t('comments.placeholder')}
           value={noviKomentar}
           onChange={handleInputChange} />
-        <button type="submit" className="komentar-posalji">Salji</button>
+        <button type="submit" className="komentar-posalji">{t('comments.send')}</button>
       </form>
     </div>
   );
