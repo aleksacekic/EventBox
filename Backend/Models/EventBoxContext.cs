@@ -60,7 +60,7 @@ namespace Models
                 .HasForeignKey(n => n.KorisnikKojiReagujeId)
                 .OnDelete(DeleteBehavior.NoAction);
             // Bez kaskade iz istog razloga (Korisnik -> Dogadjaj -> Komentar/Reakcija je vec kaskadno);
-            // notifikacije komentara/reakcije brise kod (Obavestenja.UkloniAsync) pre samog brisanja
+            // notifikacije komentara/reakcije brise kod (NotificationService.RemoveAsync) pre samog brisanja
             modelBuilder.Entity<Notifikacija>()
                 .HasOne(n => n.Komentar).WithMany()
                 .HasForeignKey(n => n.KomentarId)
@@ -105,7 +105,7 @@ namespace Models
             modelBuilder.Entity<Korisnik>().HasIndex(k => k.Korisnicko_Ime).IsUnique();
             // Jedan email - jedan nalog (osnova za buduci "zaboravljena lozinka")
             modelBuilder.Entity<Korisnik>().HasIndex(k => k.Email_Adresa).IsUnique()
-                .HasDatabaseName(EmailAdresa.IndeksJedinstvenosti);
+                .HasDatabaseName(EmailRules.UniqueIndexName);
             modelBuilder.Entity<Administrator>().HasIndex(a => a.Korisnicko_ime).IsUnique();
 
             // Token se trazi na SVAKOM zahtevu (TokenAuthenticationHandler) - bez indeksa je to

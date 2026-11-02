@@ -13,14 +13,14 @@ namespace Models
         [Required]
         public string Prezime { get; set; }
         [Required]
-        [MaxLength(KorisnickoIme.MaxDuzina)] // jedinstveno (indeks u EventBoxContext)
+        [MaxLength(UsernameRules.MaxLength)] // jedinstveno (indeks u EventBoxContext)
         public string Korisnicko_Ime { get; set; }
         [Required]
         public string Lozinka_Hashirana { get; set; }
         [Required]
         public DateTime Datum_rodjenja { get; set; }
         [Required]
-        [MaxLength(EmailAdresa.MaxDuzina)] // jedinstveno (indeks u EventBoxContext)
+        [MaxLength(EmailRules.MaxLength)] // jedinstveno (indeks u EventBoxContext)
         public string Email_Adresa { get; set; }
         [Required]
         [Range(-1, 0)] //-1 = BLOKIRAN, 0 = NIJE BLOKIRAN  

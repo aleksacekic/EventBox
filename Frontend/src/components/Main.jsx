@@ -1,20 +1,20 @@
 import { api } from '../api';
 import React from 'react'
-import Dogadjaj from './Dogadjaj'
+import EventFeed from './EventFeed'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import { useEffect, useState } from 'react'
 import { registerLocale } from "react-datepicker"
 import srLatn from "date-fns/locale/sr-Latn";
 import { Link } from 'react-router-dom';
-import { formatDatum } from '../utils/datum';
+import { formatDate } from '../utils/date';
 import Avatar from './Avatar';
 import { useAuth } from '../auth';
-import { useNotifications, tekstNotifikacije, formatTrenutak } from '../notifications';
+import { useNotifications, getNotificationText, formatDateTime } from '../notifications';
 import { useNavigate } from 'react-router-dom';
 
 
-function Main({ onNapraviDogadjaj, noviDogadjaj }) {
+function Main({ onCreateEvent, noviDogadjaj }) {
 
   const { userId } = useAuth();
   const { notifications } = useNotifications();
@@ -25,7 +25,7 @@ function Main({ onNapraviDogadjaj, noviDogadjaj }) {
   // Koji filter je trenutno aktivan - jedan izvor istine umesto rucnog
   // pokazivanja/sakrivanja div-ova preko document.getElementById.
   const [filterMode, setFilterMode] = useState('sve'); // 'sve' | 'datum' | 'naziv'
-  // Menja se samo kad se filter potpuno resetuje - <Dogadjaj key={feedKey}>
+  // Menja se samo kad se filter potpuno resetuje - <EventFeed key={feedKey}>
   // se onda ponovo montira iz pocetka i sam ucita opsti feed (cisto, bez
   // dodatne logike ovde za "vracanje" stare liste).
   const [feedKey, setFeedKey] = useState(0);
@@ -36,16 +36,16 @@ function Main({ onNapraviDogadjaj, noviDogadjaj }) {
   const [datumPicker, setDatumPicker] = useState(() => new Date());
   const [dateZaSlanje, setDateZaSlanje] = useState(() => new Date("2000-01-01"));
 
-  const primeniDatumFilter = () => {
+  const applyDateFilter = () => {
     const local = (new Date(`${datumPicker.getFullYear()}-${datumPicker.getMonth()+1}-${datumPicker.getDate()}`));
     setDateZaSlanje(local);
   }
 
-  const primeniNazivFilter = () => {
+  const applyTitleFilter = () => {
     setNazivZaSlanje(NazivPicker);
   }
 
-  const resetujFilter = () => {
+  const resetFilter = () => {
     setFilterMode('sve');
     setDatumPicker(new Date());
     setDateZaSlanje(new Date("2000-01-01"));
@@ -54,29 +54,25 @@ function Main({ onNapraviDogadjaj, noviDogadjaj }) {
     setFeedKey(k => k + 1);
   }
 
-  const promeniDatum = (datum) => {
+  const handleDateChange = (datum) => {
     setDatumPicker(datum);
   }
 
 
-  const promeniNaziv = (event) => {
+  const handleTitleChange = (event) => {
     setNazivPicker(event.target.value);
   }
 
   useEffect(() => {
-    ucitajKorisnika();
+    loadUser();
   }, []);
-
-  const formatirajDatum = (datum) => {
-    return formatDatum(datum);
-  };
 
   const korisnik_Id = userId;
   
-  const ucitajKorisnika = async () => {
+  const loadUser = async () => {
     try {
-      const data = await api.get(`/Korisnik/VratiKorisnika_ID/${korisnik_Id}`);
-      const formatiranDatum = formatirajDatum(data.datum_rodjenja);
+      const data = await api.get(`/api/users/${korisnik_Id}`);
+      const formatiranDatum = formatDate(data.datum_rodjenja);
       data.datumrodjenja = formatiranDatum;
       setKorisnik(data);
     } catch (error) {
@@ -93,7 +89,7 @@ function Main({ onNapraviDogadjaj, noviDogadjaj }) {
   // strani, ne samo dok je korisnik na /pocetna. Vidi useNotifications() gore.
 
 const navigate = useNavigate();
-const handleClickObjava = (id) => {
+const openEvent = (id) => {
   navigate(`/objava/${id}`);
 };
 
@@ -148,7 +144,7 @@ const handleClickObjava = (id) => {
                       <div className="post-st">
                         <ul>
                           {/* <li><a class="post_project" href="#" title="">Post a Project</a></li> */}
-                          <li><a className="post-jb active" href="#" onClick={(e) => { e.preventDefault(); onNapraviDogadjaj?.(); }}>Napravi dogadjaj</a></li>
+                          <li><a className="post-jb active" href="#" onClick={(e) => { e.preventDefault(); onCreateEvent?.(); }}>Napravi dogadjaj</a></li>
                         </ul>
                       </div>{/*post-st end*/}
                     </div>{/*post-topbar end*/}
@@ -158,7 +154,7 @@ const handleClickObjava = (id) => {
                         <button
                           type="button"
                           className={filterMode === 'sve' ? 'active' : ''}
-                          onClick={resetujFilter}
+                          onClick={resetFilter}
                         >
                           Svi dogadjaji
                         </button>
@@ -184,13 +180,13 @@ const handleClickObjava = (id) => {
                             locale="sr-Latn"
                             minDate={new Date()}
                             selected={datumPicker}
-                            onChange={(datum) => promeniDatum(datum)}
+                            onChange={(datum) => handleDateChange(datum)}
                             placeholderText="Izaberite datum"
                             dateFormat="d.M.yyyy."
                             calendarClassName="eb-calendar"
                             className="feed-filter-input"
                           />
-                          <button className="feed-filter-search-btn" onClick={primeniDatumFilter}>Pretrazi</button>
+                          <button className="feed-filter-search-btn" onClick={applyDateFilter}>Pretrazi</button>
                         </div>
                       )}
 
@@ -201,9 +197,9 @@ const handleClickObjava = (id) => {
                             className="feed-filter-input"
                             placeholder="Naziv dogadjaja..."
                             value={NazivPicker}
-                            onChange={(event) => promeniNaziv(event)}
+                            onChange={(event) => handleTitleChange(event)}
                           />
-                          <button className="feed-filter-search-btn" onClick={primeniNazivFilter}>Pretrazi</button>
+                          <button className="feed-filter-search-btn" onClick={applyTitleFilter}>Pretrazi</button>
                         </div>
                       )}
 
@@ -214,13 +210,13 @@ const handleClickObjava = (id) => {
                               ? `Prikazani dogadjaji po nazivu: "${NazivZaSlanje}"`
                               : `Prikazani dogadjaji za datum: ${datumPicker.toLocaleDateString('sr-Latn')}`}
                           </span>
-                          <button className="feed-filter-reset" onClick={resetujFilter}>Prikazi sve</button>
+                          <button className="feed-filter-reset" onClick={resetFilter}>Prikazi sve</button>
                         </div>
                       )}
                     </div>{/*feed-filter end*/}
 
                     <div className="posts-section" >
-                      <Dogadjaj key={feedKey} primljenDatum={dateZaSlanje} primljenNaziv={NazivZaSlanje} noviDogadjaj={noviDogadjaj} />
+                      <EventFeed key={feedKey} primljenDatum={dateZaSlanje} primljenNaziv={NazivZaSlanje} noviDogadjaj={noviDogadjaj} />
 
 
                     </div>{/*posts-section end*/}
@@ -248,12 +244,12 @@ const handleClickObjava = (id) => {
                      
                       {notifications.length > 0 ? (
                         notifications.map((notif) => (
-                          <div className="job-info" key={notif.id} onClick={() => handleClickObjava(notif.dogadjajId)}>
+                          <div className="job-info" key={notif.id} onClick={() => openEvent(notif.dogadjajId)}>
                             <div className="job-details">
-                              <p>{tekstNotifikacije(notif)}</p>
+                              <p>{getNotificationText(notif)}</p>
                             </div>
                             <div className="hr-rate">
-                              <span>{formatTrenutak(notif.vreme)}</span>
+                              <span>{formatDateTime(notif.vreme)}</span>
                             </div>
                           </div>
                         ))

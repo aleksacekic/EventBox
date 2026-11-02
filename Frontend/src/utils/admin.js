@@ -14,9 +14,9 @@ export const ADMIN_STRANE = [
 ]
 
 export const adminTabUrl = (tab) => `/admin?tab=${tab}`
-export const adminKorisnikUrl = (id) => `/admin?korisnik=${id}`
+export const adminUserUrl = (id) => `/admin?korisnik=${id}`
 
-// Razlog prijave: kod iz baze -> tekst (iste opcije kao forma za prijavu u DogadjajKartica.jsx)
+// Razlog prijave: kod iz baze -> tekst (iste opcije kao forma za prijavu u EventCard.jsx)
 export const RAZLOZI_PRIJAVE = {
   nepozeljan: 'Nepozeljan sadrzaj',
   nasilje: 'Nasilje',
@@ -28,7 +28,7 @@ export const RAZLOZI_PRIJAVE = {
 }
 
 // Broj sa imenicom u pravom obliku: 1 prijava, 3 prijave, 5 prijava, 21 prijava, 12 prijava
-export function brojSaImenicom(n, [jedan, dva, pet]) {
+export function pluralize(n, [jedan, dva, pet]) {
   const d = n % 10
   const s = n % 100
   if (d === 1 && s !== 11) return `${n} ${jedan}`

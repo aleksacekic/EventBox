@@ -1,5 +1,5 @@
 // Sadrzaj informativnih stranica (footer linkovi). Jedno mesto za tekst i rute,
-// da Footer i InfoStranica uvek ostanu usaglaseni.
+// da Footer i InfoPage uvek ostanu usaglaseni.
 
 export const KONTAKT_EMAIL = 'kontakt@eventbox.rs' // podesi pravu adresu
 

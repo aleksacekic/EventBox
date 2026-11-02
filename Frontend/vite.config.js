@@ -2,7 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // Content-Security-Policy u index.html mora da dozvoli adresu backenda (API pozivi, SignalR
-// websocket, slike sa /Resources). Adresa se ne pise rucno u index.html, nego dolazi iz
+// websocket, slike sa /resources). Adresa se ne pise rucno u index.html, nego dolazi iz
 // VITE_API_URL (.env / .env.production), pa produkcioni build automatski dobija pravi domen.
 //   %API_ORIGIN%    -> npr. http://localhost:5153   ili https://api.eventbox.rs
 //   %API_WS_ORIGIN% -> npr. ws://localhost:5153     ili wss://api.eventbox.rs

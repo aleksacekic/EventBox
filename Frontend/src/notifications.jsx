@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 //  Montirana jednom u App.jsx (iznad <Router>), pa radi na svakoj strani.
 //
-//  Server (Backend/Models/Obavestenja.cs) PRVO upise notifikaciju/poruku u bazu,
+//  Server (Backend/Models/NotificationService.cs) PRVO upise notifikaciju/poruku u bazu,
 //  PA je posalje ovde. Klijent nista ne upisuje sam - ako korisnik nije online,
 //  sve ga ceka u bazi i ucita se pri sledecem ulasku.
 //
@@ -12,10 +12,10 @@
 //
 //  Daje:
 //    notifications            - poslednjih 5 notifikacija (NotifikacijaDto sa servera)
-//    ucitajNotifikacije()     - ponovo ucitaj sa servera (npr. posle brisanja dogadjaja)
-//    neprocitanePoruke        - broj za znacku u headeru
-//    postaviNeprocitane(n)    - npr. posle OznaciKaoProcitano (server vraca novi broj)
-//    pretplatiNaPoruke(fn)    - fn(poruka) za svaku novu poruku; vraca funkciju za odjavu
+//    loadNotifications()      - ponovo ucitaj sa servera (npr. posle brisanja dogadjaja)
+//    unreadCount              - broj neprocitanih poruka, za znacku u headeru
+//    setUnreadCount(n)        - npr. posle oznacavanja razgovora kao procitanog (server vraca novi broj)
+//    subscribeToMessages(fn)  - fn(poruka) za svaku novu poruku; vraca funkciju za odjavu
 // ============================================================================
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr'
@@ -28,28 +28,28 @@ const MAX_NOTIFIKACIJA = 5
 export function NotificationsProvider({ children }) {
   const { userId, token } = useAuth()
   const [notifications, setNotifications] = useState([])
-  const [neprocitanePoruke, setNeprocitanePoruke] = useState(0)
+  const [unreadCount, setUnreadCount] = useState(0)
   const pretplatniciRef = useRef(new Set())
 
-  const ucitajNotifikacije = useCallback(async () => {
+  const loadNotifications = useCallback(async () => {
     if (!userId) return
     try {
-      setNotifications(await api.get(`/Korisnik/VratiPetNotifikacijaKorisnika/${userId}`))
+      setNotifications(await api.get('/api/notifications?limit=5'))
     } catch (error) {
       console.error('Greska pri ucitavanju notifikacija:', error)
     }
   }, [userId])
 
-  const ucitajNeprocitane = useCallback(async () => {
+  const loadUnreadCount = useCallback(async () => {
     if (!userId) return
     try {
-      setNeprocitanePoruke(await api.get(`/Poruka/KolikoNeprocitanihPoruka/${userId}`))
+      setUnreadCount(await api.get('/api/messages/unread-count'))
     } catch (error) {
       console.error('Greska pri ucitavanju broja neprocitanih poruka:', error)
     }
   }, [userId])
 
-  const pretplatiNaPoruke = useCallback((fn) => {
+  const subscribeToMessages = useCallback((fn) => {
     pretplatniciRef.current.add(fn)
     return () => pretplatniciRef.current.delete(fn)
   }, [])
@@ -57,44 +57,44 @@ export function NotificationsProvider({ children }) {
   useEffect(() => {
     if (!userId || !token) {
       setNotifications([])
-      setNeprocitanePoruke(0)
+      setUnreadCount(0)
       return
     }
 
-    ucitajNotifikacije()
-    ucitajNeprocitane()
+    loadNotifications()
+    loadUnreadCount()
 
     const conn = new HubConnectionBuilder()
-      .withUrl(`${API_BASE}/notificationHub`, { accessTokenFactory: () => token })
+      .withUrl(`${API_BASE}/hubs/notifications`, { accessTokenFactory: () => token })
       .withAutomaticReconnect()
       .configureLogging(LogLevel.Warning)
       .build()
 
-    conn.on('NovaNotifikacija', (n) => {
+    conn.on('NotificationCreated', (n) => {
       setNotifications((prev) => [n, ...prev.filter((x) => x.id !== n.id)].slice(0, MAX_NOTIFIKACIJA))
     })
 
     // Autor je izmenio komentar - notifikacija ostaje na istom mestu sa novim tekstom
-    conn.on('NotifikacijaIzmenjena', (n) => {
+    conn.on('NotificationUpdated', (n) => {
       setNotifications((prev) => prev.map((x) => (x.id === n.id ? n : x)))
     })
 
     // Autor je obrisao komentar ili povukao reakciju - notifikacija nestaje, a lista se
     // ponovo ucita da bi se popunila do 5
-    conn.on('NotifikacijaObrisana', (id) => {
+    conn.on('NotificationDeleted', (id) => {
       setNotifications((prev) => prev.filter((x) => x.id !== id))
-      ucitajNotifikacije()
+      loadNotifications()
     })
 
-    conn.on('NovaPoruka', (poruka) => {
-      setNeprocitanePoruke((b) => b + 1)
+    conn.on('MessageReceived', (poruka) => {
+      setUnreadCount((b) => b + 1)
       pretplatniciRef.current.forEach((fn) => fn(poruka))
     })
 
     // Posle prekida veze moglo je nesto da stigne dok nismo bili povezani
     conn.onreconnected(() => {
-      ucitajNotifikacije()
-      ucitajNeprocitane()
+      loadNotifications()
+      loadUnreadCount()
     })
 
     let ugasena = false
@@ -108,16 +108,16 @@ export function NotificationsProvider({ children }) {
       ugasena = true
       conn.stop()
     }
-  }, [userId, token, ucitajNotifikacije, ucitajNeprocitane])
+  }, [userId, token, loadNotifications, loadUnreadCount])
 
   return (
     <NotificationsContext.Provider
       value={{
         notifications,
-        ucitajNotifikacije,
-        neprocitanePoruke,
-        postaviNeprocitane: setNeprocitanePoruke,
-        pretplatiNaPoruke,
+        loadNotifications,
+        unreadCount,
+        setUnreadCount,
+        subscribeToMessages,
       }}
     >
       {children}
@@ -133,8 +133,8 @@ export function useNotifications() {
   return ctx
 }
 
-// Server cuva vreme u UTC (vidi utils/datum.js)
-export { uLokalnoVreme, formatTrenutak } from './utils/datum'
+// Server cuva vreme u UTC (vidi utils/date.js)
+export { parseUtcDate, formatDateTime } from './utils/date'
 
 const REAKCIJE = {
   Zainteresovan: 'je zainteresovan za',
@@ -143,7 +143,7 @@ const REAKCIJE = {
 }
 
 // Tekst notifikacije za prikaz
-export function tekstNotifikacije(n) {
+export function getNotificationText(n) {
   const ko = n.korisnikKojiReaguje || 'Neko'
   const gde = `"${n.naslovDogadjaja}"`
   if (n.tip === 'Reakcija') return `${ko} ${REAKCIJE[n.sadrzaj] || 'je reagovao na'} vas dogadjaj ${gde}.`

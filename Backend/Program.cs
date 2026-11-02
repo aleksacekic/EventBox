@@ -19,7 +19,7 @@ builder.Services.AddDbContext<EventBoxContext>(options =>
 {
     // Retry: besplatna Azure SQL baza je serverless i posle neaktivnosti se pauzira. Dok se budi
     // (do ~1 min), odbija konekcije privremenom greskom - EF tada sam ponovi upit umesto da
-    // korisnik dobije 500. Rucne transakcije zato moraju kroz CreateExecutionStrategy (Pr_dog).
+    // korisnik dobije 500. Rucne transakcije zato moraju kroz CreateExecutionStrategy (ReportsController).
     options.UseSqlServer(builder.Configuration.GetConnectionString("EventBoxDB"),
         sql => sql.EnableRetryOnFailure(maxRetryCount: 6, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null));
 });
@@ -56,7 +56,7 @@ builder.Services.AddSwaggerGen(c =>
     {
         Type = SecuritySchemeType.Http,
         Scheme = "bearer",
-        Description = "Token dobijen od /Korisnik/LogovanjeKorisnik"
+        Description = "Token dobijen od POST /api/users/login"
     });
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
@@ -68,15 +68,15 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Autentifikacija po tokenu (vidi Auth/TokenAuthenticationHandler.cs)
-builder.Services.AddAuthentication(TokenAuthenticationHandler.Sema)
-    .AddScheme<AuthenticationSchemeOptions, TokenAuthenticationHandler>(TokenAuthenticationHandler.Sema, null);
+builder.Services.AddAuthentication(TokenAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, TokenAuthenticationHandler>(TokenAuthenticationHandler.SchemeName, null);
 builder.Services.AddAuthorization();
 builder.Services.AddTransient<IFileService, FileService>();
-builder.Services.AddScoped<Obavestenja>();
+builder.Services.AddScoped<NotificationService>();
 // Zastita prijave: ograničenje po IP adresi + zaključavanje naloga posle 5 pogrešnih lozinki
 builder.Services.AddMemoryCache();
-builder.Services.AddSingleton<ZastitaPrijave>();
-builder.Services.AddRateLimiter(ZastitaPrijave.Podesi);
+builder.Services.AddSingleton<LoginProtection>();
+builder.Services.AddRateLimiter(LoginProtection.Configure);
 // SignalR: korisnik se prepoznaje po tokenu (claim NameIdentifier), podrazumevani IUserIdProvider
 // to vec radi - zato vise nema CustomUserIdProvider-a koji je verovao ?userID= iz adrese
 builder.Services.AddSignalR();
@@ -117,12 +117,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Slike korisnika iz Uploads na /Resources/<ime>. Upload proverava da je sadrzaj zaista slika,
+// Slike korisnika iz Uploads na /resources/<ime>. Upload proverava da je sadrzaj zaista slika,
 // a nosniff zabranjuje pregledacu da fajl "pogadja" kao nesto drugo (npr. HTML sa skriptom).
 // Ime fajla je nasumicni GUID koji se nikad ne menja, pa slika moze dugo da stoji u kesu.
 app.UseStaticFiles(new StaticFileOptions {
-    FileProvider = new PhysicalFileProvider(Directory.CreateDirectory(FileService.Folder(builder.Configuration, builder.Environment)).FullName),
-    RequestPath = "/Resources",
+    FileProvider = new PhysicalFileProvider(Directory.CreateDirectory(FileService.GetFolder(builder.Configuration, builder.Environment)).FullName),
+    RequestPath = "/resources",
     OnPrepareResponse = ctx =>
     {
         ctx.Context.Response.Headers.XContentTypeOptions = "nosniff";
@@ -140,7 +140,7 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapControllers();
-app.MapHub<NotificationHub>("/notificationHub");
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 
 app.Run();

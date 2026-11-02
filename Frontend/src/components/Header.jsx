@@ -1,7 +1,7 @@
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useNotifications } from '../notifications';
-import { ADMIN_TABOVI, adminKorisnikUrl, adminTabUrl } from '../utils/admin';
+import { ADMIN_TABOVI, adminUserUrl, adminTabUrl } from '../utils/admin';
 import Avatar from './Avatar';
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -24,7 +24,7 @@ function Header() {
   const [korisnik, setKorisnik] = useState(null);
   const [meniOtvoren, setMeniOtvoren] = useState(false);
   // Broj nepročitanih stiže uživo (src/notifications.jsx) - nema više provere na svake 3 sekunde
-  const { neprocitanePoruke } = useNotifications();
+  const { unreadCount } = useNotifications();
 
   const [searchResults, setSearchResults] = useState([]);
   const [searchValue, setSearchValue] = useState("");
@@ -36,10 +36,10 @@ function Header() {
     ? (params.get("tab") || "prijave")
     : null;
 
-  const prosledi = (id) => {
+  const openUser = (id) => {
     setSearchResults([]);
     setSearchValue("");
-    navigate(isAdmin ? adminKorisnikUrl(id) : `/profilkorisnika/${id}`);
+    navigate(isAdmin ? adminUserUrl(id) : `/profilkorisnika/${id}`);
   };
 
   // Klik van pretrage zatvara rezultate, klik van profila zatvara padajuci meni
@@ -78,7 +78,7 @@ function Header() {
     let vazi = true;
     const tajmer = setTimeout(async () => {
       try {
-        const data = await api.get(`/Korisnik/VratiKorisnikeSearch/${encodeURIComponent(unos)}`);
+        const data = await api.get(`/api/users/search?query=${encodeURIComponent(unos)}`);
         if (vazi) setSearchResults(Array.isArray(data) ? data : []); // { kraj: "KRAJ" } = nema rezultata
       } catch (error) {
         console.error("Greška prilikom pretrage:", error);
@@ -91,24 +91,24 @@ function Header() {
   }, [searchValue]);
 
   // Administrator nije korisnik (nema profil), pa za njega nema sta da se ucita
-  const ucitajKorisnika = useCallback(async () => {
+  const loadUser = useCallback(async () => {
     if (isAdmin || !userId) return;
     try {
-      setKorisnik(await api.get(`/Korisnik/VratiKorisnika_ID/${userId}`));
+      setKorisnik(await api.get(`/api/users/${userId}`));
     } catch (error) {
       console.log(error);
     }
   }, [isAdmin, userId]);
 
   useEffect(() => {
-    ucitajKorisnika();
-  }, [ucitajKorisnika]);
+    loadUser();
+  }, [loadUser]);
 
-  // Profil.jsx javlja kad se promeni profilna slika, da avatar u headeru ne kasni do refresha
+  // Profile.jsx javlja kad se promeni profilna slika, da avatar u headeru ne kasni do refresha
   useEffect(() => {
-    window.addEventListener("korisnik-azuriran", ucitajKorisnika);
-    return () => window.removeEventListener("korisnik-azuriran", ucitajKorisnika);
-  }, [ucitajKorisnika]);
+    window.addEventListener("user-updated", loadUser);
+    return () => window.removeEventListener("user-updated", loadUser);
+  }, [loadUser]);
 
   return (
     <header className={`app-header ${isAdmin ? "app-header--admin" : ""}`}>
@@ -136,7 +136,7 @@ function Header() {
               <ul className="app-header-results">
                 {searchResults.map((result) => (
                   <li key={result.id}>
-                    <button type="button" onClick={() => prosledi(result.id)}>
+                    <button type="button" onClick={() => openUser(result.id)}>
                       <span className="app-header-results-avatar">
                         {(result.ime || result.korisnicko_Ime || "?").charAt(0)}
                       </span>
@@ -177,9 +177,9 @@ function Header() {
                 >
                   <span className="app-header-link-icon">
                     <i className={`la ${stavka.ikona}`} />
-                    {stavka.to === "/chat" && neprocitanePoruke > 0 && (
+                    {stavka.to === "/chat" && unreadCount > 0 && (
                       <span className="app-header-badge">
-                        {neprocitanePoruke > 99 ? "99+" : neprocitanePoruke}
+                        {unreadCount > 99 ? "99+" : unreadCount}
                       </span>
                     )}
                   </span>

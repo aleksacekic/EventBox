@@ -3,32 +3,32 @@ using EventBoxApi.Repo.Abstract;
 namespace EventBoxApi.Repo.Implementation
 {
     // Slike koje korisnici salju (profilna, slika dogadjaja), u folderu Uploads,
-    // dostupne na /Resources/<ime> (vidi Program.cs).
+    // dostupne na /resources/<ime> (vidi Program.cs).
     public class FileService : IFileService
     {
-        public const long MaxVelicina = 5 * 1024 * 1024; // 5 MB
+        public const long MaxFileSize = 5 * 1024 * 1024; // 5 MB
 
         private readonly string _folder;
         private readonly ILogger<FileService> _log;
 
         public FileService(IWebHostEnvironment env, IConfiguration config, ILogger<FileService> log)
         {
-            _folder = Folder(config, env);
+            _folder = GetFolder(config, env);
             _log = log;
         }
 
         // Folder za slike: Uploads:Folder iz konfiguracije (lokalno "Uploads" pored projekta).
         // Na Azure-u se zadaje van foldera sa kodom (npr. Uploads__Folder=/home/data/uploads),
         // jer se folder sa kodom menja pri svakom deploy-u. Apsolutna putanja se koristi kakva jeste.
-        public static string Folder(IConfiguration config, IWebHostEnvironment env)
+        public static string GetFolder(IConfiguration config, IWebHostEnvironment env)
             => Path.Combine(env.ContentRootPath, config["Uploads:Folder"] ?? "Uploads");
 
-        public async Task<RezultatSlike> SacuvajSlikuAsync(IFormFile? fajl)
+        public async Task<ImageSaveResult> SaveImageAsync(IFormFile? fajl)
         {
             if (fajl == null || fajl.Length == 0)
                 return new(null, "Izaberite sliku.");
-            if (fajl.Length > MaxVelicina)
-                return new(null, $"Slika moze imati najvise {MaxVelicina / (1024 * 1024)} MB.");
+            if (fajl.Length > MaxFileSize)
+                return new(null, $"Slika moze imati najvise {MaxFileSize / (1024 * 1024)} MB.");
 
             // Vrsta slike se odredjuje iz SADRZAJA (prvih bajtova), ne iz imena fajla: preimenovan
             // .exe ili .html u .png se odbija, a "SLIKA.JPG" ili slika bez ekstenzije prolazi.
@@ -36,7 +36,7 @@ namespace EventBoxApi.Repo.Implementation
             int procitano;
             await using (var s = fajl.OpenReadStream())
                 procitano = await s.ReadAtLeastAsync(zaglavlje, zaglavlje.Length, throwOnEndOfStream: false);
-            string? ekstenzija = PrepoznajSliku(zaglavlje.AsSpan(0, procitano));
+            string? ekstenzija = DetectImageExtension(zaglavlje.AsSpan(0, procitano));
             if (ekstenzija == null)
                 return new(null, "Dozvoljene su samo JPG, PNG i WEBP slike.");
 
@@ -47,7 +47,7 @@ namespace EventBoxApi.Repo.Implementation
             return new(ime, null);
         }
 
-        public void ObrisiSliku(string? ime)
+        public void DeleteImage(string? ime)
         {
             if (string.IsNullOrWhiteSpace(ime))
                 return;
@@ -66,7 +66,7 @@ namespace EventBoxApi.Repo.Implementation
         }
 
         // "Magicni bajtovi" na pocetku fajla
-        private static string? PrepoznajSliku(ReadOnlySpan<byte> b)
+        private static string? DetectImageExtension(ReadOnlySpan<byte> b)
         {
             if (b.Length >= 3 && b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF)
                 return ".jpg";

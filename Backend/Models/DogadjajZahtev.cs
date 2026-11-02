@@ -2,8 +2,8 @@ using System.Text.RegularExpressions;
 
 namespace Models
 {
-    // Telo zahteva za pravljenje i izmenu dogadjaja (POST /Dogadjaj/DodajDogadjaj,
-    // PUT /Dogadjaj/IzmeniDogadjaj/{id}). Ranije je sve islo kroz URL, pa su /, ? i # u opisu
+    // Telo zahteva za pravljenje i izmenu dogadjaja (POST /api/events,
+    // PUT /api/events/{id}). Ranije je sve islo kroz URL, pa su /, ? i # u opisu
     // kvarili rutu, a duzina je bila ogranicena duzinom adrese.
     // Kreator i datum objave se NE salju - server ih postavlja sam.
     public class DogadjajZahtev
@@ -18,7 +18,7 @@ namespace Models
 
         public const int NaslovMin = 3, NaslovMax = 100, OpisMax = 1000;
 
-        // Iste vrednosti kao padajuca lista u formi (NapraviDogadjaj.jsx)
+        // Iste vrednosti kao padajuca lista u formi (EventForm.jsx)
         public static readonly string[] Kategorije =
             { "Ostalo", "Zurka", "Humanitarna akcija", "Ekoloska akcija", "Sportski dogadjaj", "Koncert" };
 
@@ -26,8 +26,8 @@ namespace Models
 
         // Ocisti razmake pa proveri. Vraca greske po polju (prazno = ispravno), u istom
         // obliku koji forma prikazuje ispod polja.
-        // dozvoliProsliDatum: pri izmeni vec odrzanog dogadjaja datum moze ostati u proslosti.
-        public Dictionary<string, string> Proveri(DateTime? dozvoliProsliDatum = null)
+        // allowedPastDate: pri izmeni vec odrzanog dogadjaja datum moze ostati u proslosti.
+        public Dictionary<string, string> Validate(DateTime? allowedPastDate = null)
         {
             Naslov = Naslov?.Trim();
             Opis = Opis?.Trim() ?? "";
@@ -45,7 +45,7 @@ namespace Models
             var danas = DateTime.Today;
             if (DatumDogadjaja == null)
                 greske["datum"] = "Izaberite datum.";
-            else if (DatumDogadjaja.Value.Date < danas && DatumDogadjaja.Value.Date != dozvoliProsliDatum?.Date)
+            else if (DatumDogadjaja.Value.Date < danas && DatumDogadjaja.Value.Date != allowedPastDate?.Date)
                 greske["datum"] = "Datum ne moze biti u proslosti.";
             else if (DatumDogadjaja.Value.Date > danas.AddYears(2))
                 greske["datum"] = "Datum moze biti najvise dve godine unapred.";
@@ -59,7 +59,7 @@ namespace Models
             return greske;
         }
 
-        public void PrimeniNa(Dogadjaj d)
+        public void ApplyTo(Dogadjaj d)
         {
             d.Naslov = Naslov!;
             d.Opis = Opis ?? "";

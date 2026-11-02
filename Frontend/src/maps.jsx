@@ -2,7 +2,7 @@ import { APIProvider } from '@vis.gl/react-google-maps'
 
 // Google Maps kljuc iz .env (VITE_GOOGLE_MAPS_API_KEY). Montiran jednom u
 // App.jsx (isti obrazac kao AuthProvider/NotificationsProvider), pa svaka
-// komponenta ispod (Mapa.jsx, Hide&ShowMapa.jsx) samo koristi <Map>/<AdvancedMarker>
+// komponenta ispod (LocationPicker.jsx, MapToggle.jsx) samo koristi <Map>/<AdvancedMarker>
 // bez da sama brine o ucitavanju skripte.
 //
 // Bez pravog kljuca mapa i dalje radi (klik, marker...), samo Google preko

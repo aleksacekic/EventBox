@@ -10,7 +10,7 @@ const MINUTI = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
 const TimePicker = ({ value, onChange }) => {
   const [sat = '', minut = ''] = (value || '').split(':');
 
-  const izmeni = (noviSat, noviMinut) => {
+  const emitChange = (noviSat, noviMinut) => {
     if (noviSat && noviMinut) {
       onChange(`${noviSat}:${noviMinut}`);
     } else {
@@ -24,7 +24,7 @@ const TimePicker = ({ value, onChange }) => {
         id="time"
         className="create-event-input create-event-time-select"
         value={sat}
-        onChange={(e) => izmeni(e.target.value, minut || '00')}
+        onChange={(e) => emitChange(e.target.value, minut || '00')}
       >
         <option value="" disabled>SS</option>
         {SATI.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -33,7 +33,7 @@ const TimePicker = ({ value, onChange }) => {
       <select
         className="create-event-input create-event-time-select"
         value={minut}
-        onChange={(e) => izmeni(sat || '00', e.target.value)}
+        onChange={(e) => emitChange(sat || '00', e.target.value)}
       >
         <option value="" disabled>MM</option>
         {MINUTI.map((m) => <option key={m} value={m}>{m}</option>)}
