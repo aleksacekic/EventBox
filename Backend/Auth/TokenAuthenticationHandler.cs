@@ -36,12 +36,11 @@ namespace EventBoxApi.Auth
             if (token == null)
                 return AuthenticateResult.NoResult(); // nema tokena -> [Authorize] vraca 401
 
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Token == token);
+            if (user != null)
+                return await AuthenticateUserAsync(user);
 
-            var korisnik = await _context.Korisnici.FirstOrDefaultAsync(k => k.Token == token);
-            if (korisnik != null)
-                return await AuthenticateUserAsync(korisnik);
-
-            var admin = await _context.Administratori.FirstOrDefaultAsync(a => a.Token == token);
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Token == token);
             if (admin != null)
                 return await AuthenticateAdminAsync(admin);
 
@@ -53,10 +52,10 @@ namespace EventBoxApi.Auth
         // za hub, da se token ne bi slao u adresama obicnih API poziva (zavrsava u logovima).
         private string? ReadToken()
         {
-            var zaglavlje = Request.Headers.Authorization.ToString();
-            if (zaglavlje.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            var header = Request.Headers.Authorization.ToString();
+            if (header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
-                var t = zaglavlje.Substring("Bearer ".Length).Trim();
+                var t = header.Substring("Bearer ".Length).Trim();
                 return t.Length > 0 ? t : null;
             }
             if (Request.Path.StartsWithSegments("/hubs/notifications"))
@@ -67,45 +66,45 @@ namespace EventBoxApi.Auth
             return null;
         }
 
-        private async Task<AuthenticateResult> AuthenticateUserAsync(Korisnik korisnik)
+        private async Task<AuthenticateResult> AuthenticateUserAsync(User user)
         {
-            if (korisnik.Blokiran == -1)
+            if (user.IsBlocked)
                 return AuthenticateResult.Fail("Nalog je blokiran");
 
-            if (!await ValidateSessionAsync(korisnik.Validnost, v => korisnik.Validnost = v))
+            if (!await ValidateSessionAsync(user.TokenExpiresAt, v => user.TokenExpiresAt = v))
                 return AuthenticateResult.Fail("Sesija je istekla");
 
             return SuccessResult(new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, korisnik.Id.ToString()),
-                new Claim(ClaimTypes.Name, korisnik.Korisnicko_Ime),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
             });
         }
 
-        private async Task<AuthenticateResult> AuthenticateAdminAsync(Administrator admin)
+        private async Task<AuthenticateResult> AuthenticateAdminAsync(Admin admin)
         {
-            if (admin.Validnost == null || !await ValidateSessionAsync(admin.Validnost.Value, v => admin.Validnost = v))
+            if (admin.TokenExpiresAt == null || !await ValidateSessionAsync(admin.TokenExpiresAt.Value, v => admin.TokenExpiresAt = v))
                 return AuthenticateResult.Fail("Sesija je istekla");
 
             return SuccessResult(new[]
             {
                 new Claim(ClaimTypes.Role, AdminRole),
-                new Claim(ClaimTypes.Name, admin.Korisnicko_ime),
+                new Claim(ClaimTypes.Name, admin.Username),
                 new Claim("admin_id", admin.Id.ToString()),
             });
         }
 
         // Klizna sesija: produzavamo je tek kad je ostalo manje od 25 min, da ne pisemo
-        // u bazu na svaki zahtev (npr. brojac poruka u headeru se osvezava na 3 s).
-        private async Task<bool> ValidateSessionAsync(DateTime validnost, Action<DateTime> postaviValidnost)
+        // u bazu na svaki zahtev.
+        private async Task<bool> ValidateSessionAsync(DateTime expiresAt, Action<DateTime> setExpiresAt)
         {
-            var sada = DateTime.UtcNow; // Validnost se cuva u UTC
-            if (sada > validnost)
+            var now = DateTime.UtcNow; // rok sesije se cuva u UTC
+            if (now > expiresAt)
                 return false;
 
-            if (validnost - sada < SessionDuration - TimeSpan.FromMinutes(5))
+            if (expiresAt - now < SessionDuration - TimeSpan.FromMinutes(5))
             {
-                postaviValidnost(sada.Add(SessionDuration));
+                setExpiresAt(now.Add(SessionDuration));
                 await _context.SaveChangesAsync();
             }
             return true;
@@ -113,8 +112,8 @@ namespace EventBoxApi.Auth
 
         private AuthenticateResult SuccessResult(IEnumerable<Claim> claims)
         {
-            var identitet = new ClaimsIdentity(claims, Scheme.Name);
-            var ticket = new AuthenticationTicket(new ClaimsPrincipal(identitet), Scheme.Name);
+            var identity = new ClaimsIdentity(claims, Scheme.Name);
+            var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme.Name);
             return AuthenticateResult.Success(ticket);
         }
     }

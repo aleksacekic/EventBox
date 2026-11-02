@@ -3,26 +3,26 @@ using Microsoft.EntityFrameworkCore;
 namespace Models
 {
     // Entiteti koji se stranice (sortiraju po Id-u, najnoviji prvi)
-    public interface IImaId
+    public interface IHasId
     {
         int Id { get; }
     }
 
-    // Jedna "strana" rezultata. JSON: { stavke, sledeciKursor, imaJos, ukupno }
-    public class Strana<T>
+    // Jedna strana rezultata. JSON: { items, nextCursor, hasMore, total }
+    public class Page<T>
     {
-        public List<T> Stavke { get; set; } = new();
-        // Kursor za sledecu stranu; null kad nema vise (imaJos == false)
-        public string? SledeciKursor { get; set; }
-        public bool ImaJos { get; set; }
+        public List<T> Items { get; set; } = new();
+        // Kursor za sledecu stranu; null kad nema vise (hasMore == false)
+        public string? NextCursor { get; set; }
+        public bool HasMore { get; set; }
         // Ukupan broj stavki - samo uz PRVU stranu (bez kursora), inace null
-        public int? Ukupno { get; set; }
+        public int? Total { get; set; }
     }
 
     // Stranicenje kursorom (keyset), standardni nacin za "beskonacni skrol" i feedove.
     //
     //   GET /api/events?limit=3                    -> prva strana (najnovije stavke)
-    //   GET /api/events?limit=3&cursor=<kursor>    -> sledeca strana; kursor je sledeciKursor iz prethodnog odgovora
+    //   GET /api/events?limit=3&cursor=<kursor>    -> sledeca strana; kursor je nextCursor iz prethodnog odgovora
     //
     // Zasto ne "broj strane" (offset): kad se izmedju dva zahteva doda ili obrise stavka, offset
     // preskace ili ponavlja stavke, a Skip(N) sa velikim N je spor. Kursor kaze "daj mi stavke
@@ -38,18 +38,18 @@ namespace Models
                 .TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
         // null/prazan kursor = prva strana (id = null). false = neispravan kursor.
-        public static bool TryDecodeCursor(string? kursor, out int? id)
+        public static bool TryDecodeCursor(string? cursor, out int? id)
         {
             id = null;
-            if (string.IsNullOrEmpty(kursor))
+            if (string.IsNullOrEmpty(cursor))
                 return true;
             try
             {
-                string b64 = kursor.Replace('-', '+').Replace('_', '/');
+                string b64 = cursor.Replace('-', '+').Replace('_', '/');
                 b64 = b64.PadRight(b64.Length + (4 - b64.Length % 4) % 4, '=');
-                if (int.TryParse(System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(b64)), out int parsiran) && parsiran > 0)
+                if (int.TryParse(System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(b64)), out int parsed) && parsed > 0)
                 {
-                    id = parsiran;
+                    id = parsed;
                     return true;
                 }
             }
@@ -57,32 +57,32 @@ namespace Models
             return false;
         }
 
-        // upit: vec filtriran (i sa Include-ovima), bez sortiranja. Vraca limit stavki starijih od kursora.
-        public static async Task<Strana<T>> GetPageAsync<T>(IQueryable<T> upit, int? posleId, int limit, bool includeTotal = true) where T : class, IImaId
+        // query: vec filtriran (i sa Include-ovima), bez sortiranja. Vraca limit stavki starijih od kursora.
+        public static async Task<Page<T>> GetPageAsync<T>(IQueryable<T> query, int? afterId, int limit, bool includeTotal = true) where T : class, IHasId
         {
             limit = Math.Clamp(limit, 1, MaxPageSize);
 
-            int? ukupno = includeTotal && posleId == null ? await upit.CountAsync() : null;
+            int? total = includeTotal && afterId == null ? await query.CountAsync() : null;
 
-            IQueryable<T> strana = upit;
-            if (posleId != null)
+            IQueryable<T> page = query;
+            if (afterId != null)
             {
-                int granica = posleId.Value;
-                strana = strana.Where(e => e.Id < granica);
+                int boundary = afterId.Value;
+                page = page.Where(e => e.Id < boundary);
             }
 
             // limit + 1: jedna stavka viska samo govori da ima jos, ne vraca se klijentu
-            var stavke = await strana.OrderByDescending(e => e.Id).Take(limit + 1).ToListAsync();
-            bool imaJos = stavke.Count > limit;
-            if (imaJos)
-                stavke.RemoveAt(limit);
+            var items = await page.OrderByDescending(e => e.Id).Take(limit + 1).ToListAsync();
+            bool hasMore = items.Count > limit;
+            if (hasMore)
+                items.RemoveAt(limit);
 
-            return new Strana<T>
+            return new Page<T>
             {
-                Stavke = stavke,
-                ImaJos = imaJos,
-                SledeciKursor = imaJos ? EncodeCursor(stavke[^1].Id) : null,
-                Ukupno = ukupno
+                Items = items,
+                HasMore = hasMore,
+                NextCursor = hasMore ? EncodeCursor(items[^1].Id) : null,
+                Total = total
             };
         }
     }

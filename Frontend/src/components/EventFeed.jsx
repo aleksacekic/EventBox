@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import EventCard from './EventCard';
 import InfiniteScrollFooter from './InfiniteScrollFooter';
 import { useInfiniteList } from '../useInfiniteList';
-import { formatDate } from '../utils/date';
 import { format } from 'date-fns';
 import { useAuth } from '../auth';
 import { useNotifications } from '../notifications';
@@ -78,7 +77,6 @@ function EventFeed({ primljenDatum, primljenNaziv, noviDogadjaj }) {
       try {
         setUcitavaSe(true);
         const data = await api.get(`/api/users/${korisnik_Id}`);
-        data.datumrodjenja = formatDate(data.datum_rodjenja);
         setKorisnik(data);
       } catch (error) {
         console.error(error);

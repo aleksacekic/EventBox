@@ -2,118 +2,147 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Models
 {
+    // Baza: imena tabela su imena DbSet-ova (Users, Events, ...), kolone su imena svojstava.
     public class EventBoxContext : DbContext
     {
-        public DbSet<Dogadjaj> Dogadjaji {get; set;}
-        public DbSet<Korisnik> Korisnici {get; set;}
-        public DbSet<Administrator> Administratori {get; set;}
-        public DbSet<Reakcija> Reakcije {get; set;}
-        public DbSet<Komentar> Komentari {get; set;}
-        public DbSet<Notifikacija> Notifikacije {get; set;}
-        public DbSet<Razlog> Razlozi {get; set;}
-        public DbSet<Prijavljeni_dogadjaj> Prijavljeni_dogadjaji {get; set;}
-        public DbSet<Poruka> Poruke {get; set;}
+        public DbSet<User> Users { get; set; }
+        public DbSet<Admin> Admins { get; set; }
+        public DbSet<Event> Events { get; set; }
+        public DbSet<Comment> Comments { get; set; }
+        public DbSet<Reaction> Reactions { get; set; }
+        public DbSet<Message> Messages { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<Report> Reports { get; set; }
+        public DbSet<ReportReason> ReportReasons { get; set; }
 
         public EventBoxContext(DbContextOptions options) : base(options)
         {
-
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Komentar -> Autor: bez kaskade u bazi. Korisnik -> Dogadjaj -> Komentar je vec
-            // kaskadno, pa bi drugi kaskadni put do Komentara SQL Server odbio ("multiple
-            // cascade paths"). Komentare autora brise IzbrisiKorisnika pre brisanja naloga.
-            modelBuilder.Entity<Komentar>()
-                .HasOne(k => k.Autor)
-                .WithMany()
-                .HasForeignKey(k => k.AutorId)
-                .OnDelete(DeleteBehavior.NoAction);
+            // Users -> Events -> Comments/Reactions je kaskadno (brisanje naloga brise njegove dogadjaje,
+            // a dogadjaj svoje komentare i reakcije). SQL Server ne dozvoljava drugi kaskadni put do iste
+            // tabele ("multiple cascade paths"), pa su ostale veze ka Users bez kaskade (NoAction) -
+            // te redove brise UsersController.DeleteUser pre brisanja naloga.
+            modelBuilder.Entity<Event>()
+                .HasOne(e => e.Creator)
+                .WithMany(u => u.CreatedEvents)
+                .HasForeignKey(e => e.CreatorId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // Reakcija -> Korisnik: isti razlog kao gore (Korisnik -> Dogadjaj -> Reakcija je
-            // vec kaskadno). Reakcije korisnika brise IzbrisiKorisnika pre brisanja naloga.
-            modelBuilder.Entity<Reakcija>()
-                .HasOne(r => r.Korisnik)
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.Author)
                 .WithMany()
-                .HasForeignKey(r => r.Korisnik_ID)
+                .HasForeignKey(c => c.AuthorId)
                 .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.Event)
+                .WithMany(e => e.Comments)
+                .HasForeignKey(c => c.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Reaction>()
+                .HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<Reaction>()
+                .HasOne(r => r.Event)
+                .WithMany(e => e.Reactions)
+                .HasForeignKey(r => r.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
             // Jedna reakcija po korisniku po dogadjaju
-            modelBuilder.Entity<Reakcija>()
-                .HasIndex("Korisnik_ID", "Dogadjaj_IDId")
+            modelBuilder.Entity<Reaction>()
+                .HasIndex(r => new { r.UserId, r.EventId })
                 .IsUnique();
+            modelBuilder.Entity<Reaction>()
+                .ToTable(t => t.HasCheckConstraint("CK_Reactions_Type",
+                    "[Type] IN (N'Zainteresovan', N'Mozda', N'Nezainteresovan')"));
 
-            modelBuilder.Entity<Reakcija>()
-                .ToTable(t => t.HasCheckConstraint("CK_Reakcija_Tip",
-                    "[Tip] IN (N'Zainteresovan', N'Mozda', N'Nezainteresovan')"));
-
-            // Notifikacija i Poruka imaju vise veza ka Korisniku/Dogadjaju, a Korisnik -> Dogadjaj
-            // i Korisnik -> Notifikacija su vec kaskadni; SQL Server ne dozvoljava vise kaskadnih
-            // puteva do iste tabele. Zato su sve ove veze NoAction, a zavisne redove brisu
-            // IzbrisiKorisnika i IzbrisiDogadjaj (u istoj transakciji).
-            modelBuilder.Entity<Notifikacija>()
-                .HasOne(n => n.Dogadjaj).WithMany()
-                .HasForeignKey(n => n.DogadjajId)
+            // Notifikacija ima vise veza ka Users i Events; kaskadna je samo veza ka primaocu
+            // (brisanje naloga brise i njegove notifikacije). Notifikacije komentara/reakcije i
+            // dogadjaja brise kod (NotificationService.RemoveAsync, EventsController.DeleteEvent).
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Recipient)
+                .WithMany(u => u.Notifications)
+                .HasForeignKey(n => n.RecipientId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Actor)
+                .WithMany()
+                .HasForeignKey(n => n.ActorId)
                 .OnDelete(DeleteBehavior.NoAction);
-            modelBuilder.Entity<Notifikacija>()
-                .HasOne(n => n.KorisnikKojiReaguje).WithMany()
-                .HasForeignKey(n => n.KorisnikKojiReagujeId)
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Event)
+                .WithMany()
+                .HasForeignKey(n => n.EventId)
                 .OnDelete(DeleteBehavior.NoAction);
-            // Bez kaskade iz istog razloga (Korisnik -> Dogadjaj -> Komentar/Reakcija je vec kaskadno);
-            // notifikacije komentara/reakcije brise kod (NotificationService.RemoveAsync) pre samog brisanja
-            modelBuilder.Entity<Notifikacija>()
-                .HasOne(n => n.Komentar).WithMany()
-                .HasForeignKey(n => n.KomentarId)
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Comment)
+                .WithMany()
+                .HasForeignKey(n => n.CommentId)
                 .OnDelete(DeleteBehavior.NoAction);
-            modelBuilder.Entity<Notifikacija>()
-                .HasOne(n => n.Reakcija).WithMany()
-                .HasForeignKey(n => n.ReakcijaId)
-                .OnDelete(DeleteBehavior.NoAction);
-            modelBuilder.Entity<Poruka>()
-                .HasOne<Korisnik>().WithMany()
-                .HasForeignKey(m => m.PosiljaocId)
-                .OnDelete(DeleteBehavior.NoAction);
-            modelBuilder.Entity<Poruka>()
-                .HasOne<Korisnik>().WithMany()
-                .HasForeignKey(m => m.PrimaocId)
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Reaction)
+                .WithMany()
+                .HasForeignKey(n => n.ReactionId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            // Prijave: jedan red Prijavljeni_dogadjaj po dogadjaju, a jedan korisnik moze isti
-            // dogadjaj da prijavi samo jednom. Filtrirani indeks jer PrijavioId moze biti NULL
-            // (SQL Server inace tretira vise NULL-ova kao duplikate).
-            modelBuilder.Entity<Prijavljeni_dogadjaj>()
-                .HasIndex("Dogadjaj_IdId")
-                .IsUnique();
-            modelBuilder.Entity<Razlog>()
-                .HasOne(r => r.Prijavio).WithMany()
-                .HasForeignKey(r => r.PrijavioId)
-                .OnDelete(DeleteBehavior.NoAction); // Korisnik -> Dogadjaj -> Prijava -> Razlog je vec kaskadno
-            modelBuilder.Entity<Razlog>()
-                .HasIndex("PrijavioId", "Prijavljeni_dogadjaj_IdId")
-                .IsUnique()
-                .HasFilter("[PrijavioId] IS NOT NULL");
-            modelBuilder.Entity<Razlog>()
-                .ToTable(t => t.HasCheckConstraint("CK_Razlog_Razlog_prijave",
-                    "[Razlog_prijave] IN (N'nepozeljan', N'nasilje', N'terorizam', N'govor_mrznje', N'lazne_informacije', N'uznemiravanje', N'ostalo')"));
-
+            modelBuilder.Entity<Message>()
+                .HasOne<User>().WithMany()
+                .HasForeignKey(m => m.SenderId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<Message>()
+                .HasOne<User>().WithMany()
+                .HasForeignKey(m => m.RecipientId)
+                .OnDelete(DeleteBehavior.NoAction);
             // Cet: razgovor (posiljalac, primalac) se cita po kursoru (Id opadajuce), a broj
             // neprocitanih po (primalac, procitano) - bez ovih indeksa oba upita skeniraju celu tabelu
-            modelBuilder.Entity<Poruka>().HasIndex(m => new { m.PosiljaocId, m.PrimaocId });
-            modelBuilder.Entity<Poruka>().HasIndex(m => new { m.PrimaocId, m.JelProcitano });
+            modelBuilder.Entity<Message>().HasIndex(m => new { m.SenderId, m.RecipientId });
+            modelBuilder.Entity<Message>().HasIndex(m => new { m.RecipientId, m.IsRead });
 
-            // Jedinstvena korisnicka imena. Indeks ujedno ubrzava prijavu (trazenje po imenu).
-            modelBuilder.Entity<Korisnik>().HasIndex(k => k.Korisnicko_Ime).IsUnique();
-            // Jedan email - jedan nalog (osnova za buduci "zaboravljena lozinka")
-            modelBuilder.Entity<Korisnik>().HasIndex(k => k.Email_Adresa).IsUnique()
+            // Prijave: jedan red u Reports po dogadjaju, a jedan korisnik moze isti dogadjaj da
+            // prijavi samo jednom. Filtrirani indeks jer ReporterId moze biti NULL
+            // (SQL Server inace tretira vise NULL-ova kao duplikate).
+            modelBuilder.Entity<Report>()
+                .HasOne(r => r.Event)
+                .WithMany()
+                .HasForeignKey(r => r.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Report>()
+                .HasIndex(r => r.EventId)
+                .IsUnique();
+            modelBuilder.Entity<ReportReason>()
+                .HasOne(r => r.Report)
+                .WithMany(r => r.Reasons)
+                .HasForeignKey(r => r.ReportId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<ReportReason>()
+                .HasOne(r => r.Reporter)
+                .WithMany()
+                .HasForeignKey(r => r.ReporterId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<ReportReason>()
+                .HasIndex(r => new { r.ReporterId, r.ReportId })
+                .IsUnique()
+                .HasFilter("[ReporterId] IS NOT NULL");
+            modelBuilder.Entity<ReportReason>()
+                .ToTable(t => t.HasCheckConstraint("CK_ReportReasons_Reason",
+                    "[Reason] IN (N'nepozeljan', N'nasilje', N'terorizam', N'govor_mrznje', N'lazne_informacije', N'uznemiravanje', N'ostalo')"));
+
+            // Jedinstvena korisnicka imena i email adrese. Indeksi ujedno ubrzavaju prijavu.
+            modelBuilder.Entity<User>().HasIndex(u => u.Username).IsUnique();
+            modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique()
                 .HasDatabaseName(EmailRules.UniqueIndexName);
-            modelBuilder.Entity<Administrator>().HasIndex(a => a.Korisnicko_ime).IsUnique();
+            modelBuilder.Entity<Admin>().HasIndex(a => a.Username).IsUnique();
 
             // Token se trazi na SVAKOM zahtevu (TokenAuthenticationHandler) - bez indeksa je to
             // prolaz kroz celu tabelu. Jedinstven je jer jedan token sme da pripada samo jednom
             // nalogu. Kod administratora je Token nullable, pa EF pravi filtrirani indeks
             // (WHERE [Token] IS NOT NULL) i vise odjavljenih admina bez tokena ne smeta.
-            modelBuilder.Entity<Korisnik>().HasIndex(k => k.Token).IsUnique();
-            modelBuilder.Entity<Administrator>().HasIndex(a => a.Token).IsUnique();
+            modelBuilder.Entity<User>().HasIndex(u => u.Token).IsUnique();
+            modelBuilder.Entity<Admin>().HasIndex(a => a.Token).IsUnique();
         }
     }
 }

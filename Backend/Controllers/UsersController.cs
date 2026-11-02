@@ -9,7 +9,6 @@ using Models;
 using EventBoxApi.Repo.Abstract;
 using EventBoxApi.Repo.Implementation;
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Extensions.Localization;
 using Novi_backend_za_SWE;
 
@@ -28,7 +27,6 @@ namespace EventBoxApi.Controllers
         private readonly LoginProtection _loginProtection;
         private readonly IStringLocalizer<SharedResource> _t;
 
-
         public UsersController(EventBoxContext context, IFileService fs, NotificationService notifications, LoginProtection loginProtection, IStringLocalizer<SharedResource> t)
         {
             Context = context;
@@ -38,108 +36,108 @@ namespace EventBoxApi.Controllers
             _t = t;
         }
 
-
-        // POST /api/users - registracija novog korisnika
+        // POST /api/users - registracija novog korisnika.
+        // Zauzeto ime/email ili neispravan datum: 200 { error: USERNAME_TAKEN | EMAIL_TAKEN | INVALID_BIRTH_DATE }
         [EnableCors("CORS")]
         [AllowAnonymous]
         [EnableRateLimiting(LoginProtection.RegistrationPolicy)]
         [HttpPost]
-        public async Task<ActionResult> Register([FromBody] RegistracijaZahtev zahtev)
+        public async Task<ActionResult> Register([FromBody] RegisterRequest request)
         {
-            if (zahtev == null || string.IsNullOrWhiteSpace(zahtev.Ime) || string.IsNullOrWhiteSpace(zahtev.Prezime)
-                || string.IsNullOrWhiteSpace(zahtev.KorisnickoIme) || string.IsNullOrWhiteSpace(zahtev.EmailAdresa)
-                || string.IsNullOrEmpty(zahtev.Lozinka) || zahtev.Lozinka.Length < 8)
+            if (request == null || string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.LastName)
+                || string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Email)
+                || string.IsNullOrEmpty(request.Password) || request.Password.Length < 8)
                 return BadRequest(T("AllFieldsRequired"));
 
-            zahtev.KorisnickoIme = UsernameRules.Normalize(zahtev.KorisnickoIme);
-            var greskaImena = UsernameRules.Validate(zahtev.KorisnickoIme, _t);
-            if (greskaImena != null)
-                return BadRequest(greskaImena);
+            request.Username = UsernameRules.Normalize(request.Username);
+            var usernameError = UsernameRules.Validate(request.Username, _t);
+            if (usernameError != null)
+                return BadRequest(usernameError);
 
-            zahtev.EmailAdresa = EmailRules.Normalize(zahtev.EmailAdresa);
-            if (EmailRules.Validate(zahtev.EmailAdresa, _t) is string greskaEmaila)
-                return BadRequest(greskaEmaila);
+            request.Email = EmailRules.Normalize(request.Email);
+            if (EmailRules.Validate(request.Email, _t) is string emailError)
+                return BadRequest(emailError);
 
             // Datum rodjenja mora biti izmedju 1900. i danas
-            if (zahtev.DatumRodjenja < new DateTime(1900, 1, 1) || zahtev.DatumRodjenja > DateTime.Today)
-                return Ok(new {odgovor = "DATUM"});
+            if (request.DateOfBirth < new DateTime(1900, 1, 1) || request.DateOfBirth > DateTime.Today)
+                return Ok(new { error = "INVALID_BIRTH_DATE" });
 
-            var pom = await Context.Korisnici.Where(p => p.Korisnicko_Ime == zahtev.KorisnickoIme).FirstOrDefaultAsync();
-            if(pom != null)
-                return Ok(new {odgovor = "KORISNICKO_IME"});
-            if (await Context.Korisnici.AnyAsync(p => p.Email_Adresa == zahtev.EmailAdresa))
-                return Ok(new {odgovor = "EMAIL"});
+            if (await Context.Users.AnyAsync(u => u.Username == request.Username))
+                return Ok(new { error = "USERNAME_TAKEN" });
+            if (await Context.Users.AnyAsync(u => u.Email == request.Email))
+                return Ok(new { error = "EMAIL_TAKEN" });
 
-            Korisnik k = new Korisnik();
-            k.Ime = zahtev.Ime;
-            k.Prezime = zahtev.Prezime;
-            k.Korisnicko_Ime = zahtev.KorisnickoIme;
-            k.Lozinka_Hashirana = Passwords.Hash(zahtev.Lozinka);
-            k.Token = GenerateToken();
-            k.Validnost = DateTime.UtcNow.AddMinutes(10);
-            k.Datum_rodjenja = zahtev.DatumRodjenja;
-            k.Email_Adresa = zahtev.EmailAdresa;
-            k.KorisnikImage = null;
-            k.Blokiran = 0;
+            var user = new User
+            {
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Username = request.Username,
+                PasswordHash = Passwords.Hash(request.Password),
+                Token = GenerateToken(),
+                TokenExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                DateOfBirth = request.DateOfBirth,
+                Email = request.Email,
+                ProfileImage = null,
+                IsBlocked = false,
+            };
 
-            Context.Korisnici.Add(k);
+            Context.Users.Add(user);
             try
             {
                 await Context.SaveChangesAsync();
             }
             catch (DbUpdateException e) when (EmailRules.IsDuplicate(e))
             {
-                return Ok(new {odgovor = "EMAIL"});
+                return Ok(new { error = "EMAIL_TAKEN" });
             }
             catch (DbUpdateException e) when (UsernameRules.IsDuplicate(e))
             {
                 // Neko je isto ime zauzeo izmedju provere gore i upisa
-                return Ok(new {odgovor = "KORISNICKO_IME"});
+                return Ok(new { error = "USERNAME_TAKEN" });
             }
-            return Ok(T("UserRegistered", zahtev.KorisnickoIme));
+            return Ok(T("UserRegistered", request.Username));
         }
 
         // POST /api/users/login
+        // Odgovor: { token, userId } ili { error: INVALID_CREDENTIALS | ACCOUNT_BLOCKED }
         [HttpPost]
         [EnableCors("CORS")]
         [AllowAnonymous]
         [EnableRateLimiting(LoginProtection.LoginPolicy)]
         [Route("login")]
-        public async Task<ActionResult> Login([FromBody] PrijavaZahtev zahtev)
+        public async Task<ActionResult> Login([FromBody] LoginRequest request)
         {
-            if (zahtev == null || string.IsNullOrEmpty(zahtev.KorisnickoIme) || string.IsNullOrEmpty(zahtev.Lozinka))
-                return Ok(new {nema = "NEMA_KORISNIKA"});
+            if (request == null || string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+                return Ok(new { error = "INVALID_CREDENTIALS" });
 
-            string ime = UsernameRules.Normalize(zahtev.KorisnickoIme);
+            string username = UsernameRules.Normalize(request.Username);
 
             // Zakljucano ime (previse pogresnih lozinki) se odbija pre provere lozinke
-            if (_loginProtection.GetRemainingLockout("k", ime) is TimeSpan preostalo)
-                return LockedOut(preostalo);
+            if (_loginProtection.GetRemainingLockout("k", username) is TimeSpan remaining)
+                return LockedOut(remaining);
 
-            Korisnik k = await Context.Korisnici.Where(p => p.Korisnicko_Ime == ime).FirstOrDefaultAsync();
+            var user = await Context.Users.FirstOrDefaultAsync(u => u.Username == username);
 
             // Isti odgovor za nepostojeceg korisnika i pogresnu lozinku; broji se i nepostojece
             // ime, da se iz zakljucavanja ne bi videlo koja imena postoje
-            if (k == null || !Passwords.Verify(k.Lozinka_Hashirana, zahtev.Lozinka, out bool ponovoHesirati))
+            if (user == null || !Passwords.Verify(user.PasswordHash, request.Password, out bool needsRehash))
             {
-                _loginProtection.RecordFailure("k", ime);
-                return Ok(new {nema = "NEMA_KORISNIKA"});
+                _loginProtection.RecordFailure("k", username);
+                return Ok(new { error = "INVALID_CREDENTIALS" });
             }
-            _loginProtection.RecordSuccess("k", ime);
-            if (k.Blokiran == -1)
-                return Ok(new {blokiran = "BLOKIRAN"});
+            _loginProtection.RecordSuccess("k", username);
+            if (user.IsBlocked)
+                return Ok(new { error = "ACCOUNT_BLOCKED" });
 
             // Heš sa slabijim podesavanjima (npr. manje iteracija) se pri prijavi osvezava
-            if (ponovoHesirati)
-                k.Lozinka_Hashirana = Passwords.Hash(zahtev.Lozinka);
+            if (needsRehash)
+                user.PasswordHash = Passwords.Hash(request.Password);
 
-            // Dodela tokena
-            k.Token = GenerateToken();
-            k.Validnost = DateTime.UtcNow.AddMinutes(30);
-
+            user.Token = GenerateToken();
+            user.TokenExpiresAt = DateTime.UtcNow.AddMinutes(30);
             await Context.SaveChangesAsync();
 
-            return Ok(new {token=k.Token, userID = k.Id});
+            return Ok(new { token = user.Token, userId = user.Id });
         }
 
         // POST /api/users/logout
@@ -151,11 +149,11 @@ namespace EventBoxApi.Controllers
         [Route("logout")]
         public async Task<ActionResult> Logout()
         {
-            var k = await Context.Korisnici.FindAsync(User.GetUserId());
-            if (k == null)
+            var user = await Context.Users.FindAsync(User.GetUserId());
+            if (user == null)
                 return Forbid(); // administrator se odjavljuje preko /api/admins/logout
-            k.Token = GenerateToken();
-            k.Validnost = DateTime.UtcNow;
+            user.Token = GenerateToken();
+            user.TokenExpiresAt = DateTime.UtcNow;
             await Context.SaveChangesAsync();
             return Ok(T("LoggedOut"));
         }
@@ -165,52 +163,45 @@ namespace EventBoxApi.Controllers
         [HttpGet]
         public async Task<ActionResult> GetUsers()
         {
-            int id = User.GetUserId();
+            int currentId = User.GetUserId();
             bool admin = User.IsAdmin();
-            var korisniciBezUlogovanog = await Context.Korisnici
-                .Where(k => k.Id != id && (admin || k.Blokiran != -1)) // blokirani se ne nude
-                .Select(KorisnikJavniDto.Projekcija)
+            var users = await Context.Users
+                .Where(u => u.Id != currentId && (admin || !u.IsBlocked)) // blokirani se ne nude
+                .Select(UserDto.Projection)
                 .ToListAsync();
 
-            return Ok(korisniciBezUlogovanog);
+            return Ok(users);
         }
 
-        // GET /api/users/search?query=ana - do 6 korisnika po imenu, prezimenu ili korisnickom imenu
+        // GET /api/users/search?query=ana - do 6 korisnika po imenu, prezimenu ili korisnickom imenu.
+        // Dve reci se traze kao ime + prezime (u bilo kom redosledu). Nema rezultata -> [].
         [HttpGet]
         [EnableCors("CORS")]
         [Route("search")]
         public async Task<ActionResult> SearchUsers([FromQuery] string? query)
         {
-            string[] niz = (query ?? "").Split(" ");
-            niz = niz.Where(p => !string.IsNullOrEmpty(p)).ToArray(); //brisanje praznih stringova ukoliko se jave
-            if (niz.Length == 0)
-                return Ok(new {kraj = "KRAJ"});
+            string[] words = (query ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0)
+                return Ok(Array.Empty<object>());
 
             // Blokirani korisnici se ne pronalaze - osim kad trazi administrator
-            IQueryable<Korisnik> baza = User.IsAdmin() ? Context.Korisnici : Context.Korisnici.Where(p => p.Blokiran != -1);
+            IQueryable<User> source = User.IsAdmin() ? Context.Users : Context.Users.Where(u => !u.IsBlocked);
 
-            if(niz.Length == 1)
+            List<User> found;
+            if (words.Length == 1)
             {
-                var korisnici = await baza.Where(p => p.Ime.Contains(niz[0]) ||
-                                                                p.Prezime.Contains(niz[0]) ||
-                                                                p.Korisnicko_Ime.Contains(niz[0])).Take(6).ToListAsync();
-                if(korisnici.Count() == 0)
-                    return Ok(new {kraj = "KRAJ"});
-                return Ok(korisnici.Select(p => new {ID = p.Id, Korisnicko_Ime = p.Korisnicko_Ime, Ime = p.Ime, Prezime = p.Prezime}).ToList());
+                string w = words[0];
+                found = await source.Where(u => u.FirstName.Contains(w) || u.LastName.Contains(w) || u.Username.Contains(w))
+                    .Take(6).ToListAsync();
             }
             else
             {
-                var korisnici2 = await baza.Where(p => p.Ime.Contains(niz[0]) && p.Prezime.Contains(niz[1])).Take(6).ToListAsync();
-                if(korisnici2.Count() == 0)
-                {
-                    korisnici2 = await baza.Where(p => p.Ime.Contains(niz[1]) && p.Prezime.Contains(niz[0])).Take(6).ToListAsync();
-                    if(korisnici2.Count() == 0)
-                        return Ok(new {kraj = "KRAJ"});
-                    return Ok(korisnici2.Select(p => new {ID = p.Id, Korisnicko_Ime = p.Korisnicko_Ime, Ime = p.Ime, Prezime = p.Prezime}).ToList());
-                }
-
-                return Ok(korisnici2.Select(p => new {ID = p.Id, Korisnicko_Ime = p.Korisnicko_Ime, Ime = p.Ime, Prezime = p.Prezime}).ToList());
+                found = await source.Where(u => u.FirstName.Contains(words[0]) && u.LastName.Contains(words[1])).Take(6).ToListAsync();
+                if (found.Count == 0)
+                    found = await source.Where(u => u.FirstName.Contains(words[1]) && u.LastName.Contains(words[0])).Take(6).ToListAsync();
             }
+
+            return Ok(found.Select(u => new { u.Id, u.Username, u.FirstName, u.LastName }));
         }
 
         // GET /api/users/{id} - javni podaci korisnika (bez njegovih dogadjaja)
@@ -219,67 +210,67 @@ namespace EventBoxApi.Controllers
         [HttpGet]
         public async Task<ActionResult> GetUser(int id)
         {
-            // Samo javna polja - bez lozinke, heša i tokena (vidi KorisnikJavniDto)
-            var k = await Context.Korisnici
-                .Where(p => p.Id == id)
-                .Select(KorisnikJavniDto.Projekcija)
+            // Samo javna polja - bez lozinke, heša i tokena (vidi UserDto)
+            var user = await Context.Users
+                .Where(u => u.Id == id)
+                .Select(UserDto.Projection)
                 .FirstOrDefaultAsync();
-            if(k == null)
+            if (user == null)
                 return NotFound(T("UserNotFound", id));
-            return Ok(k);
+            return Ok(user);
         }
 
         // PUT /api/users/me - izmena podataka ulogovanog korisnika.
-        // Neispravan unos -> 400 { message, greske: { polje: poruka } }
-        // (polja: ime, prezime, korisnickoIme, emailAdresa, datumRodjenja, lozinka, trenutnaLozinka).
-        // Nova lozinka trazi i trenutnu. Uspeh -> javni podaci korisnika (KorisnikJavniDto).
+        // Neispravan unos -> 400 { message, errors: { polje: poruka } }
+        // (polja: firstName, lastName, username, email, dateOfBirth, password, currentPassword).
+        // Nova lozinka trazi i trenutnu. Uspeh -> javni podaci korisnika (UserDto).
         [EnableCors("CORS")]
         [Route("me")]
         [HttpPut]
-        public async Task<ActionResult> UpdateCurrentUser([FromBody] IzmenaKorisnikaZahtev zahtev)
+        public async Task<ActionResult> UpdateCurrentUser([FromBody] UpdateUserRequest request)
         {
-            Korisnik? k = await Context.Korisnici.FindAsync(User.GetUserId());
-            if (k == null)
+            var user = await Context.Users.FindAsync(User.GetUserId());
+            if (user == null)
                 return Forbid(); // administrator nema korisnicki profil
-            if (zahtev == null)
+            if (request == null)
                 return BadRequest(T("MissingData"));
 
-            var greske = new Dictionary<string, string>();
-            zahtev.Ime = zahtev.Ime?.Trim() ?? "";
-            zahtev.Prezime = zahtev.Prezime?.Trim() ?? "";
-            zahtev.EmailAdresa = EmailRules.Normalize(zahtev.EmailAdresa);
-            if (zahtev.Ime.Length is < 1 or > 50) greske["ime"] = T("FirstNameLength");
-            if (zahtev.Prezime.Length is < 1 or > 50) greske["prezime"] = T("LastNameLength");
-            zahtev.KorisnickoIme = UsernameRules.Normalize(zahtev.KorisnickoIme);
-            if (UsernameRules.Validate(zahtev.KorisnickoIme, _t) is string greskaImena) greske["korisnickoIme"] = greskaImena;
-            if (EmailRules.Validate(zahtev.EmailAdresa, _t) is string greskaEmaila)
-                greske["emailAdresa"] = greskaEmaila;
-            if (zahtev.DatumRodjenja < new DateTime(1900, 1, 1) || zahtev.DatumRodjenja > DateTime.Today)
-                greske["datumRodjenja"] = T("InvalidBirthDate");
-            if (!string.IsNullOrEmpty(zahtev.Lozinka) && zahtev.Lozinka.Length < 8)
-                greske["lozinka"] = T("NewPasswordLength");
-            if (greske.Count > 0)
-                return BadRequest(new { message = T("CheckInput"), greske });
+            var errors = new Dictionary<string, string>();
+            request.FirstName = request.FirstName?.Trim() ?? "";
+            request.LastName = request.LastName?.Trim() ?? "";
+            request.Email = EmailRules.Normalize(request.Email);
+            if (request.FirstName.Length is < 1 or > 50) errors["firstName"] = T("FirstNameLength");
+            if (request.LastName.Length is < 1 or > 50) errors["lastName"] = T("LastNameLength");
+            request.Username = UsernameRules.Normalize(request.Username);
+            if (UsernameRules.Validate(request.Username, _t) is string usernameError) errors["username"] = usernameError;
+            if (EmailRules.Validate(request.Email, _t) is string emailError)
+                errors["email"] = emailError;
+            if (request.DateOfBirth < new DateTime(1900, 1, 1) || request.DateOfBirth > DateTime.Today)
+                errors["dateOfBirth"] = T("InvalidBirthDate");
+            if (!string.IsNullOrEmpty(request.Password) && request.Password.Length < 8)
+                errors["password"] = T("NewPasswordLength");
+            if (errors.Count > 0)
+                return BadRequest(new { message = T("CheckInput"), errors });
 
-            if (!string.IsNullOrEmpty(zahtev.Lozinka))
+            if (!string.IsNullOrEmpty(request.Password))
             {
-                var greskaLozinke = VerifyPassword(k, zahtev.TrenutnaLozinka, "trenutnaLozinka");
-                if (greskaLozinke != null)
-                    return greskaLozinke;
-                k.Lozinka_Hashirana = Passwords.Hash(zahtev.Lozinka);
+                var passwordError = VerifyPassword(user, request.CurrentPassword, "currentPassword");
+                if (passwordError != null)
+                    return passwordError;
+                user.PasswordHash = Passwords.Hash(request.Password);
             }
 
-            if (k.Korisnicko_Ime != zahtev.KorisnickoIme &&
-                await Context.Korisnici.AnyAsync(p => p.Korisnicko_Ime == zahtev.KorisnickoIme))
+            if (user.Username != request.Username &&
+                await Context.Users.AnyAsync(u => u.Username == request.Username))
                 return UsernameTaken();
-            if (await Context.Korisnici.AnyAsync(p => p.Id != k.Id && p.Email_Adresa == zahtev.EmailAdresa))
+            if (await Context.Users.AnyAsync(u => u.Id != user.Id && u.Email == request.Email))
                 return EmailTaken();
 
-            k.Ime = zahtev.Ime;
-            k.Prezime = zahtev.Prezime;
-            k.Korisnicko_Ime = zahtev.KorisnickoIme;
-            k.Datum_rodjenja = zahtev.DatumRodjenja.Date;
-            k.Email_Adresa = zahtev.EmailAdresa;
+            user.FirstName = request.FirstName;
+            user.LastName = request.LastName;
+            user.Username = request.Username;
+            user.DateOfBirth = request.DateOfBirth.Date;
+            user.Email = request.Email;
             try
             {
                 await Context.SaveChangesAsync();
@@ -292,82 +283,82 @@ namespace EventBoxApi.Controllers
             {
                 return UsernameTaken();
             }
-            return Ok(await Context.Korisnici.Where(p => p.Id == k.Id).Select(KorisnikJavniDto.Projekcija).FirstAsync());
+            return Ok(await Context.Users.Where(u => u.Id == user.Id).Select(UserDto.Projection).FirstAsync());
         }
 
         // DELETE /api/users/{id} - brisanje sopstvenog naloga (trazi lozinku u telu zahteva)
         [EnableCors("CORS")]
         [Route("{id:int}")]
         [HttpDelete]
-        public async Task<ActionResult> DeleteUser(int id, [FromBody] BrisanjeNalogaZahtev? zahtev)
+        public async Task<ActionResult> DeleteUser(int id, [FromBody] DeleteAccountRequest? request)
         {
             if (id != User.GetUserId())
                 return Forbid(); // nalog brise samo njegov vlasnik
-            var korisnik = await Context.Korisnici.FindAsync(id);
-            if (korisnik == null)
+            var user = await Context.Users.FindAsync(id);
+            if (user == null)
                 return NotFound();
             // Nepovratno - trazi se i lozinka, ne samo token (npr. otkljucan tudji racunar)
-            var greskaLozinke = VerifyPassword(korisnik, zahtev?.Lozinka, "lozinka");
-            if (greskaLozinke != null)
-                return greskaLozinke;
+            var passwordError = VerifyPassword(user, request?.Password, "password");
+            if (passwordError != null)
+                return passwordError;
             // Slike na disku: profilna i slike njegovih dogadjaja (brisu se posle uspesnog brisanja iz baze)
-            var slike = await Context.Dogadjaji.Where(d => d.ID_Kreatora == id && d.DogadjajImage != null)
-                .Select(d => d.DogadjajImage).ToListAsync();
-            slike.Add(korisnik.KorisnikImage);
+            var images = await Context.Events.Where(e => e.CreatorId == id && e.Image != null)
+                .Select(e => e.Image).ToListAsync();
+            images.Add(user.ProfileImage);
             // Komentari na tudjim dogadjajima nemaju kaskadu u bazi (vidi EventBoxContext);
             // oni na sopstvenim dogadjajima se brisu kaskadno zajedno sa dogadjajima
-            Context.Komentari.RemoveRange(Context.Komentari.Where(k => k.AutorId == id));
+            Context.Comments.RemoveRange(Context.Comments.Where(c => c.AuthorId == id));
             // Isto za reakcije; posle brisanja se brojaci tih tudjih dogadjaja ponovo racunaju
-            var reagovaoNa = await Context.Reakcije
-                .Where(r => r.Korisnik_ID == id && r.Dogadjaj_ID.ID_Kreatora != id)
-                .Select(r => r.Dogadjaj_ID.Id)
+            var reactedTo = await Context.Reactions
+                .Where(r => r.UserId == id && r.Event.CreatorId != id)
+                .Select(r => r.EventId)
                 .ToArrayAsync();
-            Context.Reakcije.RemoveRange(Context.Reakcije.Where(r => r.Korisnik_ID == id));
-            // Poruke (poslate i primljene) i notifikacije koje je izazvao na tudjim objavama
+            Context.Reactions.RemoveRange(Context.Reactions.Where(r => r.UserId == id));
             // Njegove prijave ostaju (moderaciji treba razlog), samo gube podatak ko je prijavio
-            foreach (var razlog in await Context.Razlozi.Where(r => r.PrijavioId == id).ToListAsync())
-                razlog.PrijavioId = null;
-            Context.Poruke.RemoveRange(Context.Poruke.Where(m => m.PosiljaocId == id || m.PrimaocId == id));
-            var uklonjene = await _notifications.RemoveAsync(Context.Notifikacije.Where(n => n.KorisnikKojiReagujeId == id));
-            Context.Korisnici.Remove(korisnik);
+            foreach (var reason in await Context.ReportReasons.Where(r => r.ReporterId == id).ToListAsync())
+                reason.ReporterId = null;
+            // Poruke (poslate i primljene) i notifikacije koje je izazvao na tudjim objavama
+            Context.Messages.RemoveRange(Context.Messages.Where(m => m.SenderId == id || m.RecipientId == id));
+            var removed = await _notifications.RemoveAsync(Context.Notifications.Where(n => n.ActorId == id));
+            Context.Users.Remove(user);
             await Context.SaveChangesAsync();
-            await ReactionCounters.RefreshAsync(Context, reagovaoNa);
-            await _notifications.NotifyRemovedAsync(uklonjene); // vlasnicima tih objava nestaju uzivo
-            slike.ForEach(_fileService.DeleteImage);
+            await ReactionCounters.RefreshAsync(Context, reactedTo);
+            await _notifications.NotifyRemovedAsync(removed); // primaocima tih notifikacija nestaju uzivo
+            images.ForEach(_fileService.DeleteImage);
             return Ok(T("UserDeleted", id));
         }
 
-        // PUT /api/users/{id}/image - postavlja ili menja profilnu sliku (multipart, polje "fajl").
-        // Odgovor: { slika }. Neispravan fajl -> 400 { message }. Stara slika se brise sa diska.
+        // PUT /api/users/{id}/image - postavlja ili menja profilnu sliku (multipart, polje "file").
+        // Odgovor: { image }. Neispravan fajl -> 400 { message }. Stara slika se brise sa diska.
         [HttpPut]
         [EnableCors("CORS")]
         [Route("{id:int}/image")]
         [RequestSizeLimit(FileService.MaxFileSize + 64 * 1024)]
-        public async Task<ActionResult> UploadProfileImage(int id, IFormFile? fajl)
+        public async Task<ActionResult> UploadProfileImage(int id, IFormFile? file)
         {
             if (id != User.GetUserId())
                 return Forbid();
-            Korisnik? k = await Context.Korisnici.FindAsync(id);
-            if (k == null)
+            var user = await Context.Users.FindAsync(id);
+            if (user == null)
                 return NotFound();
 
-            var rezultat = await _fileService.SaveImageAsync(fajl);
-            if (rezultat.Error != null)
-                return BadRequest(new { message = rezultat.Error });
+            var result = await _fileService.SaveImageAsync(file);
+            if (result.Error != null)
+                return BadRequest(new { message = result.Error });
 
-            string? stara = k.KorisnikImage;
-            k.KorisnikImage = rezultat.FileName;
+            string? oldImage = user.ProfileImage;
+            user.ProfileImage = result.FileName;
             try
             {
                 await Context.SaveChangesAsync();
             }
             catch
             {
-                _fileService.DeleteImage(rezultat.FileName);
+                _fileService.DeleteImage(result.FileName);
                 throw;
             }
-            _fileService.DeleteImage(stara);
-            return Ok(new { slika = k.KorisnikImage });
+            _fileService.DeleteImage(oldImage);
+            return Ok(new { image = user.ProfileImage });
         }
 
         // DELETE /api/users/{id}/image - uklanja profilnu sliku
@@ -378,15 +369,15 @@ namespace EventBoxApi.Controllers
         {
             if (id != User.GetUserId())
                 return Forbid();
-            Korisnik k = await Context.Korisnici.FindAsync(id);
-            if(k == null)
+            var user = await Context.Users.FindAsync(id);
+            if (user == null)
                 return BadRequest(T("UserNotFound", id));
 
             // Fajl moze vec da fali na disku - referenca u bazi se svakako cisti
-            string? stara = k.KorisnikImage;
-            k.KorisnikImage = null;
+            string? oldImage = user.ProfileImage;
+            user.ProfileImage = null;
             await Context.SaveChangesAsync();
-            _fileService.DeleteImage(stara);
+            _fileService.DeleteImage(oldImage);
             return Ok(T("ImageDeleted"));
         }
 
@@ -396,16 +387,15 @@ namespace EventBoxApi.Controllers
         [Route("{id:int}/categories")]
         public async Task<ActionResult> GetUserCategories(int id)
         {
-
-            var kategorije = await Context.Dogadjaji
-                .Where(d => d.ID_Kreatora == id)
-                .GroupBy(d => d.Kategorija)
-                .Select(g => new { Kategorija = g.Key, Broj = g.Count() })
-                .OrderByDescending(x => x.Broj)
-                .ThenBy(x => x.Kategorija)
+            var categories = await Context.Events
+                .Where(e => e.CreatorId == id)
+                .GroupBy(e => e.Category)
+                .Select(g => new { Category = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .ThenBy(x => x.Category)
                 .ToListAsync();
 
-            return Ok(kategorije);
+            return Ok(categories);
         }
 
         // GET /api/users/{id}/events - dogadjaji korisnika za profil: najnoviji prvi,
@@ -415,15 +405,15 @@ namespace EventBoxApi.Controllers
         [Route("{id:int}/events")]
         public async Task<ActionResult> GetUserEvents(int id, [FromQuery] int limit = Pagination.DefaultPageSize, [FromQuery] string? cursor = null)
         {
-            if (!Pagination.TryDecodeCursor(cursor, out int? posle))
+            if (!Pagination.TryDecodeCursor(cursor, out int? after))
                 return BadRequest(T("InvalidCursor"));
-            if (!await Context.Korisnici.AnyAsync(k => k.Id == id))
+            if (!await Context.Users.AnyAsync(u => u.Id == id))
                 return NotFound();
 
-            var upit = Context.Dogadjaji.Include(d => d.KreatorId).Where(d => d.ID_Kreatora == id);
+            var query = Context.Events.Include(e => e.Creator).Where(e => e.CreatorId == id);
             if (!User.IsAdmin())
-                upit = upit.Where(d => d.KreatorId.Blokiran != -1); // sadrzaj blokiranih se ne prikazuje
-            return Ok(await Pagination.GetPageAsync(upit, posle, limit));
+                query = query.Where(e => !e.Creator.IsBlocked); // sadrzaj blokiranih se ne prikazuje
+            return Ok(await Pagination.GetPageAsync(query, after, limit));
         }
 
         // PUT /api/users/{id}/block - blokiranje (samo administrator): korisnik odmah gubi pristup -
@@ -436,12 +426,12 @@ namespace EventBoxApi.Controllers
         [Route("{id:int}/block")]
         public async Task<ActionResult> BlockUser(int id)
         {
-            Korisnik? k = await Context.Korisnici.FindAsync(id);
-            if (k == null)
+            var user = await Context.Users.FindAsync(id);
+            if (user == null)
                 return NotFound(T("UserNotFound", id));
-            k.Blokiran = -1;
-            k.Token = GenerateToken();
-            k.Validnost = DateTime.UtcNow;
+            user.IsBlocked = true;
+            user.Token = GenerateToken();
+            user.TokenExpiresAt = DateTime.UtcNow;
             await Context.SaveChangesAsync();
             return Ok(T("UserBlocked"));
         }
@@ -453,41 +443,41 @@ namespace EventBoxApi.Controllers
         [Route("{id:int}/block")]
         public async Task<ActionResult> UnblockUser(int id)
         {
-            Korisnik? k = await Context.Korisnici.FindAsync(id);
-            if (k == null)
+            var user = await Context.Users.FindAsync(id);
+            if (user == null)
                 return NotFound(T("UserNotFound", id));
-            k.Blokiran = 0;
+            user.IsBlocked = false;
             await Context.SaveChangesAsync();
             return Ok(T("UserUnblocked"));
         }
 
         // GET /api/users/{id}/details - admin: pregled jednog korisnika - javni podaci + status naloga
-        // i koliko je puta prijavljen njegov sadrzaj (bez lozinke, heša i tokena, kao KorisnikJavniDto)
+        // i koliko je puta prijavljen njegov sadrzaj (bez lozinke, heša i tokena, kao UserDto)
         [HttpGet]
         [EnableCors("CORS")]
         [Authorize(Roles = "Admin")]
         [Route("{id:int}/details")]
         public async Task<ActionResult> GetUserDetails(int id)
         {
-            var k = await Context.Korisnici
-                .Where(p => p.Id == id)
-                .Select(p => new
+            var user = await Context.Users
+                .Where(u => u.Id == id)
+                .Select(u => new
                 {
-                    p.Id,
-                    p.Ime,
-                    p.Prezime,
-                    p.Korisnicko_Ime,
-                    p.Email_Adresa,
-                    p.Datum_rodjenja,
-                    p.KorisnikImage,
-                    Blokiran = p.Blokiran == -1,
-                    BrojDogadjaja = Context.Dogadjaji.Count(d => d.ID_Kreatora == p.Id),
-                    BrojPrijava = Context.Razlozi.Count(r => r.Prijavljeni_dogadjaj_Id.Dogadjaj_Id.ID_Kreatora == p.Id),
+                    u.Id,
+                    u.FirstName,
+                    u.LastName,
+                    u.Username,
+                    u.Email,
+                    u.DateOfBirth,
+                    u.ProfileImage,
+                    u.IsBlocked,
+                    EventCount = Context.Events.Count(e => e.CreatorId == u.Id),
+                    ReportCount = Context.ReportReasons.Count(r => r.Report.Event.CreatorId == u.Id),
                 })
                 .FirstOrDefaultAsync();
-            if (k == null)
+            if (user == null)
                 return NotFound(T("UserNotFound", id));
-            return Ok(k);
+            return Ok(user);
         }
 
         // GET /api/users/blocked - blokirani korisnici za admina, najnoviji nalozi prvi,
@@ -498,44 +488,43 @@ namespace EventBoxApi.Controllers
         [Route("blocked")]
         public async Task<ActionResult> GetBlockedUsers([FromQuery] int limit = 20, [FromQuery] string? cursor = null)
         {
-            if (!Pagination.TryDecodeCursor(cursor, out int? posle))
+            if (!Pagination.TryDecodeCursor(cursor, out int? after))
                 return BadRequest(T("InvalidCursor"));
-            var strana = await Pagination.GetPageAsync(Context.Korisnici.Where(k => k.Blokiran == -1), posle, limit);
-            var javni = KorisnikJavniDto.Projekcija.Compile();
-            return Ok(new { stavke = strana.Stavke.Select(javni), strana.SledeciKursor, strana.ImaJos, strana.Ukupno });
+            var page = await Pagination.GetPageAsync(Context.Users.Where(u => u.IsBlocked), after, limit);
+            var toDto = UserDto.Projection.Compile();
+            return Ok(new { items = page.Items.Select(toDto), page.NextCursor, page.HasMore, page.Total });
         }
 
         // Poruka na jeziku zahteva (Accept-Language), vidi SharedResource.cs
-        private string T(string kljuc, params object[] args) => _t[kljuc, args];
+        private string T(string key, params object[] args) => _t[key, args];
 
         private BadRequestObjectResult EmailTaken()
-            => BadRequest(new { message = T("CheckInput"), greske = new Dictionary<string, string> { ["emailAdresa"] = T("EmailTaken") } });
+            => BadRequest(new { message = T("CheckInput"), errors = new Dictionary<string, string> { ["email"] = T("EmailTaken") } });
 
         private BadRequestObjectResult UsernameTaken()
-            => BadRequest(new { message = T("CheckInput"), greske = new Dictionary<string, string> { ["korisnickoIme"] = T("UsernameTaken") } });
+            => BadRequest(new { message = T("CheckInput"), errors = new Dictionary<string, string> { ["username"] = T("UsernameTaken") } });
 
         // Potvrda lozinkom za osetljive akcije. Pogresna lozinka se broji kao neuspela prijava
         // (LoginProtection), pa ni ovde ne moze da se pogadja. null = lozinka je tacna.
-        private ActionResult? VerifyPassword(Korisnik k, string? lozinka, string polje)
+        private ActionResult? VerifyPassword(User user, string? password, string field)
         {
-            if (_loginProtection.GetRemainingLockout("k", k.Korisnicko_Ime) is TimeSpan preostalo)
-                return LockedOut(preostalo);
-            if (string.IsNullOrEmpty(lozinka) || !Passwords.Verify(k.Lozinka_Hashirana, lozinka, out _))
+            if (_loginProtection.GetRemainingLockout("k", user.Username) is TimeSpan remaining)
+                return LockedOut(remaining);
+            if (string.IsNullOrEmpty(password) || !Passwords.Verify(user.PasswordHash, password, out _))
             {
-                _loginProtection.RecordFailure("k", k.Korisnicko_Ime);
-                return BadRequest(new { message = T("WrongPassword"), greske = new Dictionary<string, string> { [polje] = T("WrongPassword") } });
+                _loginProtection.RecordFailure("k", user.Username);
+                return BadRequest(new { message = T("WrongPassword"), errors = new Dictionary<string, string> { [field] = T("WrongPassword") } });
             }
             return null;
         }
 
-        private ObjectResult LockedOut(TimeSpan preostalo)
+        private ObjectResult LockedOut(TimeSpan remaining)
         {
-            Response.Headers.RetryAfter = ((int)Math.Ceiling(preostalo.TotalSeconds)).ToString();
-            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = LoginProtection.LockoutMessage(preostalo, _t) });
+            Response.Headers.RetryAfter = ((int)Math.Ceiling(remaining.TotalSeconds)).ToString();
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = LoginProtection.LockoutMessage(remaining, _t) });
         }
 
         // Nasumican token od 256 bita (64 hex znaka)
         private static string GenerateToken() => Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-
     }
 }

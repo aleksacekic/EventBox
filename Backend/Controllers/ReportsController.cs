@@ -11,10 +11,10 @@ using Novi_backend_za_SWE;
 
 namespace EventBoxApi.Controllers
 {
-    public class PrijavaDogadjajaZahtev
+    public class ReportRequest
     {
-        public string Razlog { get; set; }
-        public string? Opis { get; set; } // koristi se samo uz razlog "ostalo"
+        public string Reason { get; set; }
+        public string? Description { get; set; } // koristi se samo uz razlog "ostalo"
     }
 
     // Prijave dogadjaja (moderacija):
@@ -25,6 +25,8 @@ namespace EventBoxApi.Controllers
     [Route("api")]
     public class ReportsController : ControllerBase
     {
+        public const int MaxDescriptionLength = 500;
+
         public EventBoxContext Context { get; set; }
         private readonly NotificationService _notifications;
         private readonly IStringLocalizer<SharedResource> _t;
@@ -37,9 +39,9 @@ namespace EventBoxApi.Controllers
         }
 
         // Poruka na jeziku zahteva (Accept-Language), vidi SharedResource.cs
-        private string T(string kljuc, params object[] args) => _t[kljuc, args];
+        private string T(string key, params object[] args) => _t[key, args];
 
-        // POST /api/events/{eventId}/reports  { "razlog": "...", "opis": "..." }
+        // POST /api/events/{eventId}/reports  { "reason": "...", "description": "..." }
         // Prijava je JEDAN zahtev (razlog u telu): u istoj transakciji se pravi/pronalazi prijava
         // dogadjaja, dodaje razlog sa prijavljivacem i preracunava brojac. Pre su bila dva zahteva,
         // pa je pad izmedju njih ostavljao brojac bez razloga.
@@ -47,56 +49,56 @@ namespace EventBoxApi.Controllers
         [EnableCors("CORS")]
         [Authorize]
         [Route("events/{eventId:int}/reports")]
-        public async Task<ActionResult> ReportEvent(int eventId, [FromBody] PrijavaDogadjajaZahtev zahtev)
+        public async Task<ActionResult> ReportEvent(int eventId, [FromBody] ReportRequest request)
         {
             if (User.IsAdmin())
                 return Forbid(); // prijavljuju samo korisnici
-            int prijavio = User.GetUserId();
+            int reporterId = User.GetUserId();
 
-            if (zahtev == null || !Razlog.Dozvoljeni.Contains(zahtev.Razlog))
+            if (request == null || !ReportReason.AllowedReasons.Contains(request.Reason))
                 return BadRequest(T("UnknownReportReason"));
-            string opis = zahtev.Razlog == "ostalo" ? (zahtev.Opis ?? "").Trim() : "";
-            if (opis.Length > 500)
-                return BadRequest(T("ReportDescriptionTooLong", 500));
+            string description = request.Reason == "ostalo" ? (request.Description ?? "").Trim() : "";
+            if (description.Length > MaxDescriptionLength)
+                return BadRequest(T("ReportDescriptionTooLong", MaxDescriptionLength));
 
-            Dogadjaj d = await Context.Dogadjaji.FindAsync(eventId);
-            if (d == null)
+            var ev = await Context.Events.FindAsync(eventId);
+            if (ev == null)
                 return NotFound();
-            if (d.ID_Kreatora == prijavio)
+            if (ev.CreatorId == reporterId)
                 return BadRequest(T("CannotReportOwnEvent"));
 
-            if (await Context.Razlozi.AnyAsync(r => r.PrijavioId == prijavio && r.Prijavljeni_dogadjaj_Id.Dogadjaj_Id.Id == eventId))
+            if (await Context.ReportReasons.AnyAsync(r => r.ReporterId == reporterId && r.Report.EventId == eventId))
                 return Conflict(T("AlreadyReported"));
 
             // Retry (EnableRetryOnFailure u Program.cs) ne radi sa rucnom transakcijom, pa cela
             // transakcija ide kroz execution strategy: ako baza privremeno nije dostupna, ponovi se ceo blok.
-            Prijavljeni_dogadjaj? pr_dog = null;
-            Razlog? razlog = null;
-            bool vecPrijavljeno = false;
-            var strategija = Context.Database.CreateExecutionStrategy();
-            await strategija.ExecuteAsync(async () =>
+            Report? report = null;
+            ReportReason? reason = null;
+            bool alreadyReported = false;
+            var strategy = Context.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
                 // Ponovni pokusaj: odbaci ono sto je prethodni (neuspeli) pokusaj dodao u context
-                if (razlog != null)
-                    Context.Entry(razlog).State = EntityState.Detached;
-                if (pr_dog != null && Context.Entry(pr_dog).State == EntityState.Added)
-                    Context.Entry(pr_dog).State = EntityState.Detached;
+                if (reason != null)
+                    Context.Entry(reason).State = EntityState.Detached;
+                if (report != null && Context.Entry(report).State == EntityState.Added)
+                    Context.Entry(report).State = EntityState.Detached;
 
-                await using var transakcija = await Context.Database.BeginTransactionAsync();
-                pr_dog = await Context.Prijavljeni_dogadjaji.FirstOrDefaultAsync(p => p.Dogadjaj_Id.Id == eventId);
-                if (pr_dog == null)
+                await using var transaction = await Context.Database.BeginTransactionAsync();
+                report = await Context.Reports.FirstOrDefaultAsync(r => r.EventId == eventId);
+                if (report == null)
                 {
-                    pr_dog = new Prijavljeni_dogadjaj { Dogadjaj_Id = d, Broj_prijava = 0 };
-                    Context.Prijavljeni_dogadjaji.Add(pr_dog);
+                    report = new Report { EventId = eventId, ReportCount = 0 };
+                    Context.Reports.Add(report);
                 }
-                razlog = new Razlog
+                reason = new ReportReason
                 {
-                    Prijavljeni_dogadjaj_Id = pr_dog,
-                    Razlog_prijave = zahtev.Razlog,
-                    Opis = opis,
-                    PrijavioId = prijavio
+                    Report = report,
+                    Reason = request.Reason,
+                    Description = description,
+                    ReporterId = reporterId
                 };
-                Context.Razlozi.Add(razlog);
+                Context.ReportReasons.Add(reason);
 
                 try
                 {
@@ -106,19 +108,19 @@ namespace EventBoxApi.Controllers
                 {
                     // Jedinstveni indeksi: isti korisnik ili drugi prvi prijavljivac u istom trenutku.
                     // Samo greska duplikata - privremene greske baze idu dalje, na retry.
-                    vecPrijavljeno = true;
+                    alreadyReported = true;
                     return; // transakcija se ponistava pri izlasku (await using)
                 }
                 // Brojac se racuna iz razloga jednim UPDATE-om (bez ++ koji gubi paralelne prijave)
                 await Context.Database.ExecuteSqlInterpolatedAsync(
-                    $"UPDATE Prijavljeni_dogadjaj SET Broj_prijava = (SELECT COUNT(*) FROM Razlog WHERE Prijavljeni_dogadjaj_IdId = {pr_dog.Id}) WHERE Id = {pr_dog.Id}");
-                await transakcija.CommitAsync();
+                    $"UPDATE Reports SET ReportCount = (SELECT COUNT(*) FROM ReportReasons WHERE ReportId = {report.Id}) WHERE Id = {report.Id}");
+                await transaction.CommitAsync();
             });
-            if (vecPrijavljeno)
+            if (alreadyReported)
                 return Conflict(T("ReportConflict"));
 
-            // Vlasnik saznaje razlog, ali ne i ko je prijavio
-            await _notifications.NotifyOwnerAsync(d, null, NotificationType.Report, zahtev.Razlog);
+            // Autor saznaje razlog, ali ne i ko je prijavio
+            await _notifications.NotifyOwnerAsync(ev, null, NotificationType.Report, request.Reason);
             return Ok(T("EventReported"));
         }
 
@@ -130,15 +132,15 @@ namespace EventBoxApi.Controllers
         [Route("reports")]
         public async Task<ActionResult> GetReports([FromQuery] int limit = 4, [FromQuery] string? cursor = null)
         {
-            if (!Pagination.TryDecodeCursor(cursor, out int? posle))
+            if (!Pagination.TryDecodeCursor(cursor, out int? after))
                 return BadRequest(T("InvalidCursor"));
 
-            var upit = Context.Prijavljeni_dogadjaji
-                .Include(p => p.Dogadjaj_Id).ThenInclude(d => d.KreatorId)
-                .Include(p => p.Razlozi);
-            var strana = await Pagination.GetPageAsync(upit, posle, limit);
-            strana.Stavke.ForEach(p => p.Razlozi = p.Razlozi.Take(5).ToList());
-            return Ok(strana);
+            var query = Context.Reports
+                .Include(r => r.Event).ThenInclude(e => e.Creator)
+                .Include(r => r.Reasons);
+            var page = await Pagination.GetPageAsync(query, after, limit);
+            page.Items.ForEach(r => r.Reasons = r.Reasons.Take(5).ToList());
+            return Ok(page);
         }
 
         // DELETE /api/reports/{id} - odbacuje prijavu (dogadjaj ostaje objavljen)
@@ -148,11 +150,11 @@ namespace EventBoxApi.Controllers
         [Route("reports/{id:int}")]
         public async Task<ActionResult> DismissReport(int id)
         {
-            Prijavljeni_dogadjaj pr_dog = await Context.Prijavljeni_dogadjaji.FindAsync(id);
-            if (pr_dog == null)
+            var report = await Context.Reports.FindAsync(id);
+            if (report == null)
                 return NotFound();
             // Razlozi se brisu kaskadno u bazi
-            Context.Prijavljeni_dogadjaji.Remove(pr_dog);
+            Context.Reports.Remove(report);
             await Context.SaveChangesAsync();
             return Ok(T("ReportDismissed"));
         }

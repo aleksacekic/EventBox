@@ -30,22 +30,22 @@ namespace EventBoxApi.Controllers
         }
 
         // Poruka na jeziku zahteva (Accept-Language), vidi SharedResource.cs
-        private string T(string kljuc, params object[] args) => _t[kljuc, args];
+        private string T(string key, params object[] args) => _t[key, args];
 
         // Liste dogadjaja: najnoviji prvi, stranicenje kursorom (Models/Pagination.cs).
         //   ?limit=3                -> prva strana
-        //   ?limit=3&cursor=<kursor> -> sledeca (kursor = sledeciKursor iz prethodnog odgovora)
-        // Odgovor: { stavke, sledeciKursor, imaJos, ukupno }  (ukupno samo uz prvu stranu)
+        //   ?limit=3&cursor=<kursor> -> sledeca (kursor = nextCursor iz prethodnog odgovora)
+        // Odgovor: { items, nextCursor, hasMore, total }  (total samo uz prvu stranu)
         // Sadrzaj blokiranih korisnika se ne prikazuje (ne brise se - posle odblokiranja je opet tu).
         // Administrator vidi sve.
-        private IQueryable<Dogadjaj> OnlyVisible(IQueryable<Dogadjaj> upit)
-            => User.IsAdmin() ? upit : upit.Where(d => d.KreatorId.Blokiran != -1);
+        private IQueryable<Event> OnlyVisible(IQueryable<Event> query)
+            => User.IsAdmin() ? query : query.Where(e => !e.Creator.IsBlocked);
 
-        private async Task<ActionResult> GetEventPage(IQueryable<Dogadjaj> upit, int limit, string? cursor)
+        private async Task<ActionResult> GetEventPage(IQueryable<Event> query, int limit, string? cursor)
         {
-            if (!Pagination.TryDecodeCursor(cursor, out int? posle))
+            if (!Pagination.TryDecodeCursor(cursor, out int? after))
                 return BadRequest(T("InvalidCursor"));
-            return Ok(await Pagination.GetPageAsync(upit.Include(d => d.KreatorId), posle, limit));
+            return Ok(await Pagination.GetPageAsync(query.Include(e => e.Creator), after, limit));
         }
 
         // GET /api/events - feed: predstojeci dogadjaji
@@ -53,8 +53,8 @@ namespace EventBoxApi.Controllers
         [EnableCors("CORS")]
         public Task<ActionResult> GetUpcomingEvents([FromQuery] int limit = Pagination.DefaultPageSize, [FromQuery] string? cursor = null)
         {
-            DateTime danas = DateTime.Today;
-            return GetEventPage(OnlyVisible(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= danas)), limit, cursor);
+            DateTime today = DateTime.Today;
+            return GetEventPage(OnlyVisible(Context.Events.Where(e => e.Date >= today)), limit, cursor);
         }
 
         // GET /api/events/by-date?date=2026-11-02 - dogadjaji tog dana
@@ -63,9 +63,9 @@ namespace EventBoxApi.Controllers
         [Route("by-date")]
         public Task<ActionResult> GetEventsByDate([FromQuery] DateTime date, [FromQuery] int limit = Pagination.DefaultPageSize, [FromQuery] string? cursor = null)
         {
-            DateTime od = date.Date;
-            DateTime do_ = od.AddDays(1);
-            return GetEventPage(OnlyVisible(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= od && d.Datum_Dogadjaja < do_)), limit, cursor);
+            DateTime from = date.Date;
+            DateTime to = from.AddDays(1);
+            return GetEventPage(OnlyVisible(Context.Events.Where(e => e.Date >= from && e.Date < to)), limit, cursor);
         }
 
         // GET /api/events/search?title=koncert - predstojeci dogadjaji ciji naziv sadrzi tekst
@@ -76,8 +76,8 @@ namespace EventBoxApi.Controllers
         {
             if (string.IsNullOrWhiteSpace(title))
                 return BadRequest(T("TitleRequired"));
-            DateTime danas = DateTime.Today;
-            return await GetEventPage(OnlyVisible(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= danas && d.Naslov.Contains(title))), limit, cursor);
+            DateTime today = DateTime.Today;
+            return await GetEventPage(OnlyVisible(Context.Events.Where(e => e.Date >= today && e.Title.Contains(title))), limit, cursor);
         }
 
         // GET /api/events/all?title= - admin: SVI dogadjaji, i oni koji su prosli (feed korisnika
@@ -88,13 +88,13 @@ namespace EventBoxApi.Controllers
         [Route("all")]
         public Task<ActionResult> GetAllEvents([FromQuery] string? title, [FromQuery] int limit = Pagination.DefaultPageSize, [FromQuery] string? cursor = null)
         {
-            IQueryable<Dogadjaj> upit = Context.Dogadjaji;
+            IQueryable<Event> query = Context.Events;
             if (!string.IsNullOrWhiteSpace(title))
             {
-                string trazi = title.Trim();
-                upit = upit.Where(d => d.Naslov.Contains(trazi));
+                string search = title.Trim();
+                query = query.Where(e => e.Title.Contains(search));
             }
-            return GetEventPage(upit, limit, cursor);
+            return GetEventPage(query, limit, cursor);
         }
 
         // GET /api/events/{id}
@@ -103,121 +103,118 @@ namespace EventBoxApi.Controllers
         [Route("{id:int}")]
         public async Task<ActionResult> GetEvent(int id)
         {
-            var dogadjaj = await Context.Dogadjaji.Include(d => d.KreatorId).FirstOrDefaultAsync(d => d.Id == id);
+            var ev = await Context.Events.Include(e => e.Creator).FirstOrDefaultAsync(e => e.Id == id);
             // Dogadjaj blokiranog korisnika je sakriven (kao da ne postoji) za sve osim administratora
-            if (dogadjaj == null || (dogadjaj.KreatorBlokiran && !User.IsAdmin()))
-            {
+            if (ev == null || (ev.CreatorIsBlocked && !User.IsAdmin()))
                 return NotFound(T("EventNotFound", id));
-            }
 
-            return Ok(dogadjaj);
+            return Ok(ev);
         }
 
-        // POST /api/events - novi dogadjaj ulogovanog korisnika. Podaci idu u telu (DogadjajZahtev);
-        // kreator i datum objave postavlja server. Neispravan unos -> 400 { message, greske: { polje: poruka } }.
+        // POST /api/events - novi dogadjaj ulogovanog korisnika. Podaci idu u telu (EventRequest);
+        // autor i datum objave postavlja server. Neispravan unos -> 400 { message, errors: { polje: poruka } }.
         [HttpPost]
         [EnableCors("CORS")]
-        public async Task<ActionResult> CreateEvent([FromBody] DogadjajZahtev zahtev)
+        public async Task<ActionResult> CreateEvent([FromBody] EventRequest request)
         {
             if (User.IsAdmin())
                 return Forbid(); // administrator nije korisnik i nema dogadjaje
-            if (zahtev == null)
+            if (request == null)
                 return BadRequest(T("MissingEventData"));
-            var greske = zahtev.Validate(_t);
-            if (greske.Count > 0)
-                return BadRequest(new { message = T("CheckInput"), greske });
+            var errors = request.Validate(_t);
+            if (errors.Count > 0)
+                return BadRequest(new { message = T("CheckInput"), errors });
 
-            var dog = new Dogadjaj
+            var ev = new Event
             {
-                ID_Kreatora = User.GetUserId(),
-                Datum_Objave = DateTime.Today,
-                DogadjajImage = null,
+                CreatorId = User.GetUserId(),
+                CreatedAt = DateTime.Today,
+                Image = null,
             };
-            zahtev.ApplyTo(dog);
-            Context.Dogadjaji.Add(dog);
+            request.ApplyTo(ev);
+            Context.Events.Add(ev);
             await Context.SaveChangesAsync();
 
-            // isti oblik kao u listama (sa imenom i slikom kreatora), da kartica odmah ima sve
-            await Context.Entry(dog).Reference(d => d.KreatorId).LoadAsync();
-            return Ok(dog);
+            // isti oblik kao u listama (sa imenom i slikom autora), da kartica odmah ima sve
+            await Context.Entry(ev).Reference(e => e.Creator).LoadAsync();
+            return Ok(ev);
         }
 
-        // PUT /api/events/{id} - izmena dogadjaja (samo kreator), isto telo i ista pravila kao pri
+        // PUT /api/events/{id} - izmena dogadjaja (samo autor), isto telo i ista pravila kao pri
         // pravljenju. Datum vec odrzanog dogadjaja moze ostati isti, iako je u proslosti.
         [HttpPut]
         [EnableCors("CORS")]
         [Route("{id:int}")]
-        public async Task<ActionResult> UpdateEvent(int id, [FromBody] DogadjajZahtev zahtev)
+        public async Task<ActionResult> UpdateEvent(int id, [FromBody] EventRequest request)
         {
-            Dogadjaj dog = await Context.Dogadjaji.Include(d => d.KreatorId).FirstOrDefaultAsync(d => d.Id == id);
-            if(dog == null)
+            var ev = await Context.Events.Include(e => e.Creator).FirstOrDefaultAsync(e => e.Id == id);
+            if (ev == null)
                 return NotFound();
-            if(dog.ID_Kreatora != User.GetUserId())
+            if (ev.CreatorId != User.GetUserId())
                 return Forbid();
-            if (zahtev == null)
+            if (request == null)
                 return BadRequest(T("MissingEventData"));
-            var greske = zahtev.Validate(_t, allowedPastDate: dog.Datum_Dogadjaja);
-            if (greske.Count > 0)
-                return BadRequest(new { message = T("CheckInput"), greske });
+            var errors = request.Validate(_t, allowedPastDate: ev.Date);
+            if (errors.Count > 0)
+                return BadRequest(new { message = T("CheckInput"), errors });
 
-            zahtev.ApplyTo(dog);
+            request.ApplyTo(ev);
             await Context.SaveChangesAsync();
-            return Ok(dog);
+            return Ok(ev);
         }
 
-        // DELETE /api/events/{id} - brise vlasnik ili administrator
+        // DELETE /api/events/{id} - brise autor ili administrator
         [HttpDelete]
         [EnableCors("CORS")]
         [Route("{id:int}")]
         public async Task<ActionResult> DeleteEvent(int id)
         {
-            var dog = await Context.Dogadjaji.FindAsync(id);
-            if(dog == null)
+            var ev = await Context.Events.FindAsync(id);
+            if (ev == null)
                 return NotFound(T("EventNotFound", id));
-            if(dog.ID_Kreatora != User.GetUserId() && !User.IsAdmin())
-                return Forbid(); // brise vlasnik ili administrator
+            if (ev.CreatorId != User.GetUserId() && !User.IsAdmin())
+                return Forbid(); // brise autor ili administrator
 
-            // Notifikacija cuva samo DogadjajId (bez FK), baza je ne brise sama
-            var notifikacije = Context.Notifikacije.Where(n => n.DogadjajId == id);
-            Context.Notifikacije.RemoveRange(notifikacije);
+            // Veza Notifications -> Events je bez kaskade (vidi EventBoxContext), pa se brisu ovde
+            Context.Notifications.RemoveRange(Context.Notifications.Where(n => n.EventId == id));
 
-            Context.Dogadjaji.Remove(dog);
+            Context.Events.Remove(ev);
             await Context.SaveChangesAsync();
-            _fileService.DeleteImage(dog.DogadjajImage); // tek kad je dogadjaj stvarno obrisan
+            _fileService.DeleteImage(ev.Image); // tek kad je dogadjaj stvarno obrisan
             return Ok(T("EventDeleted", id));
         }
 
-        // PUT /api/events/{id}/image - postavlja ili menja sliku dogadjaja (multipart, polje "fajl").
-        // Odgovor: { slika } - ime novog fajla. Neispravan fajl -> 400 { message }. Stara slika se brise sa diska.
+        // PUT /api/events/{id}/image - postavlja ili menja sliku dogadjaja (multipart, polje "file").
+        // Odgovor: { image } - ime novog fajla. Neispravan fajl -> 400 { message }. Stara slika se brise sa diska.
         [HttpPut]
         [EnableCors("CORS")]
         [Route("{id:int}/image")]
         [RequestSizeLimit(FileService.MaxFileSize + 64 * 1024)] // + malo za zaglavlja multipart-a
-        public async Task<ActionResult> UploadEventImage(int id, IFormFile? fajl)
+        public async Task<ActionResult> UploadEventImage(int id, IFormFile? file)
         {
-            Dogadjaj? d = await Context.Dogadjaji.FindAsync(id);
-            if(d == null)
+            var ev = await Context.Events.FindAsync(id);
+            if (ev == null)
                 return NotFound();
-            if(d.ID_Kreatora != User.GetUserId())
+            if (ev.CreatorId != User.GetUserId())
                 return Forbid();
 
-            var rezultat = await _fileService.SaveImageAsync(fajl);
-            if (rezultat.Error != null)
-                return BadRequest(new { message = rezultat.Error });
+            var result = await _fileService.SaveImageAsync(file);
+            if (result.Error != null)
+                return BadRequest(new { message = result.Error });
 
-            string? stara = d.DogadjajImage;
-            d.DogadjajImage = rezultat.FileName;
+            string? oldImage = ev.Image;
+            ev.Image = result.FileName;
             try
             {
                 await Context.SaveChangesAsync();
             }
             catch
             {
-                _fileService.DeleteImage(rezultat.FileName); // upis nije uspeo - nova slika ne sme da ostane siroce
+                _fileService.DeleteImage(result.FileName); // upis nije uspeo - nova slika ne sme da ostane siroce
                 throw;
             }
-            _fileService.DeleteImage(stara);
-            return Ok(new { slika = d.DogadjajImage });
+            _fileService.DeleteImage(oldImage);
+            return Ok(new { image = ev.Image });
         }
 
         // DELETE /api/events/{id}/image - uklanja sliku dogadjaja. Referenca u bazi se brise i ako
@@ -227,15 +224,15 @@ namespace EventBoxApi.Controllers
         [Route("{id:int}/image")]
         public async Task<ActionResult> DeleteEventImage(int id)
         {
-            Dogadjaj? d = await Context.Dogadjaji.FindAsync(id);
-            if(d == null)
+            var ev = await Context.Events.FindAsync(id);
+            if (ev == null)
                 return NotFound();
-            if(d.ID_Kreatora != User.GetUserId())
+            if (ev.CreatorId != User.GetUserId())
                 return Forbid();
-            string? stara = d.DogadjajImage;
-            d.DogadjajImage = null;
+            string? oldImage = ev.Image;
+            ev.Image = null;
             await Context.SaveChangesAsync();
-            _fileService.DeleteImage(stara);
+            _fileService.DeleteImage(oldImage);
             return Ok(T("ImageDeleted"));
         }
     }

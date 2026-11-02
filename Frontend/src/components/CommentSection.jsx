@@ -38,7 +38,7 @@ function CommentSection({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, koris
       if (!noviKomentar.trim()) return;
       const novi = await api.post(
         `/api/events/${dogadjajId}/comments`,
-        { tekst: noviKomentar },
+        { text: noviKomentar },
         { credentials: 'include' }
       );
       lista.setItems((prev) => [...prev, novi]);
@@ -69,7 +69,7 @@ function CommentSection({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, koris
 
   const handleUpdateComment = async (commentId) => {
     try {
-      const izmenjen = await api.put(`/api/comments/${commentId}`, { tekst: izmenjenTekstKomentara });
+      const izmenjen = await api.put(`/api/comments/${commentId}`, { text: izmenjenTekstKomentara });
       lista.setItems((prev) => prev.map((k) => (k.id === commentId ? izmenjen : k)));
       setIzabraniKomentarId(null);
       setIzmenjenTekstKomentara('');
@@ -95,11 +95,11 @@ function CommentSection({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, koris
           {listaKomentara.map((komentar) => (
 
             <li key={komentar.id} className="komentar-item">
-              <Avatar className="komentar-avatar" slika={komentar.slikaKorisnika} ime={komentar.username_korisnika} />
+              <Avatar className="komentar-avatar" slika={komentar.authorImage} ime={komentar.authorUsername} />
 
               <div className="komentar-sadrzaj">
                 <div className="komentar-bubble">
-                  <h3>{komentar.username_korisnika}</h3>
+                  <h3>{komentar.authorUsername}</h3>
                   {izabraniKomentarId === komentar.id ? (
                     <input
                       className="komentar-edit-input"
@@ -108,14 +108,14 @@ function CommentSection({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, koris
                       onChange={(e) => setIzmenjenTekstKomentara(e.target.value)}
                     />
                   ) : (
-                    <p>{komentar.tekst}</p>
+                    <p>{komentar.text}</p>
                   )}
                 </div>
                 <div className="komentar-footer">
                   <span className="komentar-vreme">
-                    <i className="la la-clock-o" /> {formatDateTime(komentar.vreme)}
+                    <i className="la la-clock-o" /> {formatDateTime(komentar.createdAt)}
                   </span>
-                  {String(komentar.autorId) === String(userId) && (
+                  {String(komentar.authorId) === String(userId) && (
                     <div className="komentar-akcije">
                       {izabraniKomentarId === komentar.id ? (
                         <>
@@ -127,7 +127,7 @@ function CommentSection({ dogadjajId, prikazaniDogadjaj, korisnikovaSlika, koris
                           </button>
                         </>
                       ) : (
-                        <button type="button" onClick={() => handleEditComment(komentar.id, komentar.tekst)}>
+                        <button type="button" onClick={() => handleEditComment(komentar.id, komentar.text)}>
                           {t('common.edit')}
                         </button>
                       )}

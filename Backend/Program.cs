@@ -121,7 +121,7 @@ app.UseExceptionHandler(greska => greska.Run(async http =>
         message = http.RequestServices.GetRequiredService<IStringLocalizer<SharedResource>>()["ServerError"].Value,
         traceId = http.TraceIdentifier,
         // samo u razvoju (dotnet run): tekst izuzetka da se ne trazi po logu
-        detalj = app.Environment.IsDevelopment() ? izuzetak?.Error.Message : null,
+        detail = app.Environment.IsDevelopment() ? izuzetak?.Error.Message : null,
     });
 }));
 

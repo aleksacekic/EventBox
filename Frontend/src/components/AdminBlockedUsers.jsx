@@ -16,12 +16,12 @@ function AdminBlockedUsers() {
   const lista = useInfiniteList('/api/users/blocked', { limit: 20 });
 
   const handleUnblock = async (k) => {
-    if (!window.confirm(t('admin.blocked.confirmUnblock', { username: k.korisnicko_Ime }))) return;
+    if (!window.confirm(t('admin.blocked.confirmUnblock', { username: k.username }))) return;
     try {
       await api.del(`/api/users/${k.id}/block`);
       lista.setItems((prev) => prev.filter((x) => x.id !== k.id));
       lista.setTotal((n) => Math.max(0, (n ?? 1) - 1));
-      toast.success(t('admin.blocked.unblocked', { username: k.korisnicko_Ime }));
+      toast.success(t('admin.blocked.unblocked', { username: k.username }));
     } catch (error) {
       console.error('Odblokiranje nije uspelo:', error);
       toast.error(t('admin.blocked.unblockFailed'));
@@ -47,10 +47,10 @@ function AdminBlockedUsers() {
         {lista.items.map((k) => (
           <div className="blokirani-red" key={k.id}>
             <Link to={adminUserUrl(k.id)} className="blokirani-link">
-              <Avatar className="blokirani-avatar" slika={k.korisnikImage} ime={k.ime} />
+              <Avatar className="blokirani-avatar" slika={k.profileImage} ime={k.firstName} />
               <div className="blokirani-tekst">
-                <strong>{k.ime} {k.prezime}</strong>
-                <small>@{k.korisnicko_Ime} · {k.email_Adresa}</small>
+                <strong>{k.firstName} {k.lastName}</strong>
+                <small>@{k.username} · {k.email}</small>
               </div>
             </Link>
             <button type="button" className="blokirani-dugme" onClick={() => handleUnblock(k)}>

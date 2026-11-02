@@ -35,7 +35,7 @@ function AdminReports() {
       {lista.items.map((p) => (
         <AdminEventCard
           key={p.id}
-          dogadjaj={p.dogadjaj_Id}
+          dogadjaj={p.event}
           prijava={p}
           onDeleted={() => removeReport(p.id)}
           onReportDismissed={() => removeReport(p.id)}

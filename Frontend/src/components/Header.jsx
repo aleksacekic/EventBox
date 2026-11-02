@@ -141,11 +141,11 @@ function Header() {
                   <li key={result.id}>
                     <button type="button" onClick={() => openUser(result.id)}>
                       <span className="app-header-results-avatar">
-                        {(result.ime || result.korisnicko_Ime || "?").charAt(0)}
+                        {(result.firstName || result.username || "?").charAt(0)}
                       </span>
                       <span className="app-header-results-text">
-                        <strong>{result.ime} {result.prezime}</strong>
-                        <small>@{result.korisnicko_Ime}</small>
+                        <strong>{result.firstName} {result.lastName}</strong>
+                        <small>@{result.username}</small>
                       </span>
                     </button>
                   </li>
@@ -204,10 +204,10 @@ function Header() {
               >
                 <Avatar
                   className="app-header-avatar"
-                  slika={isAdmin ? null : korisnik.korisnikImage}
-                  ime={isAdmin ? t('header.administrator') : korisnik.ime}
+                  slika={isAdmin ? null : korisnik.profileImage}
+                  ime={isAdmin ? t('header.administrator') : korisnik.firstName}
                 />
-                <span className="app-header-profile-name">{isAdmin ? t('header.administrator') : korisnik.ime}</span>
+                <span className="app-header-profile-name">{isAdmin ? t('header.administrator') : korisnik.firstName}</span>
                 <i className="la la-angle-down app-header-chevron" />
               </button>
 

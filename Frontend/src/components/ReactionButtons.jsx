@@ -23,8 +23,8 @@ function ReactionButtons({ dogadjaj_Id, IDucitanidogadjaji, samoPrikaz = false, 
 
         if (reakcije) {
           const aktivne = {};
-          reakcije.forEach(({ dogadjaj_ID, tip }) => {
-            aktivne[dogadjaj_ID] = tip;
+          reakcije.forEach(({ eventId, type }) => {
+            aktivne[eventId] = type;
           });
           setAktivneReakcije(aktivne);
         }
@@ -39,7 +39,7 @@ function ReactionButtons({ dogadjaj_Id, IDucitanidogadjaji, samoPrikaz = false, 
   const handleReactionClick = async (tip) => {
     try {
       // PUT postavlja reakciju ili menja postojecu (server zna koja je bila)
-      await api.put(`/api/events/${dogadjaj_Id}/reaction`, { tip });
+      await api.put(`/api/events/${dogadjaj_Id}/reaction`, { type: tip });
       setAktivneReakcije((prev) => ({ ...prev, [dogadjaj_Id]: tip }));
     } catch (error) {
       console.log("Greška prilikom promene reakcije:", error);

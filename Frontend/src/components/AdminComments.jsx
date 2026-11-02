@@ -17,7 +17,7 @@ function AdminComments({ dogadjajId }) {
   const [brise, setBrise] = useState(null);
 
   const handleDelete = async (k) => {
-    if (brise || !window.confirm(t('admin.comments.confirmDelete', { username: k.username_korisnika }))) return;
+    if (brise || !window.confirm(t('admin.comments.confirmDelete', { username: k.authorUsername }))) return;
     setBrise(k.id);
     try {
       await api.del(`/api/comments/${k.id}`);
@@ -45,14 +45,14 @@ function AdminComments({ dogadjajId }) {
       <ul>
         {lista.items.map((k) => (
           <li key={k.id} className="admin-komentar">
-            <Avatar className="komentar-avatar" slika={k.slikaKorisnika} ime={k.username_korisnika} />
+            <Avatar className="komentar-avatar" slika={k.authorImage} ime={k.authorUsername} />
             <div className="admin-komentar-sadrzaj">
               <div className="admin-komentar-red">
-                <Link to={adminUserUrl(k.autorId)} className="admin-komentar-autor">@{k.username_korisnika}</Link>
-                {k.autorBlokiran && <span className="admin-status is-blokiran">{t('admin.comments.blocked')}</span>}
-                <span className="admin-komentar-vreme">{formatDateTime(k.vreme)}</span>
+                <Link to={adminUserUrl(k.authorId)} className="admin-komentar-autor">@{k.authorUsername}</Link>
+                {k.authorIsBlocked && <span className="admin-status is-blokiran">{t('admin.comments.blocked')}</span>}
+                <span className="admin-komentar-vreme">{formatDateTime(k.createdAt)}</span>
               </div>
-              <p>{k.tekst}</p>
+              <p>{k.text}</p>
             </div>
             <button
               type="button"
@@ -60,7 +60,7 @@ function AdminComments({ dogadjajId }) {
               onClick={() => handleDelete(k)}
               disabled={brise === k.id}
               title={t('admin.comments.deleteTitle')}
-              aria-label={t('admin.comments.deleteLabel', { username: k.username_korisnika })}
+              aria-label={t('admin.comments.deleteLabel', { username: k.authorUsername })}
             >
               <i className="la la-trash" />
             </button>

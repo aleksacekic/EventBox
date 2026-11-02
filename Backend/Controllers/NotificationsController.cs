@@ -26,22 +26,22 @@ namespace EventBoxApi.Controllers
         }
 
         // Poruka na jeziku zahteva (Accept-Language), vidi SharedResource.cs
-        private string T(string kljuc, params object[] args) => _t[kljuc, args];
+        private string T(string key, params object[] args) => _t[key, args];
 
-        // GET /api/notifications?limit=5 - najnovije prve (vidi NotifikacijaDto)
+        // GET /api/notifications?limit=5 - najnovije prve (vidi NotificationDto)
         [HttpGet]
         [EnableCors("CORS")]
         public async Task<ActionResult> GetNotifications([FromQuery] int limit = 50)
         {
-            int ja = User.GetUserId();
-            var notifikacije = await Context.Notifikacije
-                .Where(n => n.KorisnikCijaJeObjavaId == ja)
-                .Where(n => n.KorisnikKojiReaguje == null || n.KorisnikKojiReaguje.Blokiran != -1)
-                .OrderByDescending(n => n.Vreme).ThenByDescending(n => n.Id)
+            int me = User.GetUserId();
+            var notifications = await Context.Notifications
+                .Where(n => n.RecipientId == me)
+                .Where(n => n.Actor == null || !n.Actor.IsBlocked) // blokiranih se ne prikazuju
+                .OrderByDescending(n => n.CreatedAt).ThenByDescending(n => n.Id)
                 .Take(Math.Clamp(limit, 1, 100))
-                .Select(NotifikacijaDto.Projekcija)
+                .Select(NotificationDto.Projection)
                 .ToListAsync();
-            return Ok(notifikacije);
+            return Ok(notifications);
         }
 
         // DELETE /api/notifications/{id}
@@ -50,15 +50,13 @@ namespace EventBoxApi.Controllers
         [Route("{id:int}")]
         public async Task<ActionResult> DeleteNotification(int id)
         {
-            Notifikacija n = await Context.Notifikacije.FindAsync(id);
-            if (n == null)
-            {
+            var notification = await Context.Notifications.FindAsync(id);
+            if (notification == null)
                 return NotFound(T("NotificationNotFound"));
-            }
-            if (n.KorisnikCijaJeObjavaId != User.GetUserId())
+            if (notification.RecipientId != User.GetUserId())
                 return Forbid();
 
-            Context.Notifikacije.Remove(n);
+            Context.Notifications.Remove(notification);
             await Context.SaveChangesAsync();
             return Ok(T("NotificationDeleted", id));
         }

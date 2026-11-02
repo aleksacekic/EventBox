@@ -139,18 +139,18 @@ export { parseUtcDate, formatDateTime } from './utils/date'
 
 const TIPOVI_REAKCIJA = ['Zainteresovan', 'Mozda', 'Nezainteresovan']
 
-// Tekst notifikacije za prikaz, na izabranom jeziku (n.tip i n.sadrzaj su vrednosti iz baze)
+// Tekst notifikacije za prikaz, na izabranom jeziku (n.type i n.content su vrednosti iz baze)
 export function getNotificationText(n) {
-  const who = n.korisnikKojiReaguje || i18n.t('notifications.someone')
-  const title = n.naslovDogadjaja
-  if (n.tip === 'Reakcija') {
-    const tip = TIPOVI_REAKCIJA.includes(n.sadrzaj) ? n.sadrzaj : 'other'
+  const who = n.actorUsername || i18n.t('notifications.someone')
+  const title = n.eventTitle
+  if (n.type === 'Reakcija') {
+    const tip = TIPOVI_REAKCIJA.includes(n.content) ? n.content : 'other'
     return i18n.t(`notifications.reactions.${tip}`, { who, title })
   }
-  if (n.tip === 'Komentar') return i18n.t('notifications.comment', { who, title, text: n.sadrzaj })
-  if (n.tip === 'Prijava') {
-    if (!n.sadrzaj) return i18n.t('notifications.report', { title })
-    const reason = i18n.t(`reportReasons.${n.sadrzaj}`, { defaultValue: n.sadrzaj.replace(/_/g, ' ') })
+  if (n.type === 'Komentar') return i18n.t('notifications.comment', { who, title, text: n.content })
+  if (n.type === 'Prijava') {
+    if (!n.content) return i18n.t('notifications.report', { title })
+    const reason = i18n.t(`reportReasons.${n.content}`, { defaultValue: n.content.replace(/_/g, ' ') })
     return i18n.t('notifications.reportWithReason', { title, reason })
   }
   return i18n.t('notifications.other', { title })

@@ -7,7 +7,7 @@ namespace Models
     public static class EmailRules
     {
         public const int MaxLength = 254;
-        public const string UniqueIndexName = "IX_Korisnik_Email_Adresa";
+        public const string UniqueIndexName = "IX_Users_Email";
 
         public static string Normalize(string? email) => (email ?? "").Trim();
 

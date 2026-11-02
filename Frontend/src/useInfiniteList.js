@@ -1,7 +1,7 @@
 // ============================================================================
 //  Beskonacni skrol za liste sa backenda koje se stranice kursorom
 // ----------------------------------------------------------------------------
-//  Backend (Models/Pagination.cs) vraca: { stavke, sledeciKursor, imaJos, ukupno }.
+//  Backend (Models/Pagination.cs) vraca: { items, nextCursor, hasMore, total }.
 //  Ovaj hook ucitava prvu stranu cim se promeni `path` (npr. drugi filter ili profil)
 //  i sledecu kad korisnik skrolom stigne blizu kraja liste.
 //
@@ -68,14 +68,14 @@ export function useInfiniteList(path, { limit = 3, mapItem, direction = 'down' }
         `${path}${sep}limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
       )
       if (gen !== generation.current) return
-      let page = mapItemRef.current ? data.stavke.map(mapItemRef.current) : data.stavke
+      let page = mapItemRef.current ? data.items.map(mapItemRef.current) : data.items
       if (direction === 'up') page = [...page].reverse()
-      cursorRef.current = data.sledeciKursor
-      hasMoreRef.current = data.imaJos
+      cursorRef.current = data.nextCursor
+      hasMoreRef.current = data.hasMore
       firstPageFailed.current = false
       setItems((prev) => (first ? page : direction === 'up' ? [...page, ...prev] : [...prev, ...page]))
-      setHasMore(data.imaJos)
-      if (data.ukupno != null) setTotal(data.ukupno)
+      setHasMore(data.hasMore)
+      if (data.total != null) setTotal(data.total)
     } catch (err) {
       if (gen === generation.current) {
         console.error('Greska pri ucitavanju liste:', err)

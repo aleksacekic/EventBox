@@ -21,32 +21,32 @@ function EventForm({ otvorena = false, onClose = () => {}, onSaved = () => {}, d
 
   const { t } = useTranslation();
 
-const [naslov, setNaslov] = useState(postojeci?.naslov ?? '');
-const [kategorija, setKategorija] = useState(postojeci?.kategorija ?? 'Ostalo');
+const [naslov, setNaslov] = useState(postojeci?.title ?? '');
+const [kategorija, setKategorija] = useState(postojeci?.category ?? 'Ostalo');
 const [slika, setSlika] = useState(null);
 const [ukloniSliku, setUkloniSliku] = useState(false); // samo pri izmeni: skloni postojecu sliku
 const [datumDogadjaja, setDatumDogadjaja] = useState(() => {
-  if (!postojeci?.datum_Dogadjaja) return '';
-  const d = new Date(postojeci.datum_Dogadjaja);
+  if (!postojeci?.date) return '';
+  const d = new Date(postojeci.date);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 });
-const [vremePocetka, setVremePocetka] = useState(postojeci?.vreme_pocetka ?? '');
-const [opis, setOpis] = useState(postojeci?.opis ?? '');
-const [x, setX] = useState(postojeci?.x ?? '');
-const [y, setY] = useState(postojeci?.y ?? '');
+const [vremePocetka, setVremePocetka] = useState(postojeci?.startTime ?? '');
+const [opis, setOpis] = useState(postojeci?.description ?? '');
+const [x, setX] = useState(postojeci?.latitude ?? '');
+const [y, setY] = useState(postojeci?.longitude ?? '');
 const [greske, setGreske] = useState({}); // polje -> poruka (iste provere kao na serveru)
 const [salje, setSalje] = useState(false);
 
 
 
-// Iste provere kao DogadjajZahtev.Validate na serveru - ovde samo da korisnik odmah vidi gresku
+// Iste provere kao EventRequest.Validate na serveru - ovde samo da korisnik odmah vidi gresku
 const validate = () => {
   const g = {};
   const n = naslov.trim();
-  if (n.length < 3 || n.length > 100) g.naslov = t('eventForm.errors.title');
-  if (!(datumDogadjaja instanceof Date)) g.datum = t('eventForm.errors.date');
-  if (!vremePocetka) g.vreme = t('eventForm.errors.time');
-  if (x === '' || y === '') g.lokacija = t('eventForm.errors.location');
+  if (n.length < 3 || n.length > 100) g.title = t('eventForm.errors.title');
+  if (!(datumDogadjaja instanceof Date)) g.date = t('eventForm.errors.date');
+  if (!vremePocetka) g.startTime = t('eventForm.errors.time');
+  if (x === '' || y === '') g.location = t('eventForm.errors.location');
   return g;
 };
 
@@ -60,30 +60,30 @@ const handleSubmit = async (e) => {
   try {
     // Sve ide u telu zahteva; kreatora i datum objave postavlja server
     const telo = {
-      naslov: naslov.trim(),
-      opis: opis.trim(),
-      kategorija,
+      title: naslov.trim(),
+      description: opis.trim(),
+      category: kategorija,
       // format(..., 'yyyy-MM-dd') a ne toISOString() - potonji racuna u UTC i oko ponoci pomera dan
-      datumDogadjaja: format(datumDogadjaja, 'yyyy-MM-dd'),
-      vremePocetka,
-      x,
-      y,
+      date: format(datumDogadjaja, 'yyyy-MM-dd'),
+      startTime: vremePocetka,
+      latitude: x,
+      longitude: y,
     };
     const dogadjaj = izmena
       ? await api.put(`/api/events/${postojeci.id}`, telo)
       : await api.post('/api/events', telo);
 
-    if (izmena && ukloniSliku && !slika && dogadjaj.dogadjajImage) {
+    if (izmena && ukloniSliku && !slika && dogadjaj.image) {
       await api.del(`/api/events/${dogadjaj.id}/image`);
-      dogadjaj.dogadjajImage = null;
+      dogadjaj.image = null;
     }
 
     if (slika) {
       const formData = new FormData();
-      formData.append('fajl', slika);
+      formData.append('file', slika);
       try {
-        const { slika: ime } = await api.put(`/api/events/${dogadjaj.id}/image`, formData);
-        dogadjaj.dogadjajImage = ime;
+        const { image: ime } = await api.put(`/api/events/${dogadjaj.id}/image`, formData);
+        dogadjaj.image = ime;
       } catch (error) {
         // Dogadjaj je napravljen, samo slika nije prosla - ne brisemo ga, javimo
         toast.warn(t(izmena ? 'eventForm.savedNoImage' : 'eventForm.createdNoImage', { error: error instanceof ApiError ? error.message : String(error) }));
@@ -94,12 +94,12 @@ const handleSubmit = async (e) => {
     onClose();
     onSaved(dogadjaj);
   } catch (error) {
-    if (error instanceof ApiError && error.data?.greske) {
-      setGreske(error.data.greske); // server je odbio neko polje - prikazi ispod tog polja
+    if (error instanceof ApiError && error.data?.errors) {
+      setGreske(error.data.errors); // server je odbio neko polje - prikazi ispod tog polja
     } else {
       const poruka = error instanceof ApiError ? error.message : String(error);
       console.error('Kreiranje dogadjaja nije uspelo:', poruka);
-      setGreske({ opste: t(izmena ? 'eventForm.saveFailed' : 'eventForm.createFailed') });
+      setGreske({ general: t(izmena ? 'eventForm.saveFailed' : 'eventForm.createFailed') });
     }
   } finally {
     setSalje(false);
@@ -140,7 +140,7 @@ const handleImageChange = (e) => {
   const greska = !['image/jpeg', 'image/png', 'image/webp'].includes(fajl.type)
     ? t('validation.imageType')
     : fajl.size > 5 * 1024 * 1024 ? t('validation.imageSize') : null;
-  setGreske((g) => ({ ...g, slika: greska }));
+  setGreske((g) => ({ ...g, image: greska }));
   setSlika(greska ? null : fajl);
 };
 
@@ -187,12 +187,12 @@ const handleOverlayClick = useCallback((e) => {
                 type="text"
                 name="title"
                 placeholder={t('eventForm.titlePlaceholder')}
-                className={`create-event-input ${greske.naslov ? 'create-event-input-invalid' : ''}`}
+                className={`create-event-input ${greske.title ? 'create-event-input-invalid' : ''}`}
                 maxLength={100}
                 value={naslov}
                 onChange={(e) => setNaslov(e.target.value)}
               />
-              {greske.naslov && <span className="create-event-error">{greske.naslov}</span>}
+              {greske.title && <span className="create-event-error">{greske.title}</span>}
             </div>
 
             <div className="create-event-row">
@@ -208,14 +208,14 @@ const handleOverlayClick = useCallback((e) => {
                     <option key={k} value={k}>{t(`categories.${k}`)}</option>
                   ))}
                 </select>
-                {greske.kategorija && <span className="create-event-error">{greske.kategorija}</span>}
+                {greske.category && <span className="create-event-error">{greske.category}</span>}
               </div>
 
               <div className="create-event-field">
                 <label htmlFor={`${pid}-slika`}>{t('eventForm.image')}</label>
                 <label htmlFor={`${pid}-slika`} className="create-event-file">
                   <i className="la la-image" />
-                  <span>{slika ? slika.name : izmena && postojeci.dogadjajImage && !ukloniSliku ? t('eventForm.replaceImage') : t('eventForm.addImage')}</span>
+                  <span>{slika ? slika.name : izmena && postojeci.image && !ukloniSliku ? t('eventForm.replaceImage') : t('eventForm.addImage')}</span>
                 </label>
                 <input
                   id={`${pid}-slika`}
@@ -224,8 +224,8 @@ const handleOverlayClick = useCallback((e) => {
                   onChange={handleImageChange}
                   hidden
                 />
-                {greske.slika && <span className="create-event-error">{greske.slika}</span>}
-                {izmena && postojeci.dogadjajImage && !slika && (
+                {greske.image && <span className="create-event-error">{greske.image}</span>}
+                {izmena && postojeci.image && !slika && (
                   <label className="izmena-profila-check">
                     <input type="checkbox" checked={ukloniSliku} onChange={(e) => setUkloniSliku(e.target.checked)} />
                     {t('eventForm.removeImage')}
@@ -252,7 +252,7 @@ const handleOverlayClick = useCallback((e) => {
                   className="create-event-input"
                   wrapperClassName="create-event-date-wrapper"
                 />
-                {greske.datum && <span className="create-event-error">{greske.datum}</span>}
+                {greske.date && <span className="create-event-error">{greske.date}</span>}
               </div>
 
               <div className="create-event-field">
@@ -261,7 +261,7 @@ const handleOverlayClick = useCallback((e) => {
                   value={vremePocetka}
                   onChange={(value) => setVremePocetka(value)}
                 />
-                {greske.vreme && <span className="create-event-error">{greske.vreme}</span>}
+                {greske.startTime && <span className="create-event-error">{greske.startTime}</span>}
               </div>
             </div>
 
@@ -274,7 +274,7 @@ const handleOverlayClick = useCallback((e) => {
                   onLocationChange={handleLocationChange}
                 />
               </div>
-              {greske.lokacija && <span className="create-event-error">{greske.lokacija}</span>}
+              {greske.location && <span className="create-event-error">{greske.location}</span>}
             </div>
 
             <div className="create-event-field">
@@ -288,10 +288,10 @@ const handleOverlayClick = useCallback((e) => {
                 value={opis}
                 onChange={(e) => setOpis(e.target.value)}
               />
-              {greske.opis && <span className="create-event-error">{greske.opis}</span>}
+              {greske.description && <span className="create-event-error">{greske.description}</span>}
             </div>
 
-            {greske.opste && <span className="create-event-error">{greske.opste}</span>}
+            {greske.general && <span className="create-event-error">{greske.general}</span>}
             <div className="create-event-actions">
               <button type="submit" className="create-event-submit" disabled={salje}>
                 {salje ? (izmena ? t('common.saving') : t('eventForm.creating')) : (izmena ? t('common.save') : t('eventForm.create'))}

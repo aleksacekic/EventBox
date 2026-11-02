@@ -68,9 +68,9 @@ function Profile() {
     setSlikaSeMenja(true);
     try {
       const formData = new FormData();
-      formData.append('fajl', file);
-      const { slika } = await api.put(`/api/users/${userId}/image`, formData);
-      setKorisnik((k) => ({ ...k, korisnikImage: slika }));
+      formData.append('file', file);
+      const { image } = await api.put(`/api/users/${userId}/image`, formData);
+      setKorisnik((k) => ({ ...k, profileImage: image }));
       notifyHeader();
     } catch (error) {
       console.log(error);
@@ -88,7 +88,7 @@ function Profile() {
     setSlikaSeMenja(true);
     try {
       await api.del(`/api/users/${userId}/image`);
-      setKorisnik((k) => ({ ...k, korisnikImage: null }));
+      setKorisnik((k) => ({ ...k, profileImage: null }));
       notifyHeader();
     } catch (error) {
       console.log("GRESKA PRILIKOM BRISANJA SLIKE", error);
@@ -138,7 +138,7 @@ function Profile() {
     }
   };
 
-  const ukupnoKategorija = kategorije ? kategorije.reduce((zbir, k) => zbir + k.broj, 0) : 0;
+  const ukupnoKategorija = kategorije ? kategorije.reduce((zbir, k) => zbir + k.count, 0) : 0;
 
   const prikazani = dogadjaji.filter((d) => {
     if (statusFilter === 'svi') return true;
@@ -153,10 +153,10 @@ function Profile() {
   ];
 
   const INFO_REDOVI = korisnik ? [
-    ['la-user', t('profile.fullName'), `${korisnik.ime} ${korisnik.prezime}`],
-    ['la-at', t('profile.username'), `@${korisnik.korisnicko_Ime}`],
-    ['la-birthday-cake', t('profile.birthDate'), formatDate(korisnik.datum_rodjenja)],
-    ['la-envelope', t('profile.email'), korisnik.email_Adresa],
+    ['la-user', t('profile.fullName'), `${korisnik.firstName} ${korisnik.lastName}`],
+    ['la-at', t('profile.username'), `@${korisnik.username}`],
+    ['la-birthday-cake', t('profile.birthDate'), formatDate(korisnik.dateOfBirth)],
+    ['la-envelope', t('profile.email'), korisnik.email],
   ] : [];
 
   return (
@@ -170,7 +170,7 @@ function Profile() {
               <aside className="profil-card">
                 <div className="profil-avatar" ref={avatarRef}>
                   {korisnik ? (
-                    <Avatar className="profil-avatar-img" slika={korisnik.korisnikImage} ime={korisnik.ime} />
+                    <Avatar className="profil-avatar-img" slika={korisnik.profileImage} ime={korisnik.firstName} />
                   ) : (
                     <div className="profil-avatar-img profil-skeleton" />
                   )}
@@ -198,9 +198,9 @@ function Profile() {
                       {meniSlikeOtvoren && (
                         <div className="profil-avatar-menu" role="menu">
                           <button type="button" role="menuitem" onClick={() => fileInputRef.current.click()}>
-                            <i className="la la-image" /> {korisnik.korisnikImage ? t('profile.changeImage') : t('profile.addImage')}
+                            <i className="la la-image" /> {korisnik.profileImage ? t('profile.changeImage') : t('profile.addImage')}
                           </button>
-                          {korisnik.korisnikImage && (
+                          {korisnik.profileImage && (
                             <button type="button" role="menuitem" className="is-danger" onClick={handleDeleteImage}>
                               <i className="la la-trash" /> {t('profile.removeImage')}
                             </button>
@@ -213,8 +213,8 @@ function Profile() {
 
                 {korisnik ? (
                   <>
-                    <h2 className="profil-name">{korisnik.ime} {korisnik.prezime}</h2>
-                    <span className="profil-username">@{korisnik.korisnicko_Ime}</span>
+                    <h2 className="profil-name">{korisnik.firstName} {korisnik.lastName}</h2>
+                    <span className="profil-username">@{korisnik.username}</span>
                   </>
                 ) : (
                   <>
@@ -282,7 +282,7 @@ function Profile() {
                     prikazani.map((dogadjaj) => (
                       <EventCard
                         key={dogadjaj.id}
-                        dogadjaj={{ ...dogadjaj, slikaKorisnika: korisnik?.korisnikImage }}
+                        dogadjaj={{ ...dogadjaj, creatorImage: korisnik?.profileImage }}
                         korisnik={ulogovaniKorisnik}
                         onOpen={(d) => navigate(`/objava/${d.id}`)}
                         onDelete={handleDeleteEvent}
@@ -340,12 +340,12 @@ function Profile() {
                 ) : (
                   <ul className="profil-kategorije">
                     {kategorije.slice(0, 5).map((k) => {
-                      const procenat = Math.round((k.broj / ukupnoKategorija) * 100);
+                      const procenat = Math.round((k.count / ukupnoKategorija) * 100);
                       return (
-                        <li key={k.kategorija}>
+                        <li key={k.category}>
                           <div className="profil-kategorija-info">
-                            <span>{categoryLabel(t, k.kategorija)}</span>
-                            <b>{k.broj} <small>({procenat}%)</small></b>
+                            <span>{categoryLabel(t, k.category)}</span>
+                            <b>{k.count} <small>({procenat}%)</small></b>
                           </div>
                           <div className="profil-kategorija-bar">
                             <div style={{ width: `${procenat}%` }} />

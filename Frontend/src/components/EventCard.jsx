@@ -39,7 +39,7 @@ function EventCard({ dogadjaj: izListe, korisnik, onOpen, onDelete, idsZaReakcij
   const [selectedOption, setSelectedOption] = useState('nepozeljan');
   const [opis, setOpis] = useState('');
 
-  const jeVlasnik = dogadjaj.iD_Kreatora === korisnik.id;
+  const jeVlasnik = dogadjaj.creatorId === korisnik.id;
   const zavrsen = isEventFinished(dogadjaj);
 
   const stopClick = (e) => e.stopPropagation(); // da klik unutar kartice ne otvori i onOpen
@@ -91,10 +91,10 @@ function EventCard({ dogadjaj: izListe, korisnik, onOpen, onDelete, idsZaReakcij
     >
       <div className="dogadjaj-card-header">
         <div className="dogadjaj-card-author">
-          <Avatar className="dogadjaj-card-avatar" slika={dogadjaj.slikaKorisnika} ime={dogadjaj.userName_Kreatora} />
+          <Avatar className="dogadjaj-card-avatar" slika={dogadjaj.creatorImage} ime={dogadjaj.creatorUsername} />
           <div className="dogadjaj-card-author-info">
-            <h3>@{dogadjaj.userName_Kreatora}</h3>
-            <span><i className="la la-clock-o" />{formatDate(dogadjaj.datum_Objave)}</span>
+            <h3>@{dogadjaj.creatorUsername}</h3>
+            <span><i className="la la-clock-o" />{formatDate(dogadjaj.createdAt)}</span>
           </div>
         </div>
 
@@ -112,28 +112,28 @@ function EventCard({ dogadjaj: izListe, korisnik, onOpen, onDelete, idsZaReakcij
       </div>
 
       <div className="dogadjaj-card-body">
-        <h3 className="dogadjaj-card-title">{dogadjaj.naslov}</h3>
+        <h3 className="dogadjaj-card-title">{dogadjaj.title}</h3>
         <div className="dogadjaj-card-meta">
-          <span className="dogadjaj-card-badge">{categoryLabel(t, dogadjaj.kategorija)}</span>
+          <span className="dogadjaj-card-badge">{categoryLabel(t, dogadjaj.category)}</span>
           {zavrsen && <span className="dogadjaj-card-badge dogadjaj-card-badge-zavrsen">{t('events.finished')}</span>}
           <span className="dogadjaj-card-when">
             <i className="la la-calendar" />
-            {t('events.when', { date: formatDate(dogadjaj.datum_Dogadjaja), time: dogadjaj.vreme_pocetka })}
+            {t('events.when', { date: formatDate(dogadjaj.date), time: dogadjaj.startTime })}
           </span>
         </div>
-        {dogadjaj.opis && <p className="dogadjaj-card-desc">{dogadjaj.opis}</p>}
-        {dogadjaj.dogadjajImage && (
-          <img src={`${API_BASE}/resources/${dogadjaj.dogadjajImage}`} className="dogadjaj-card-image" />
+        {dogadjaj.description && <p className="dogadjaj-card-desc">{dogadjaj.description}</p>}
+        {dogadjaj.image && (
+          <img src={`${API_BASE}/resources/${dogadjaj.image}`} className="dogadjaj-card-image" />
         )}
-        <MapToggle latitude={dogadjaj.x} longitude={dogadjaj.y} />
+        <MapToggle latitude={dogadjaj.latitude} longitude={dogadjaj.longitude} />
         <ReactionButtons
           dogadjaj_Id={dogadjaj.id}
           IDucitanidogadjaji={idsZaReakcije ?? [dogadjaj.id]}
           samoPrikaz={zavrsen}
           brojevi={{
-            da: dogadjaj.broj_Zainteresovanih,
-            mozda: dogadjaj.broj_Mozda,
-            ne: dogadjaj.broj_Nezainteresovanih,
+            da: dogadjaj.interestedCount,
+            mozda: dogadjaj.maybeCount,
+            ne: dogadjaj.notInterestedCount,
           }}
         />
       </div>
@@ -202,8 +202,8 @@ function EventCard({ dogadjaj: izListe, korisnik, onOpen, onDelete, idsZaReakcij
           <CommentSection
             dogadjajId={dogadjaj.id}
             prikazaniDogadjaj={dogadjaj.id}
-            korisnikovaSlika={korisnik.korisnikImage}
-            korisnikovoIme={korisnik.ime}
+            korisnikovaSlika={korisnik.profileImage}
+            korisnikovoIme={korisnik.firstName}
           />
         </div>
       )}

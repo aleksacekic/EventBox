@@ -25,17 +25,18 @@ namespace EventBoxApi.Controllers
         }
 
         // Poruka na jeziku zahteva (Accept-Language), vidi SharedResource.cs
-        private string T(string kljuc, params object[] args) => _t[kljuc, args];
+        private string T(string key, params object[] args) => _t[key, args];
 
         public const int MaxNameLength = 50;
 
         // ID prijavljenog administratora (claim admin_id, vidi TokenAuthenticationHandler)
         private int? GetCurrentAdminId() => int.TryParse(User.FindFirst("admin_id")?.Value, out int id) ? id : null;
 
-        // Sta klijent dobija o administratoru - bez lozinke i tokena. Ja = to je prijavljeni administrator.
-        private static object ToPublic(Administrator a, int? mojId) => new
+        // Sta klijent dobija o administratoru - bez lozinke i tokena.
+        // IsCurrent = to je prijavljeni administrator.
+        private static object ToPublic(Admin a, int? currentAdminId) => new
         {
-            a.Id, a.Ime, a.Prezime, a.Korisnicko_ime, a.Email_adresa, Ja = a.Id == mojId
+            a.Id, a.FirstName, a.LastName, a.Username, a.Email, IsCurrent = a.Id == currentAdminId
         };
 
         // GET /api/admins - lista administratora za admin stranicu (redom kako su dodavani)
@@ -44,9 +45,9 @@ namespace EventBoxApi.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult> GetAdmins()
         {
-            int? mojId = GetCurrentAdminId();
-            var admini = await Context.Administratori.OrderBy(a => a.Id).ToListAsync();
-            return Ok(admini.Select(a => ToPublic(a, mojId)));
+            int? currentId = GetCurrentAdminId();
+            var admins = await Context.Admins.OrderBy(a => a.Id).ToListAsync();
+            return Ok(admins.Select(a => ToPublic(a, currentId)));
         }
 
         // POST /api/admins - novi administrator.
@@ -56,9 +57,9 @@ namespace EventBoxApi.Controllers
         //  - kad postoji bar jedan, nove administratore moze da dodaje samo prijavljen administrator
         [HttpPost]
         [EnableCors("CORS")]
-        public async Task<ActionResult> CreateAdmin([FromBody] AdministratorZahtev zahtev)
+        public async Task<ActionResult> CreateAdmin([FromBody] CreateAdminRequest request)
         {
-            if (await Context.Administratori.AnyAsync())
+            if (await Context.Admins.AnyAsync())
             {
                 if (User.Identity?.IsAuthenticated != true)
                     return Unauthorized();
@@ -70,35 +71,37 @@ namespace EventBoxApi.Controllers
                 return Forbid(); // prvog administratora moze da napravi samo lokalni zahtev
             }
 
-            if (zahtev == null || string.IsNullOrWhiteSpace(zahtev.KorisnickoIme)
-                || string.IsNullOrEmpty(zahtev.Lozinka) || zahtev.Lozinka.Length < 8)
+            if (request == null || string.IsNullOrWhiteSpace(request.Username)
+                || string.IsNullOrEmpty(request.Password) || request.Password.Length < 8)
                 return BadRequest(T("AdminUsernamePasswordRequired"));
 
-            zahtev.KorisnickoIme = UsernameRules.Normalize(zahtev.KorisnickoIme);
-            var greskaImena = UsernameRules.Validate(zahtev.KorisnickoIme, _t);
-            if (greskaImena != null)
-                return BadRequest(greskaImena);
+            request.Username = UsernameRules.Normalize(request.Username);
+            var usernameError = UsernameRules.Validate(request.Username, _t);
+            if (usernameError != null)
+                return BadRequest(usernameError);
 
             // Ime, prezime i email su obavezni (kolone su NOT NULL - bez provere bi pukao upis u bazu)
-            zahtev.Ime = zahtev.Ime?.Trim() ?? "";
-            zahtev.Prezime = zahtev.Prezime?.Trim() ?? "";
-            if (zahtev.Ime.Length == 0 || zahtev.Prezime.Length == 0)
+            request.FirstName = request.FirstName?.Trim() ?? "";
+            request.LastName = request.LastName?.Trim() ?? "";
+            if (request.FirstName.Length == 0 || request.LastName.Length == 0)
                 return BadRequest(T("NameRequired"));
-            if (zahtev.Ime.Length > MaxNameLength || zahtev.Prezime.Length > MaxNameLength)
+            if (request.FirstName.Length > MaxNameLength || request.LastName.Length > MaxNameLength)
                 return BadRequest(T("NameMaxLength", MaxNameLength));
-            zahtev.EmailAdresa = EmailRules.Normalize(zahtev.EmailAdresa);
-            if (EmailRules.Validate(zahtev.EmailAdresa, _t) is string greskaEmaila)
-                return BadRequest(greskaEmaila);
-            if (await Context.Administratori.AnyAsync(p => p.Korisnicko_ime == zahtev.KorisnickoIme))
+            request.Email = EmailRules.Normalize(request.Email);
+            if (EmailRules.Validate(request.Email, _t) is string emailError)
+                return BadRequest(emailError);
+            if (await Context.Admins.AnyAsync(a => a.Username == request.Username))
                 return Conflict(T("AdminExists"));
 
-            Administrator a = new Administrator();
-            a.Ime = zahtev.Ime;
-            a.Prezime = zahtev.Prezime;
-            a.Email_adresa = zahtev.EmailAdresa;
-            a.Korisnicko_ime = zahtev.KorisnickoIme;
-            a.Lozinka = Passwords.Hash(zahtev.Lozinka);
-            Context.Administratori.Add(a);
+            var admin = new Admin
+            {
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Email = request.Email,
+                Username = request.Username,
+                PasswordHash = Passwords.Hash(request.Password),
+            };
+            Context.Admins.Add(admin);
             try
             {
                 await Context.SaveChangesAsync();
@@ -107,7 +110,7 @@ namespace EventBoxApi.Controllers
             {
                 return Conflict(T("AdminExists"));
             }
-            return Ok(ToPublic(a, GetCurrentAdminId())); // admin stranica ga odmah dodaje u listu
+            return Ok(ToPublic(admin, GetCurrentAdminId())); // admin stranica ga odmah dodaje u listu
         }
 
         // DELETE /api/admins/{id}
@@ -117,56 +120,57 @@ namespace EventBoxApi.Controllers
         [Route("{id:int}")]
         public async Task<ActionResult> DeleteAdmin(int id)
         {
-            Administrator? a = await Context.Administratori.FindAsync(id);
-            if (a == null)
+            var admin = await Context.Admins.FindAsync(id);
+            if (admin == null)
                 return NotFound();
             // Sopstveni nalog ne: administrator bi sam sebe izbacio usred rada
-            if (a.Id == GetCurrentAdminId())
+            if (admin.Id == GetCurrentAdminId())
                 return BadRequest(T("CannotDeleteSelf"));
             // Bez ijednog administratora prvog bi opet mogao da napravi bilo ko sa servera
             // (vidi CreateAdmin) - poslednji se zato ne brise
-            if (await Context.Administratori.CountAsync() == 1)
+            if (await Context.Admins.CountAsync() == 1)
                 return Conflict(T("CannotDeleteLastAdmin"));
 
-            Context.Administratori.Remove(a);
+            Context.Admins.Remove(admin);
             await Context.SaveChangesAsync();
             return Ok(T("AdminDeleted", id));
         }
 
         // POST /api/admins/login
+        // Odgovor: { token, adminId } ili { error: INVALID_CREDENTIALS }
         [HttpPost]
         [EnableCors("CORS")]
         [EnableRateLimiting(LoginProtection.LoginPolicy)]
         [Route("login")]
-        public async Task<ActionResult> Login([FromBody] PrijavaZahtev zahtev, [FromServices] LoginProtection loginProtection)
+        public async Task<ActionResult> Login([FromBody] LoginRequest request, [FromServices] LoginProtection loginProtection)
         {
-            if (zahtev == null || string.IsNullOrEmpty(zahtev.KorisnickoIme) || string.IsNullOrEmpty(zahtev.Lozinka))
-                return Ok(new {nema="NEMA"});
+            if (request == null || string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+                return Ok(new { error = "INVALID_CREDENTIALS" });
 
-            string ime = UsernameRules.Normalize(zahtev.KorisnickoIme);
-            if (loginProtection.GetRemainingLockout("a", ime) is TimeSpan preostalo)
+            string username = UsernameRules.Normalize(request.Username);
+            if (loginProtection.GetRemainingLockout("a", username) is TimeSpan remaining)
             {
-                Response.Headers.RetryAfter = ((int)Math.Ceiling(preostalo.TotalSeconds)).ToString();
-                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = LoginProtection.LockoutMessage(preostalo, _t) });
+                Response.Headers.RetryAfter = ((int)Math.Ceiling(remaining.TotalSeconds)).ToString();
+                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = LoginProtection.LockoutMessage(remaining, _t) });
             }
 
-            Administrator a = await Context.Administratori.Where(p => p.Korisnicko_ime == ime).FirstOrDefaultAsync();
-            if (a == null || !Passwords.Verify(a.Lozinka, zahtev.Lozinka, out bool ponovoHesirati))
+            var admin = await Context.Admins.FirstOrDefaultAsync(a => a.Username == username);
+            if (admin == null || !Passwords.Verify(admin.PasswordHash, request.Password, out bool needsRehash))
             {
-                loginProtection.RecordFailure("a", ime);
-                return Ok(new {nema="NEMA"});
+                loginProtection.RecordFailure("a", username);
+                return Ok(new { error = "INVALID_CREDENTIALS" });
             }
-            loginProtection.RecordSuccess("a", ime);
+            loginProtection.RecordSuccess("a", username);
 
-            if (ponovoHesirati)
-                a.Lozinka = Passwords.Hash(zahtev.Lozinka);
+            if (needsRehash)
+                admin.PasswordHash = Passwords.Hash(request.Password);
 
             // Sesija administratora (isto kao kod korisnika)
-            a.Token = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-            a.Validnost = DateTime.UtcNow.AddMinutes(30);
+            admin.Token = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+            admin.TokenExpiresAt = DateTime.UtcNow.AddMinutes(30);
             await Context.SaveChangesAsync();
 
-            return Ok(new {token = a.Token, adminID = a.Id});
+            return Ok(new { token = admin.Token, adminId = admin.Id });
         }
 
         // POST /api/admins/logout - brise token administratora, pa stari odmah prestaje da vazi
@@ -178,11 +182,11 @@ namespace EventBoxApi.Controllers
         {
             if (GetCurrentAdminId() is not int id)
                 return Forbid();
-            var a = await Context.Administratori.FindAsync(id);
-            if (a == null)
+            var admin = await Context.Admins.FindAsync(id);
+            if (admin == null)
                 return Forbid();
-            a.Token = null;
-            a.Validnost = null;
+            admin.Token = null;
+            admin.TokenExpiresAt = null;
             await Context.SaveChangesAsync();
             return Ok(T("LoggedOut"));
         }

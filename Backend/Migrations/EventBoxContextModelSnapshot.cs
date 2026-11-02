@@ -22,7 +22,7 @@ namespace EventBoxApi.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Models.Administrator", b =>
+            modelBuilder.Entity("Models.Admin", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -30,24 +30,19 @@ namespace EventBoxApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Email_adresa")
+                    b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Ime")
+                    b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Korisnicko_ime")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("Lozinka")
+                    b.Property<string>("LastName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Prezime")
+                    b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -55,22 +50,27 @@ namespace EventBoxApi.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
-                    b.Property<DateTime?>("Validnost")
+                    b.Property<DateTime?>("TokenExpiresAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("Id");
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
-                    b.HasIndex("Korisnicko_ime")
-                        .IsUnique();
+                    b.HasKey("Id");
 
                     b.HasIndex("Token")
                         .IsUnique()
                         .HasFilter("[Token] IS NOT NULL");
 
-                    b.ToTable("Administrator");
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("Admins");
                 });
 
-            modelBuilder.Entity("Models.Dogadjaj", b =>
+            modelBuilder.Entity("Models.Comment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -78,61 +78,91 @@ namespace EventBoxApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("Broj_Mozda")
+                    b.Property<int>("AuthorId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Broj_Nezainteresovanih")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Broj_Zainteresovanih")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("Datum_Dogadjaja")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("Datum_Objave")
-                        .HasColumnType("datetime2");
+                    b.Property<int>("EventId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("DogadjajImage")
+                    b.Property<string>("Text")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ID_Kreatora")
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("EventId");
+
+                    b.ToTable("Comments");
+                });
+
+            modelBuilder.Entity("Models.Event", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<string>("Kategorija")
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("Naslov")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("Opis")
+                    b.Property<int>("CreatorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<string>("Vreme_pocetka")
+                    b.Property<string>("Image")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("InterestedCount")
+                        .HasColumnType("int");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("float");
+
+                    b.Property<int>("MaybeCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NotInterestedCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StartTime")
                         .IsRequired()
                         .HasMaxLength(5)
                         .HasColumnType("nvarchar(5)");
 
-                    b.Property<double>("X")
-                        .HasColumnType("float");
-
-                    b.Property<double>("Y")
-                        .HasColumnType("float");
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ID_Kreatora");
+                    b.HasIndex("CreatorId");
 
-                    b.ToTable("Dogadjaj");
+                    b.ToTable("Events");
                 });
 
-            modelBuilder.Entity("Models.Komentar", b =>
+            modelBuilder.Entity("Models.Message", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -140,29 +170,33 @@ namespace EventBoxApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AutorId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Dogadjaj_IdId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Tekst")
+                    b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
-                    b.Property<DateTime>("Vreme")
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("RecipientId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SenderId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AutorId");
+                    b.HasIndex("RecipientId", "IsRead");
 
-                    b.HasIndex("Dogadjaj_IdId");
+                    b.HasIndex("SenderId", "RecipientId");
 
-                    b.ToTable("Komentar");
+                    b.ToTable("Messages");
                 });
 
-            modelBuilder.Entity("Models.Korisnik", b =>
+            modelBuilder.Entity("Models.Notification", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -170,35 +204,171 @@ namespace EventBoxApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("Blokiran")
+                    b.Property<int?>("ActorId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("Datum_rodjenja")
-                        .HasColumnType("datetime2");
+                    b.Property<int?>("CommentId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("Email_Adresa")
-                        .IsRequired()
-                        .HasMaxLength(254)
-                        .HasColumnType("nvarchar(254)");
-
-                    b.Property<string>("Ime")
+                    b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Korisnicko_Ime")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ReactionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RecipientId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("CommentId");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("ReactionId");
+
+                    b.HasIndex("RecipientId");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("Models.Reaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("UserId", "EventId")
+                        .IsUnique();
+
+                    b.ToTable("Reactions", t =>
+                        {
+                            t.HasCheckConstraint("CK_Reactions_Type", "[Type] IN (N'Zainteresovan', N'Mozda', N'Nezainteresovan')");
+                        });
+                });
+
+            modelBuilder.Entity("Models.Report", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReportCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId")
+                        .IsUnique();
+
+                    b.ToTable("Reports");
+                });
+
+            modelBuilder.Entity("Models.ReportReason", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Reason")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<string>("KorisnikImage")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("ReportId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("Lozinka_Hashirana")
+                    b.Property<int?>("ReporterId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReportId");
+
+                    b.HasIndex("ReporterId", "ReportId")
+                        .IsUnique()
+                        .HasFilter("[ReporterId] IS NOT NULL");
+
+                    b.ToTable("ReportReasons", t =>
+                        {
+                            t.HasCheckConstraint("CK_ReportReasons_Reason", "[Reason] IN (N'nepozeljan', N'nasilje', N'terorizam', N'govor_mrznje', N'lazne_informacije', N'uznemiravanje', N'ostalo')");
+                        });
+                });
+
+            modelBuilder.Entity("Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("DateOfBirth")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Prezime")
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastName")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProfileImage")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Token")
@@ -206,349 +376,179 @@ namespace EventBoxApi.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
-                    b.Property<DateTime>("Validnost")
+                    b.Property<DateTime>("TokenExpiresAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("Id");
-
-                    b.HasIndex("Email_Adresa")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Korisnik_Email_Adresa");
-
-                    b.HasIndex("Korisnicko_Ime")
-                        .IsUnique();
-
-                    b.HasIndex("Token")
-                        .IsUnique();
-
-                    b.ToTable("Korisnik");
-                });
-
-            modelBuilder.Entity("Models.Notifikacija", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DogadjajId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("KomentarId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("KorisnikCijaJeObjavaId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("KorisnikKojiReagujeId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ReakcijaId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SadrzajReakcije")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TipReakcije")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("Vreme")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DogadjajId");
-
-                    b.HasIndex("KomentarId");
-
-                    b.HasIndex("KorisnikCijaJeObjavaId");
-
-                    b.HasIndex("KorisnikKojiReagujeId");
-
-                    b.HasIndex("ReakcijaId");
-
-                    b.ToTable("Notifikacija");
-                });
-
-            modelBuilder.Entity("Models.Poruka", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("JelProcitano")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("PosiljaocId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PrimaocId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Sadrzaj")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime>("Vreme")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PosiljaocId", "PrimaocId");
-
-                    b.HasIndex("PrimaocId", "JelProcitano");
-
-                    b.ToTable("Poruka");
-                });
-
-            modelBuilder.Entity("Models.Prijavljeni_dogadjaj", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Broj_prijava")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Dogadjaj_IdId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Dogadjaj_IdId")
-                        .IsUnique();
-
-                    b.ToTable("Prijavljeni_dogadjaj");
-                });
-
-            modelBuilder.Entity("Models.Razlog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Opis")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int?>("PrijavioId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Prijavljeni_dogadjaj_IdId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Razlog_prijave")
+                    b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Prijavljeni_dogadjaj_IdId");
-
-                    b.HasIndex("PrijavioId", "Prijavljeni_dogadjaj_IdId")
+                    b.HasIndex("Email")
                         .IsUnique()
-                        .HasFilter("[PrijavioId] IS NOT NULL");
+                        .HasDatabaseName("IX_Users_Email");
 
-                    b.ToTable("Razlog", t =>
-                        {
-                            t.HasCheckConstraint("CK_Razlog_Razlog_prijave", "[Razlog_prijave] IN (N'nepozeljan', N'nasilje', N'terorizam', N'govor_mrznje', N'lazne_informacije', N'uznemiravanje', N'ostalo')");
-                        });
-                });
-
-            modelBuilder.Entity("Models.Reakcija", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Dogadjaj_IDId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Korisnik_ID")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Tip")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Dogadjaj_IDId");
-
-                    b.HasIndex("Korisnik_ID", "Dogadjaj_IDId")
+                    b.HasIndex("Token")
                         .IsUnique();
 
-                    b.ToTable("Reakcija", t =>
-                        {
-                            t.HasCheckConstraint("CK_Reakcija_Tip", "[Tip] IN (N'Zainteresovan', N'Mozda', N'Nezainteresovan')");
-                        });
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Models.Dogadjaj", b =>
+            modelBuilder.Entity("Models.Comment", b =>
                 {
-                    b.HasOne("Models.Korisnik", "KreatorId")
-                        .WithMany("Kreirani_Dogadjaji")
-                        .HasForeignKey("ID_Kreatora")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("KreatorId");
-                });
-
-            modelBuilder.Entity("Models.Komentar", b =>
-                {
-                    b.HasOne("Models.Korisnik", "Autor")
+                    b.HasOne("Models.User", "Author")
                         .WithMany()
-                        .HasForeignKey("AutorId")
+                        .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("Models.Dogadjaj", "Dogadjaj_Id")
-                        .WithMany("Lista_Komentara")
-                        .HasForeignKey("Dogadjaj_IdId")
+                    b.HasOne("Models.Event", "Event")
+                        .WithMany("Comments")
+                        .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Autor");
+                    b.Navigation("Author");
 
-                    b.Navigation("Dogadjaj_Id");
+                    b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("Models.Notifikacija", b =>
+            modelBuilder.Entity("Models.Event", b =>
                 {
-                    b.HasOne("Models.Dogadjaj", "Dogadjaj")
+                    b.HasOne("Models.User", "Creator")
+                        .WithMany("CreatedEvents")
+                        .HasForeignKey("CreatorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Creator");
+                });
+
+            modelBuilder.Entity("Models.Message", b =>
+                {
+                    b.HasOne("Models.User", null)
                         .WithMany()
-                        .HasForeignKey("DogadjajId")
+                        .HasForeignKey("RecipientId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("Models.Komentar", "Komentar")
+                    b.HasOne("Models.User", null)
                         .WithMany()
-                        .HasForeignKey("KomentarId")
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Models.Notification", b =>
+                {
+                    b.HasOne("Models.User", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("Models.Korisnik", "Korisnik")
-                        .WithMany("Lista_Notifikacija")
-                        .HasForeignKey("KorisnikCijaJeObjavaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Models.Korisnik", "KorisnikKojiReaguje")
+                    b.HasOne("Models.Comment", "Comment")
                         .WithMany()
-                        .HasForeignKey("KorisnikKojiReagujeId")
+                        .HasForeignKey("CommentId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("Models.Reakcija", "Reakcija")
+                    b.HasOne("Models.Event", "Event")
                         .WithMany()
-                        .HasForeignKey("ReakcijaId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("Dogadjaj");
-
-                    b.Navigation("Komentar");
-
-                    b.Navigation("Korisnik");
-
-                    b.Navigation("KorisnikKojiReaguje");
-
-                    b.Navigation("Reakcija");
-                });
-
-            modelBuilder.Entity("Models.Poruka", b =>
-                {
-                    b.HasOne("Models.Korisnik", null)
-                        .WithMany()
-                        .HasForeignKey("PosiljaocId")
+                        .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("Models.Korisnik", null)
+                    b.HasOne("Models.Reaction", "Reaction")
                         .WithMany()
-                        .HasForeignKey("PrimaocId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Models.Prijavljeni_dogadjaj", b =>
-                {
-                    b.HasOne("Models.Dogadjaj", "Dogadjaj_Id")
-                        .WithMany()
-                        .HasForeignKey("Dogadjaj_IdId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Dogadjaj_Id");
-                });
-
-            modelBuilder.Entity("Models.Razlog", b =>
-                {
-                    b.HasOne("Models.Korisnik", "Prijavio")
-                        .WithMany()
-                        .HasForeignKey("PrijavioId")
+                        .HasForeignKey("ReactionId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("Models.Prijavljeni_dogadjaj", "Prijavljeni_dogadjaj_Id")
-                        .WithMany("Razlozi")
-                        .HasForeignKey("Prijavljeni_dogadjaj_IdId")
+                    b.HasOne("Models.User", "Recipient")
+                        .WithMany("Notifications")
+                        .HasForeignKey("RecipientId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Prijavio");
+                    b.Navigation("Actor");
 
-                    b.Navigation("Prijavljeni_dogadjaj_Id");
+                    b.Navigation("Comment");
+
+                    b.Navigation("Event");
+
+                    b.Navigation("Reaction");
+
+                    b.Navigation("Recipient");
                 });
 
-            modelBuilder.Entity("Models.Reakcija", b =>
+            modelBuilder.Entity("Models.Reaction", b =>
                 {
-                    b.HasOne("Models.Dogadjaj", "Dogadjaj_ID")
-                        .WithMany("Lista_Reakcija")
-                        .HasForeignKey("Dogadjaj_IDId")
+                    b.HasOne("Models.Event", "Event")
+                        .WithMany("Reactions")
+                        .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Models.Korisnik", "Korisnik")
+                    b.HasOne("Models.User", "User")
                         .WithMany()
-                        .HasForeignKey("Korisnik_ID")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.Navigation("Dogadjaj_ID");
+                    b.Navigation("Event");
 
-                    b.Navigation("Korisnik");
+                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Models.Dogadjaj", b =>
+            modelBuilder.Entity("Models.Report", b =>
                 {
-                    b.Navigation("Lista_Komentara");
+                    b.HasOne("Models.Event", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("Lista_Reakcija");
+                    b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("Models.Korisnik", b =>
+            modelBuilder.Entity("Models.ReportReason", b =>
                 {
-                    b.Navigation("Kreirani_Dogadjaji");
+                    b.HasOne("Models.Report", "Report")
+                        .WithMany("Reasons")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("Lista_Notifikacija");
+                    b.HasOne("Models.User", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Report");
+
+                    b.Navigation("Reporter");
                 });
 
-            modelBuilder.Entity("Models.Prijavljeni_dogadjaj", b =>
+            modelBuilder.Entity("Models.Event", b =>
                 {
-                    b.Navigation("Razlozi");
+                    b.Navigation("Comments");
+
+                    b.Navigation("Reactions");
+                });
+
+            modelBuilder.Entity("Models.Report", b =>
+                {
+                    b.Navigation("Reasons");
+                });
+
+            modelBuilder.Entity("Models.User", b =>
+                {
+                    b.Navigation("CreatedEvents");
+
+                    b.Navigation("Notifications");
                 });
 #pragma warning restore 612, 618
         }

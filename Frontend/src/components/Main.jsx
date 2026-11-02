@@ -71,8 +71,6 @@ function Main({ onCreateEvent, noviDogadjaj }) {
   const loadUser = async () => {
     try {
       const data = await api.get(`/api/users/${korisnik_Id}`);
-      const formatiranDatum = formatDate(data.datum_rodjenja);
-      data.datumrodjenja = formatiranDatum;
       setKorisnik(data);
     } catch (error) {
       console.log(error);
@@ -106,15 +104,15 @@ const openEvent = (id) => {
                         <div className="username-dt">
                           {korisnik ? (
                           <div className="usr-pic">
-                            <Avatar className="profilnaslikahomepage" slika={korisnik.korisnikImage} ime={korisnik.ime} />
+                            <Avatar className="profilnaslikahomepage" slika={korisnik.profileImage} ime={korisnik.firstName} />
                           </div>) : (
                               <p>{t('header.userUnavailable')}</p>
                             )}
                         </div>
                         {korisnik ? (
                         <div className="user-specs">
-                          <h3>{korisnik.ime} {korisnik.prezime}</h3>
-                          <span>@{korisnik.korisnicko_Ime}</span>
+                          <h3>{korisnik.firstName} {korisnik.lastName}</h3>
+                          <span>@{korisnik.username}</span>
                         </div>
                      ) : (
                       <p>{t('header.userUnavailable')}</p>
@@ -135,7 +133,7 @@ const openEvent = (id) => {
                       <div className="user-picy">
                       {korisnik ? (
                           <div className="usr-pic">
-                            <Avatar className="profilnaslikahomepageobjava" slika={korisnik.korisnikImage} ime={korisnik.ime} />
+                            <Avatar className="profilnaslikahomepageobjava" slika={korisnik.profileImage} ime={korisnik.firstName} />
                           </div>) : (
                               <p>{t('header.userUnavailable')}</p>
                             )}
@@ -243,12 +241,12 @@ const openEvent = (id) => {
                      
                       {notifications.length > 0 ? (
                         notifications.map((notif) => (
-                          <div className="job-info" key={notif.id} onClick={() => openEvent(notif.dogadjajId)}>
+                          <div className="job-info" key={notif.id} onClick={() => openEvent(notif.eventId)}>
                             <div className="job-details">
                               <p>{getNotificationText(notif)}</p>
                             </div>
                             <div className="hr-rate">
-                              <span>{formatDateTime(notif.vreme)}</span>
+                              <span>{formatDateTime(notif.createdAt)}</span>
                             </div>
                           </div>
                         ))

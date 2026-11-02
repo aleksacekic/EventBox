@@ -5,7 +5,7 @@ import { api } from '../api';
 import Avatar from './Avatar';
 import AdminSectionHeader from './AdminSectionHeader';
 
-const PRAZNA_FORMA = { ime: '', prezime: '', emailAdresa: '', korisnickoIme: '', lozinka: '', lozinka2: '' };
+const PRAZNA_FORMA = { firstName: '', lastName: '', email: '', username: '', password: '', repeatPassword: '' };
 
 // Admin: lista administratora, dodavanje novog i brisanje. Server ne dozvoljava brisanje
 // sopstvenog naloga ni poslednjeg administratora (dugme se tada i ne nudi).
@@ -48,21 +48,21 @@ function AdminAccounts() {
   const handleAdd = async (e) => {
     e.preventDefault();
     setGreskaForme('');
-    if (forma.lozinka.length < 8) {
+    if (forma.password.length < 8) {
       setGreskaForme(t('validation.passwordLength'));
       return;
     }
-    if (forma.lozinka !== forma.lozinka2) {
+    if (forma.password !== forma.repeatPassword) {
       setGreskaForme(t('validation.passwordsMismatch'));
       return;
     }
     setSalje(true);
     try {
-      const { ime, prezime, emailAdresa, korisnickoIme, lozinka } = forma; // bez ponovljene lozinke
-      const novi = await api.post('/api/admins', { ime, prezime, emailAdresa, korisnickoIme, lozinka });
+      const { firstName, lastName, email, username, password } = forma; // bez ponovljene lozinke
+      const novi = await api.post('/api/admins', { firstName, lastName, email, username, password });
       setAdmini((prev) => [...(prev ?? []), novi]);
       closeForm();
-      toast.success(t('admin.admins.added', { username: novi.korisnicko_ime }));
+      toast.success(t('admin.admins.added', { username: novi.username }));
     } catch (error) {
       // Server vraca razlog (npr. zauzeto korisnicko ime, neispravan email)
       setGreskaForme(error.message || t('admin.admins.addFailed'));
@@ -72,12 +72,12 @@ function AdminAccounts() {
   };
 
   const handleDelete = async (a) => {
-    if (brise || !window.confirm(t('admin.admins.confirmDelete', { username: a.korisnicko_ime }))) return;
+    if (brise || !window.confirm(t('admin.admins.confirmDelete', { username: a.username }))) return;
     setBrise(a.id);
     try {
       await api.del(`/api/admins/${a.id}`);
       setAdmini((prev) => prev.filter((x) => x.id !== a.id));
-      toast.success(t('admin.admins.deleted', { username: a.korisnicko_ime }));
+      toast.success(t('admin.admins.deleted', { username: a.username }));
     } catch (error) {
       console.error('Brisanje administratora nije uspelo:', error);
       toast.error(error.message || t('admin.admins.deleteFailed'));
@@ -105,12 +105,12 @@ function AdminAccounts() {
         <form className="admin-forma" onSubmit={handleAdd} autoComplete="off">
           <h3>{t('admin.admins.newTitle')}</h3>
           <div className="admin-forma-polja">
-            <label>{t('admin.admins.firstName')}<input {...fieldProps('ime')} required maxLength={50} autoFocus /></label>
-            <label>{t('admin.admins.lastName')}<input {...fieldProps('prezime')} required maxLength={50} /></label>
-            <label>{t('admin.admins.email')}<input type="email" {...fieldProps('emailAdresa')} required maxLength={254} /></label>
-            <label>{t('admin.admins.username')}<input {...fieldProps('korisnickoIme')} required minLength={3} maxLength={30} autoComplete="off" /></label>
-            <label>{t('admin.admins.password')}<input type="password" {...fieldProps('lozinka')} required minLength={8} autoComplete="new-password" /></label>
-            <label>{t('admin.admins.repeatPassword')}<input type="password" {...fieldProps('lozinka2')} required minLength={8} autoComplete="new-password" /></label>
+            <label>{t('admin.admins.firstName')}<input {...fieldProps('firstName')} required maxLength={50} autoFocus /></label>
+            <label>{t('admin.admins.lastName')}<input {...fieldProps('lastName')} required maxLength={50} /></label>
+            <label>{t('admin.admins.email')}<input type="email" {...fieldProps('email')} required maxLength={254} /></label>
+            <label>{t('admin.admins.username')}<input {...fieldProps('username')} required minLength={3} maxLength={30} autoComplete="off" /></label>
+            <label>{t('admin.admins.password')}<input type="password" {...fieldProps('password')} required minLength={8} autoComplete="new-password" /></label>
+            <label>{t('admin.admins.repeatPassword')}<input type="password" {...fieldProps('repeatPassword')} required minLength={8} autoComplete="new-password" /></label>
           </div>
           {greskaForme && <p className="admin-forma-greska" role="alert">{greskaForme}</p>}
           <div className="admin-forma-dugmad">
@@ -132,15 +132,15 @@ function AdminAccounts() {
       <div className="blokirani">
         {admini?.map((a) => (
           <div className="blokirani-red" key={a.id}>
-            <Avatar className="blokirani-avatar" ime={a.ime} />
+            <Avatar className="blokirani-avatar" ime={a.firstName} />
             <div className="blokirani-tekst">
               <strong>
-                {a.ime} {a.prezime}
-                {a.ja && <span className="admin-status is-aktivan admin-ja">{t('admin.admins.you')}</span>}
+                {a.firstName} {a.lastName}
+                {a.isCurrent && <span className="admin-status is-aktivan admin-ja">{t('admin.admins.you')}</span>}
               </strong>
-              <small>@{a.korisnicko_ime} · {a.email_adresa}</small>
+              <small>@{a.username} · {a.email}</small>
             </div>
-            {!a.ja && admini.length > 1 && (
+            {!a.isCurrent && admini.length > 1 && (
               <button
                 type="button"
                 className="blokirani-dugme is-danger"

@@ -37,17 +37,17 @@ function AdminUserDetails({ id }) {
   };
 
   const toggleBlock = async () => {
-    const blokiraj = !k.blokiran;
+    const blokiraj = !k.isBlocked;
     const pitanje = blokiraj
-      ? t('admin.user.confirmBlock', { username: k.korisnicko_Ime })
-      : t('admin.user.confirmUnblock', { username: k.korisnicko_Ime });
+      ? t('admin.user.confirmBlock', { username: k.username })
+      : t('admin.user.confirmUnblock', { username: k.username });
     if (radi || !window.confirm(pitanje)) return;
     setRadi(true);
     try {
       const url = `/api/users/${k.id}/block`;
       await (blokiraj ? api.put(url) : api.del(url));
-      setK((prev) => ({ ...prev, blokiran: blokiraj }));
-      toast.success(t(blokiraj ? 'admin.user.blockedToast' : 'admin.user.unblockedToast', { username: k.korisnicko_Ime }));
+      setK((prev) => ({ ...prev, isBlocked: blokiraj }));
+      toast.success(t(blokiraj ? 'admin.user.blockedToast' : 'admin.user.unblockedToast', { username: k.username }));
     } catch (error) {
       console.error('Promena blokade nije uspela:', error);
       toast.error(t('admin.user.actionFailed'));
@@ -86,25 +86,25 @@ function AdminUserDetails({ id }) {
       <div className="admin-korisnik">
         {k ? (
           <>
-            <Avatar className="admin-korisnik-avatar" slika={k.korisnikImage} ime={k.ime} />
+            <Avatar className="admin-korisnik-avatar" slika={k.profileImage} ime={k.firstName} />
             <div className="admin-korisnik-info">
               <h2>
-                {k.ime} {k.prezime}
-                <span className={`admin-status ${k.blokiran ? 'is-blokiran' : 'is-aktivan'}`}>
-                  {k.blokiran ? t('admin.user.blocked') : t('admin.user.active')}
+                {k.firstName} {k.lastName}
+                <span className={`admin-status ${k.isBlocked ? 'is-blokiran' : 'is-aktivan'}`}>
+                  {k.isBlocked ? t('admin.user.blocked') : t('admin.user.active')}
                 </span>
               </h2>
-              <div className="admin-korisnik-korisnicko">@{k.korisnicko_Ime}</div>
+              <div className="admin-korisnik-korisnicko">@{k.username}</div>
               <div className="admin-korisnik-detalji">
-                <span><i className="la la-envelope" /> {k.email_Adresa}</span>
-                <span><i className="la la-birthday-cake" /> {formatDate(k.datum_rodjenja)}</span>
-                <span><i className="la la-calendar" /> {t('admin.user.eventCount', { count: lista.total ?? k.brojDogadjaja })}</span>
-                <span className={k.brojPrijava > 0 ? 'admin-korisnik-prijave' : undefined}>
+                <span><i className="la la-envelope" /> {k.email}</span>
+                <span><i className="la la-birthday-cake" /> {formatDate(k.dateOfBirth)}</span>
+                <span><i className="la la-calendar" /> {t('admin.user.eventCount', { count: lista.total ?? k.eventCount })}</span>
+                <span className={k.reportCount > 0 ? 'admin-korisnik-prijave' : undefined}>
                   <i className="la la-flag" />{' '}
-                  {k.brojPrijava > 0 ? t('admin.user.reportedTimes', { count: k.brojPrijava }) : t('admin.user.noReports')}
+                  {k.reportCount > 0 ? t('admin.user.reportedTimes', { count: k.reportCount }) : t('admin.user.noReports')}
                 </span>
               </div>
-              {k.blokiran && (
+              {k.isBlocked && (
                 <p className="admin-skriveno">
                   <i className="la la-eye-slash" /> {t('admin.user.hiddenNote')}
                 </p>
@@ -112,12 +112,12 @@ function AdminUserDetails({ id }) {
             </div>
             <button
               type="button"
-              className={`admin-dugme ${k.blokiran ? 'is-odblokiraj' : ''}`}
+              className={`admin-dugme ${k.isBlocked ? 'is-odblokiraj' : ''}`}
               onClick={toggleBlock}
               disabled={radi}
             >
-              <i className={`la ${k.blokiran ? 'la-unlock' : 'la-ban'}`} />
-              {k.blokiran ? t('admin.user.unblock') : t('admin.user.block')}
+              <i className={`la ${k.isBlocked ? 'la-unlock' : 'la-ban'}`} />
+              {k.isBlocked ? t('admin.user.unblock') : t('admin.user.block')}
             </button>
           </>
         ) : (

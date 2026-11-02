@@ -11,18 +11,18 @@ import { useInfiniteList } from "../useInfiniteList";
 // Server salje vreme u UTC (vidi utils/date.js); lokalne poruke su ISO stringovi
 import { formatTime } from "../utils/date";
 
-const fullName = (u) => `${u.ime ?? ""} ${u.prezime ?? ""}`.trim();
+const fullName = (u) => `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim();
 
 function Avatar({ user, className = "" }) {
-  return user.korisnikImage ? (
+  return user.profileImage ? (
     <img
       className={`poruke-avatar ${className}`}
-      src={`${API_BASE}/resources/${user.korisnikImage}`}
+      src={`${API_BASE}/resources/${user.profileImage}`}
       alt=""
     />
   ) : (
     <span className={`poruke-avatar poruke-avatar-inicijal ${className}`}>
-      {(user.ime || user.korisnicko_Ime || "?").charAt(0)}
+      {(user.firstName || user.username || "?").charAt(0)}
     </span>
   );
 }
@@ -145,7 +145,7 @@ const ChatPage = () => {
   const markAsRead = async (posiljaocId) => {
     try {
       const odgovor = await api.put(`/api/conversations/${posiljaocId}/read`);
-      if (odgovor && typeof odgovor.neprocitano === "number") setUnreadCount(odgovor.neprocitano);
+      if (odgovor && typeof odgovor.unreadCount === "number") setUnreadCount(odgovor.unreadCount);
     } catch (error) {
       console.error("Oznacavanje poruka kao procitanih nije uspelo:", error);
     }
@@ -153,7 +153,7 @@ const ChatPage = () => {
 
   useEffect(() => {
     return subscribeToMessages((poruka) => {
-      const od = poruka.posiljaocId;
+      const od = poruka.senderId;
       if (String(od) === String(izabraniIdRef.current)) {
         lista.setItems((prev) => (prev.some((m) => m.id === poruka.id) ? prev : [...prev, poruka]));
         markAsRead(od);
@@ -208,12 +208,12 @@ const ChatPage = () => {
     setNewMessage("");
     lista.setItems((prev) => [
       ...prev,
-      { lokalniId, sadrzaj: tekst, sender: "me", vreme: new Date().toISOString() },
+      { lokalniId, content: tekst, sender: "me", sentAt: new Date().toISOString() },
     ]);
 
     try {
       // Server sacuva poruku i tek onda je posalje primaocu uzivo
-      const sacuvana = await api.post(`/api/conversations/${primalac}/messages`, { poruka: tekst });
+      const sacuvana = await api.post(`/api/conversations/${primalac}/messages`, { content: tekst });
       if (String(izabraniIdRef.current) === String(primalac)) {
         lista.setItems((prev) => prev.map((m) => (m.lokalniId === lokalniId ? { ...sacuvana, lokalniId } : m)));
       }
@@ -251,11 +251,7 @@ const ChatPage = () => {
 
     try {
       const data = await api.get(`/api/users/search?query=${encodeURIComponent(searchValue)}`);
-      if (data.kraj === "KRAJ") {
-        setSearchResults([]);
-      } else {
-        setSearchResults(data);
-      }
+      setSearchResults(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Greška prilikom pretrage:", error);
     }
@@ -270,11 +266,7 @@ const ChatPage = () => {
 
       try {
         const data = await api.get(`/api/users/search?query=${encodeURIComponent(searchValue)}`);
-        if (data.kraj === "KRAJ") {
-          setSearchResults([]);
-        } else {
-          setSearchResults(data);
-        }
+        setSearchResults(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Greška prilikom pretrage:", error);
       }
@@ -337,7 +329,7 @@ const ChatPage = () => {
                           <Avatar user={result} />
                           <span className="poruke-contact-text">
                             <strong>{fullName(result)}</strong>
-                            <small>@{result.korisnicko_Ime}</small>
+                            <small>@{result.username}</small>
                           </span>
                         </button>
                       </li>
@@ -365,7 +357,7 @@ const ChatPage = () => {
                     <Avatar user={user} />
                     <span className="poruke-contact-text">
                       <strong>{fullName(user)}</strong>
-                      <small>@{user.korisnicko_Ime}</small>
+                      <small>@{user.username}</small>
                     </span>
                     {nova && <span className="poruke-nova">{t('chat.new')}</span>}
                   </button>
@@ -390,7 +382,7 @@ const ChatPage = () => {
                     <Avatar user={selectedUser} />
                     <span className="poruke-contact-text">
                       <strong>{fullName(selectedUser)}</strong>
-                      <small>@{selectedUser.korisnicko_Ime}</small>
+                      <small>@{selectedUser.username}</small>
                     </span>
                   </Link>
                 </div>
@@ -406,14 +398,14 @@ const ChatPage = () => {
                     <div
                       key={messageKey(msg)}
                       className={`poruke-msg ${
-                        msg.posiljaocId === korisnik?.id || msg.sender === "me"
+                        msg.senderId === korisnik?.id || msg.sender === "me"
                           ? "is-mine"
                           : "is-theirs"
                       }`}
                     >
-                      {msg.sadrzaj}
+                      {msg.content}
                       <span className="poruke-time">
-                        {msg.neuspela ? t('chat.notSent') : formatTime(msg.vreme)}
+                        {msg.neuspela ? t('chat.notSent') : formatTime(msg.sentAt)}
                       </span>
                     </div>
                   ))}

@@ -22,7 +22,7 @@ function AdminEventCard({ dogadjaj, prijava, onDeleted, onReportDismissed, prika
   const [panel, setPanel] = useState(null); // 'razlozi' | 'komentari' | null
   const [radi, setRadi] = useState(false); // dok traje jedna radnja, dugmad su iskljucena
   // Blokiran autor: dogadjaj je sakriven za korisnike (admin ga vidi). Menja se i odavde.
-  const [autorBlokiran, setAutorBlokiran] = useState(Boolean(dogadjaj.kreatorBlokiran));
+  const [autorBlokiran, setAutorBlokiran] = useState(Boolean(dogadjaj.creatorIsBlocked));
   const zavrsen = isEventFinished(dogadjaj);
 
   const togglePanel = (ime) => setPanel((p) => (p === ime ? null : ime));
@@ -38,7 +38,7 @@ function AdminEventCard({ dogadjaj, prijava, onDeleted, onReportDismissed, prika
   };
 
   const handleDelete = () => runAction(
-    t('admin.card.confirmDelete', { title: dogadjaj.naslov }),
+    t('admin.card.confirmDelete', { title: dogadjaj.title }),
     async () => {
       try {
         await api.del(`/api/events/${dogadjaj.id}`);
@@ -53,14 +53,14 @@ function AdminEventCard({ dogadjaj, prijava, onDeleted, onReportDismissed, prika
 
   const toggleAuthorBlock = () => {
     const blokiraj = !autorBlokiran;
-    const username = dogadjaj.userName_Kreatora;
+    const username = dogadjaj.creatorUsername;
     return runAction(
       blokiraj
         ? t('admin.card.confirmBlock', { username })
         : t('admin.card.confirmUnblock', { username }),
       async () => {
         try {
-          const url = `/api/users/${dogadjaj.iD_Kreatora}/block`;
+          const url = `/api/users/${dogadjaj.creatorId}/block`;
           await (blokiraj ? api.put(url) : api.del(url));
           setAutorBlokiran(blokiraj);
           toast.success(t(blokiraj ? 'admin.card.blocked' : 'admin.card.unblocked', { username }));
@@ -87,7 +87,7 @@ function AdminEventCard({ dogadjaj, prijava, onDeleted, onReportDismissed, prika
   );
 
   const objavljeno = (
-    <span><i className="la la-clock-o" />{t('admin.card.published', { date: formatDate(dogadjaj.datum_Objave) })}</span>
+    <span><i className="la la-clock-o" />{t('admin.card.published', { date: formatDate(dogadjaj.createdAt) })}</span>
   );
 
   return (
@@ -97,12 +97,12 @@ function AdminEventCard({ dogadjaj, prijava, onDeleted, onReportDismissed, prika
           <button
             type="button"
             className="dogadjaj-card-author admin-autor"
-            onClick={() => navigate(adminUserUrl(dogadjaj.iD_Kreatora))}
+            onClick={() => navigate(adminUserUrl(dogadjaj.creatorId))}
             title={t('admin.card.userOverview')}
           >
-            <Avatar className="dogadjaj-card-avatar" slika={dogadjaj.slikaKorisnika} ime={dogadjaj.userName_Kreatora} />
+            <Avatar className="dogadjaj-card-avatar" slika={dogadjaj.creatorImage} ime={dogadjaj.creatorUsername} />
             <span className="dogadjaj-card-author-info">
-              <strong className="admin-autor-ime">@{dogadjaj.userName_Kreatora}</strong>
+              <strong className="admin-autor-ime">@{dogadjaj.creatorUsername}</strong>
               {objavljeno}
             </span>
           </button>
@@ -112,19 +112,19 @@ function AdminEventCard({ dogadjaj, prijava, onDeleted, onReportDismissed, prika
 
         {prijava && (
           <span className="admin-prijave-broj">
-            <i className="la la-flag" /> {t('admin.card.reportCount', { count: prijava.broj_prijava })}
+            <i className="la la-flag" /> {t('admin.card.reportCount', { count: prijava.reportCount })}
           </span>
         )}
       </div>
 
       <div className="dogadjaj-card-body">
-        <h3 className="dogadjaj-card-title">{dogadjaj.naslov}</h3>
+        <h3 className="dogadjaj-card-title">{dogadjaj.title}</h3>
         <div className="dogadjaj-card-meta">
-          <span className="dogadjaj-card-badge">{categoryLabel(t, dogadjaj.kategorija)}</span>
+          <span className="dogadjaj-card-badge">{categoryLabel(t, dogadjaj.category)}</span>
           {zavrsen && <span className="dogadjaj-card-badge dogadjaj-card-badge-zavrsen">{t('events.finished')}</span>}
           <span className="dogadjaj-card-when">
             <i className="la la-calendar" />
-            {t('events.when', { date: formatDate(dogadjaj.datum_Dogadjaja), time: dogadjaj.vreme_pocetka })}
+            {t('events.when', { date: formatDate(dogadjaj.date), time: dogadjaj.startTime })}
           </span>
         </div>
         {autorBlokiran && prikaziAutora && (
@@ -132,15 +132,15 @@ function AdminEventCard({ dogadjaj, prijava, onDeleted, onReportDismissed, prika
             <i className="la la-eye-slash" /> {t('admin.card.authorBlockedNote')}
           </p>
         )}
-        {dogadjaj.opis && <p className="dogadjaj-card-desc">{dogadjaj.opis}</p>}
-        {dogadjaj.dogadjajImage && (
-          <img src={`${API_BASE}/resources/${dogadjaj.dogadjajImage}`} alt="" loading="lazy" className="dogadjaj-card-image" />
+        {dogadjaj.description && <p className="dogadjaj-card-desc">{dogadjaj.description}</p>}
+        {dogadjaj.image && (
+          <img src={`${API_BASE}/resources/${dogadjaj.image}`} alt="" loading="lazy" className="dogadjaj-card-image" />
         )}
-        <MapToggle latitude={dogadjaj.x} longitude={dogadjaj.y} />
+        <MapToggle latitude={dogadjaj.latitude} longitude={dogadjaj.longitude} />
         <div className="admin-reakcije" aria-label={t('admin.card.reactionsLabel')}>
-          <span><i className="la la-thumbs-up" /> {t('admin.card.interested', { n: dogadjaj.broj_Zainteresovanih })}</span>
-          <span><i className="la la-question-circle" /> {t('admin.card.maybe', { n: dogadjaj.broj_Mozda })}</span>
-          <span><i className="la la-thumbs-down" /> {t('admin.card.notInterested', { n: dogadjaj.broj_Nezainteresovanih })}</span>
+          <span><i className="la la-thumbs-up" /> {t('admin.card.interested', { n: dogadjaj.interestedCount })}</span>
+          <span><i className="la la-question-circle" /> {t('admin.card.maybe', { n: dogadjaj.maybeCount })}</span>
+          <span><i className="la la-thumbs-down" /> {t('admin.card.notInterested', { n: dogadjaj.notInterestedCount })}</span>
         </div>
       </div>
 
@@ -180,16 +180,16 @@ function AdminEventCard({ dogadjaj, prijava, onDeleted, onReportDismissed, prika
 
       {prijava && panel === 'razlozi' && (
         <ul className="admin-razlozi">
-          {prijava.razlozi.map((r) => (
+          {prijava.reasons.map((r) => (
             <li key={r.id}>
-              <span className="admin-razlog-oznaka">{t(`reportReasons.${r.razlog_prijave}`, { defaultValue: r.razlog_prijave })}</span>
-              {r.opis && <p>{r.opis}</p>}
+              <span className="admin-razlog-oznaka">{t(`reportReasons.${r.reason}`, { defaultValue: r.reason })}</span>
+              {r.description && <p>{r.description}</p>}
             </li>
           ))}
           {/* Server uz svaku prijavu salje najvise 5 razloga */}
-          {prijava.broj_prijava > prijava.razlozi.length && (
+          {prijava.reportCount > prijava.reasons.length && (
             <li className="admin-razlozi-jos">
-              {t('admin.card.moreReports', { count: prijava.broj_prijava - prijava.razlozi.length })}
+              {t('admin.card.moreReports', { count: prijava.reportCount - prijava.reasons.length })}
             </li>
           )}
         </ul>

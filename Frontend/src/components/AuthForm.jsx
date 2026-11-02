@@ -57,14 +57,14 @@ function AuthForm() {
 
 
     try {
-      const data = await api.post('/api/users/login', { korisnickoIme: username, lozinka: password });
-      if (data.nema !== undefined) {
+      const data = await api.post('/api/users/login', { username, password });
+      if (data.error === 'INVALID_CREDENTIALS') {
         // Nije obican korisnik -> probaj kao administrator
         await tryAdminLogin(username, password);
-      } else if (data.blokiran !== undefined) {
+      } else if (data.error === 'ACCOUNT_BLOCKED') {
         toast.error(t('auth.blocked'));
       } else {
-        login({ token: data.token, userId: data.userID });
+        login({ token: data.token, userId: data.userId });
         navigate(from, { replace: true });
       }
     } catch (error) {
@@ -76,8 +76,8 @@ function AuthForm() {
 
   const tryAdminLogin = async (username, password) => {
     try {
-      const data = await api.post('/api/admins/login', { korisnickoIme: username, lozinka: password });
-      if (data.nema !== undefined) {
+      const data = await api.post('/api/admins/login', { username, password });
+      if (data.error) {
         toast.error(t('auth.wrongCredentials'));
       } else {
         login({ token: data.token, isAdmin: true });
@@ -125,22 +125,22 @@ function AuthForm() {
     const lozinka = poljaForme.password.value;
     try {
       const odgovor = await api.post('/api/users', {
-        ime,
-        prezime,
-        korisnickoIme: korisnickoime,
-        lozinka,
-        datumRodjenja: datumrodjenja,
-        emailAdresa: mail,
+        firstName: ime,
+        lastName: prezime,
+        username: korisnickoime,
+        password: lozinka,
+        dateOfBirth: datumrodjenja,
+        email: mail,
       });
-      if (odgovor?.odgovor === 'KORISNICKO_IME') {
+      if (odgovor?.error === 'USERNAME_TAKEN') {
         toast.error(t('auth.usernameTaken'));
         return;
       }
-      if (odgovor?.odgovor === 'EMAIL') {
+      if (odgovor?.error === 'EMAIL_TAKEN') {
         toast.error(t('auth.emailTaken'));
         return;
       }
-      if (odgovor?.odgovor === 'DATUM') {
+      if (odgovor?.error === 'INVALID_BIRTH_DATE') {
         toast.error(t('auth.invalidBirthDate'));
         return;
       }

@@ -4,51 +4,51 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace Models
 {
-    // Tipovi notifikacija (kolona Notifikacija.TipReakcije). Vrednosti su upisane u bazi, pa ostaju iste.
+    // Tipovi notifikacija (kolona Notifications.Type). Vrednosti su upisane u bazi, pa ostaju iste.
     public static class NotificationType
     {
-        public const string Reaction = "Reakcija"; // SadrzajReakcije = tip reakcije (Zainteresovan, Mozda...)
-        public const string Comment = "Komentar";  // SadrzajReakcije = tekst komentara
-        public const string Report = "Prijava";    // SadrzajReakcije = razlog prijave; ko je prijavio se ne otkriva
+        public const string Reaction = "Reakcija"; // Content = tip reakcije (Zainteresovan, Mozda...)
+        public const string Comment = "Komentar";  // Content = tekst komentara
+        public const string Report = "Prijava";    // Content = razlog prijave; ko je prijavio se ne otkriva
     }
 
     // Ono sto klijent dobija za notifikaciju - i u listi i uzivo kroz SignalR (isti oblik)
-    public class NotifikacijaDto
+    public class NotificationDto
     {
         public int Id { get; set; }
-        public int DogadjajId { get; set; }
-        public string NaslovDogadjaja { get; set; }
-        public string? KorisnikKojiReaguje { get; set; } // korisnicko ime; null za anonimno (prijava)
-        public string Tip { get; set; }
-        public string? Sadrzaj { get; set; }
-        public DateTime Vreme { get; set; } // UTC
+        public int EventId { get; set; }
+        public string EventTitle { get; set; }
+        public string? ActorUsername { get; set; } // null za anonimno (prijava)
+        public string Type { get; set; }
+        public string? Content { get; set; }
+        public DateTime CreatedAt { get; set; } // UTC
 
-        public static readonly Expression<Func<Notifikacija, NotifikacijaDto>> Projekcija = n => new NotifikacijaDto
+        public static readonly Expression<Func<Notification, NotificationDto>> Projection = n => new NotificationDto
         {
             Id = n.Id,
-            DogadjajId = n.DogadjajId,
-            NaslovDogadjaja = n.Dogadjaj.Naslov,
-            KorisnikKojiReaguje = n.KorisnikKojiReaguje != null ? n.KorisnikKojiReaguje.Korisnicko_Ime : null,
-            Tip = n.TipReakcije,
-            Sadrzaj = n.SadrzajReakcije,
-            Vreme = n.Vreme
+            EventId = n.EventId,
+            EventTitle = n.Event.Title,
+            ActorUsername = n.Actor != null ? n.Actor.Username : null,
+            Type = n.Type,
+            Content = n.Content,
+            CreatedAt = n.CreatedAt
         };
     }
 
     // Poruka u cetu kako je vide klijenti (i u istoriji i uzivo)
-    public class PorukaDto
+    public class MessageDto
     {
         public int Id { get; set; }
-        public int PosiljaocId { get; set; }
-        public int PrimaocId { get; set; }
-        public string Sadrzaj { get; set; }
-        public DateTime Vreme { get; set; } // UTC
-        public bool JelProcitano { get; set; }
+        public int SenderId { get; set; }
+        public int RecipientId { get; set; }
+        public string Content { get; set; }
+        public DateTime SentAt { get; set; } // UTC
+        public bool IsRead { get; set; }
 
-        public static PorukaDto From(Poruka p) => new PorukaDto
+        public static MessageDto From(Message m) => new MessageDto
         {
-            Id = p.Id, PosiljaocId = p.PosiljaocId, PrimaocId = p.PrimaocId,
-            Sadrzaj = p.Sadrzaj, Vreme = p.Vreme, JelProcitano = p.JelProcitano
+            Id = m.Id, SenderId = m.SenderId, RecipientId = m.RecipientId,
+            Content = m.Content, SentAt = m.SentAt, IsRead = m.IsRead
         };
     }
 
@@ -69,79 +69,79 @@ namespace Models
             _log = log;
         }
 
-        // Notifikacija vlasniku dogadjaja. Za sopstvene akcije na svom dogadjaju se ne pravi.
+        // Notifikacija autoru dogadjaja. Za sopstvene akcije na svom dogadjaju se ne pravi.
         // Za reakciju postoji najvise jedna notifikacija: promena reakcije menja postojecu
         // (i pomera je na vrh), umesto da pravi novu.
-        public async Task NotifyOwnerAsync(Dogadjaj dogadjaj, int? reagujeId, string tip, string? sadrzaj,
-                                           int? komentarId = null, int? reakcijaId = null)
+        public async Task NotifyOwnerAsync(Event ev, int? actorId, string type, string? content,
+                                           int? commentId = null, int? reactionId = null)
         {
-            if (reagujeId == dogadjaj.ID_Kreatora)
+            if (actorId == ev.CreatorId)
                 return;
 
-            Notifikacija? n = reakcijaId == null ? null
-                : await _context.Notifikacije.FirstOrDefaultAsync(x => x.ReakcijaId == reakcijaId);
+            Notification? n = reactionId == null ? null
+                : await _context.Notifications.FirstOrDefaultAsync(x => x.ReactionId == reactionId);
             if (n == null)
             {
-                n = new Notifikacija
+                n = new Notification
                 {
-                    DogadjajId = dogadjaj.Id,
-                    KorisnikCijaJeObjavaId = dogadjaj.ID_Kreatora,
-                    KorisnikKojiReagujeId = reagujeId,
-                    TipReakcije = tip,
-                    KomentarId = komentarId,
-                    ReakcijaId = reakcijaId
+                    EventId = ev.Id,
+                    RecipientId = ev.CreatorId,
+                    ActorId = actorId,
+                    Type = type,
+                    CommentId = commentId,
+                    ReactionId = reactionId
                 };
-                _context.Notifikacije.Add(n);
+                _context.Notifications.Add(n);
             }
-            n.SadrzajReakcije = sadrzaj ?? "";
-            n.Vreme = DateTime.UtcNow;
+            n.Content = content ?? "";
+            n.CreatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            await SendAsync(dogadjaj.ID_Kreatora, "NotificationCreated", await GetDtoAsync(n.Id));
+            await SendAsync(ev.CreatorId, "NotificationCreated", await GetDtoAsync(n.Id));
         }
 
         // Komentar je izmenjen: notifikacija dobija novi tekst, ostaje na istom mestu u listi
-        public async Task UpdateCommentNotificationAsync(Komentar k)
+        public async Task UpdateCommentNotificationAsync(Comment comment)
         {
-            var n = await _context.Notifikacije.FirstOrDefaultAsync(x => x.KomentarId == k.Id);
+            var n = await _context.Notifications.FirstOrDefaultAsync(x => x.CommentId == comment.Id);
             if (n == null)
                 return;
-            n.SadrzajReakcije = k.Tekst;
+            n.Content = comment.Text;
             await _context.SaveChangesAsync();
-            await SendAsync(n.KorisnikCijaJeObjavaId, "NotificationUpdated", await GetDtoAsync(n.Id));
+            await SendAsync(n.RecipientId, "NotificationUpdated", await GetDtoAsync(n.Id));
         }
 
         // Pre brisanja komentara/reakcije (FK je bez kaskade): brise njihovu notifikaciju u istom
-        // SaveChanges kao i sam komentar/reakciju, a vlasniku javlja posle (NotifyRemovedAsync)
-        public async Task<List<(int Id, int Vlasnik)>> RemoveAsync(IQueryable<Notifikacija> koje)
+        // SaveChanges kao i sam komentar/reakciju, a primaocu javlja posle (NotifyRemovedAsync)
+        public async Task<List<(int Id, int RecipientId)>> RemoveAsync(IQueryable<Notification> which)
         {
-            var lista = await koje.ToListAsync();
-            _context.Notifikacije.RemoveRange(lista);
-            return lista.Select(n => (n.Id, n.KorisnikCijaJeObjavaId)).ToList();
+            var list = await which.ToListAsync();
+            _context.Notifications.RemoveRange(list);
+            return list.Select(n => (n.Id, n.RecipientId)).ToList();
         }
 
-        public async Task NotifyRemovedAsync(List<(int Id, int Vlasnik)> uklonjene)
+        public async Task NotifyRemovedAsync(List<(int Id, int RecipientId)> removed)
         {
-            foreach (var (id, vlasnik) in uklonjene)
-                await SendAsync(vlasnik, "NotificationDeleted", id);
+            foreach (var (id, recipientId) in removed)
+                await SendAsync(recipientId, "NotificationDeleted", id);
         }
 
-        private Task<NotifikacijaDto> GetDtoAsync(int id)
-            => _context.Notifikacije.Where(x => x.Id == id).Select(NotifikacijaDto.Projekcija).FirstAsync();
+        private Task<NotificationDto> GetDtoAsync(int id)
+            => _context.Notifications.Where(x => x.Id == id).Select(NotificationDto.Projection).FirstAsync();
 
         // Poruka je vec upisana u bazu (MessagesController); ovde se samo javlja primaocu
-        public Task NotifyNewMessageAsync(Poruka p) => SendAsync(p.PrimaocId, "MessageReceived", PorukaDto.From(p));
+        public Task NotifyNewMessageAsync(Message m) => SendAsync(m.RecipientId, "MessageReceived", MessageDto.From(m));
 
         // Slanje uzivo je "najbolji pokusaj": ako ne uspe, podatak je vec u bazi, pa zahtev ne pada
-        private async Task SendAsync(int korisnikId, string dogadjaj, object podatak)
+        private async Task SendAsync(int userId, string eventName, object payload)
         {
             try
             {
-                await _hub.Clients.User(korisnikId.ToString()).SendAsync(dogadjaj, podatak);
+                await _hub.Clients.User(userId.ToString()).SendAsync(eventName, payload);
             }
             catch (Exception ex)
             {
-                _log.LogWarning(ex, "SignalR {Dogadjaj} korisniku {Id} nije poslat", dogadjaj, korisnikId);
+                _log.LogWarning(ex, "SignalR {EventName} korisniku {Id} nije poslat", eventName, userId);
             }
         }
     }

@@ -27,7 +27,7 @@ export class ApiError extends Error {
     this.name = 'ApiError'
     this.status = status
     this.url = url
-    this.data = data // telo odgovora, npr. { message, greske: { polje: poruka } }
+    this.data = data // telo odgovora, npr. { message, errors: { polje: poruka } }
   }
 }
 
