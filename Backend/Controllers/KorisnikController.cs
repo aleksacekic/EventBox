@@ -256,7 +256,7 @@ namespace EventBoxApi.Controllers
         [EnableCors("CORS")]
         [Route("DodajSlikuKorisniku")]
         [RequestSizeLimit(FileService.MaxVelicina + 64 * 1024)]
-        public async Task<ActionResult> DodajSlikuKorisniku([FromForm] IFormFile? fajl, [FromQuery] int id_korisnika)
+        public async Task<ActionResult> DodajSlikuKorisniku(IFormFile? fajl, [FromQuery] int id_korisnika)
         {
             if (id_korisnika != User.IdKorisnika())
                 return Forbid();

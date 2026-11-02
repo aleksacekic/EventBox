@@ -119,7 +119,7 @@ namespace EventBoxApi.Controllers
         [EnableCors("CORS")]
         [Route("DodajSlikuDogadjaju")]
         [RequestSizeLimit(FileService.MaxVelicina + 64 * 1024)] // + malo za zaglavlja multipart-a
-        public async Task<ActionResult> DodajSlikuDogadjaju([FromForm] IFormFile? fajl, [FromQuery] int dogadjaj_id)
+        public async Task<ActionResult> DodajSlikuDogadjaju(IFormFile? fajl, [FromQuery] int dogadjaj_id)
         {
             Dogadjaj? d = await Context.Dogadjaji.FindAsync(dogadjaj_id);
             if(d == null)

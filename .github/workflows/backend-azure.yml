@@ -1,0 +1,36 @@
+# Deploy backend-a na Azure App Service posle svakog push-a na main koji menja Backend/.
+# Moze i rucno: GitHub -> Actions -> "Backend na Azure" -> Run workflow.
+# Treba secret AZURE_WEBAPP_PUBLISH_PROFILE (publish profile iz Azure portala).
+name: Backend na Azure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Backend/**'
+      - '.github/workflows/backend-azure.yml'
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: eventbox-api-aleksa
+  PROJEKAT: 'Backend/Novi backend za SWE.csproj'
+
+jobs:
+  build-i-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Publish
+        run: dotnet publish "${{ env.PROJEKAT }}" -c Release -o publish
+
+      - name: Deploy na Azure
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: publish
