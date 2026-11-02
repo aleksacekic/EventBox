@@ -7,6 +7,12 @@ export const ADMIN_TABOVI = [
   { tab: 'blokirani', label: 'Blokirani', ikona: 'la-ban' },
 ]
 
+// Sve admin strane: tabovi + Administratori (otvara se iz menija profila u headeru, retko se koristi)
+export const ADMIN_STRANE = [
+  ...ADMIN_TABOVI,
+  { tab: 'administratori', label: 'Administratori', ikona: 'la-user-secret' },
+]
+
 export const adminTabUrl = (tab) => `/admin?tab=${tab}`
 export const adminKorisnikUrl = (id) => `/admin?korisnik=${id}`
 

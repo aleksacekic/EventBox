@@ -241,8 +241,9 @@ namespace EventBoxApi.Controllers
         public async Task<ActionResult> VratiSveKorisnike(int id) 
         {
             //svi korisnici osim ulogovanog (preko ID-a), samo javna polja
+            bool admin = User.JeAdmin();
             var korisniciBezUlogovanog = await Context.Korisnici
-                .Where(k => k.Id != id)
+                .Where(k => k.Id != id && (admin || k.Blokiran != -1)) // blokirani se ne nude
                 .Select(KorisnikJavniDto.Projekcija)
                 .ToListAsync();
 
@@ -373,6 +374,8 @@ namespace EventBoxApi.Controllers
                 return NotFound();
 
             var upit = Context.Dogadjaji.Include(d => d.KreatorId).Where(d => d.ID_Kreatora == korisnik_Id);
+            if (!User.JeAdmin())
+                upit = upit.Where(d => d.KreatorId.Blokiran != -1); // sadrzaj blokiranih se ne prikazuje
             return Ok(await Paginacija.UzmiAsync(upit, posle, limit));
         }
 
@@ -386,6 +389,7 @@ namespace EventBoxApi.Controllers
                 return Forbid(); // svoje notifikacije
             var notifikacije = await Context.Notifikacije
                 .Where(n => n.KorisnikCijaJeObjavaId == korisnik_Id)
+                .Where(n => n.KorisnikKojiReaguje == null || n.KorisnikKojiReaguje.Blokiran != -1)
                 .OrderByDescending(n => n.Vreme).ThenByDescending(n => n.Id)
                 .Take(Math.Clamp(limit, 1, 100))
                 .Select(NotifikacijaDto.Projekcija)
@@ -484,9 +488,12 @@ namespace EventBoxApi.Controllers
             string[] niz = unos.Split(" "); //Front sprecava korisnika da unese prazan string, tako da ce uvek biti minimum 1
             niz = niz.Where(p => !string.IsNullOrEmpty(p)).ToArray(); //brisanje praznih stringova ukoliko se jave
 
+            // Blokirani korisnici se ne pronalaze - osim kad trazi administrator
+            IQueryable<Korisnik> baza = User.JeAdmin() ? Context.Korisnici : Context.Korisnici.Where(p => p.Blokiran != -1);
+
             if(niz.Length == 1)
             {
-                var korisnici = await Context.Korisnici.Where(p => p.Ime.Contains(niz[0]) || 
+                var korisnici = await baza.Where(p => p.Ime.Contains(niz[0]) || 
                                                                 p.Prezime.Contains(niz[0]) || 
                                                                 p.Korisnicko_Ime.Contains(niz[0])).Take(6).ToListAsync();
                 if(korisnici.Count() == 0)
@@ -495,10 +502,10 @@ namespace EventBoxApi.Controllers
             }
             else
             {
-                var korisnici2 = await Context.Korisnici.Where(p => p.Ime.Contains(niz[0]) && p.Prezime.Contains(niz[1])).Take(6).ToListAsync();
+                var korisnici2 = await baza.Where(p => p.Ime.Contains(niz[0]) && p.Prezime.Contains(niz[1])).Take(6).ToListAsync();
                 if(korisnici2.Count() == 0)
                 {
-                    korisnici2 = await Context.Korisnici.Where(p => p.Ime.Contains(niz[1]) && p.Prezime.Contains(niz[0])).Take(6).ToListAsync();
+                    korisnici2 = await baza.Where(p => p.Ime.Contains(niz[1]) && p.Prezime.Contains(niz[0])).Take(6).ToListAsync();
                     if(korisnici2.Count() == 0)
                         return Ok(new {kraj = "KRAJ"});
                     return Ok(korisnici2.Select(p => new {ID = p.Id, Korisnicko_Ime = p.Korisnicko_Ime, Ime = p.Ime, Prezime = p.Prezime}).ToList());

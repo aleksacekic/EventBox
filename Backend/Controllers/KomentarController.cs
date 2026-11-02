@@ -17,11 +17,14 @@ namespace EventBoxApi.Controllers
         public string Username_korisnika { get; set; }
         public string? SlikaKorisnika { get; set; }
         public DateTime Vreme { get; set; } // UTC
+        // Autor je blokiran: komentar vidi samo administrator (korisnicima se ne salje)
+        public bool AutorBlokiran { get; set; }
 
         public static KomentarDto Od(Komentar k) => new KomentarDto
         {
             Id = k.Id, Tekst = k.Tekst, AutorId = k.AutorId,
-            Username_korisnika = k.Autor.Korisnicko_Ime, SlikaKorisnika = k.Autor.KorisnikImage, Vreme = k.Vreme
+            Username_korisnika = k.Autor.Korisnicko_Ime, SlikaKorisnika = k.Autor.KorisnikImage, Vreme = k.Vreme,
+            AutorBlokiran = k.Autor.Blokiran == -1
         };
     }
 
@@ -104,8 +107,8 @@ namespace EventBoxApi.Controllers
             Komentar k = await Context.Komentari.FindAsync(id);
             if(k == null)
                 return NotFound();
-            if(k.AutorId != User.IdKorisnika())
-                return Forbid(); // brise samo autor
+            if(k.AutorId != User.IdKorisnika() && !User.JeAdmin())
+                return Forbid(); // brise autor ili administrator (moderacija)
             // Zajedno sa komentarom nestaje i notifikacija koju je napravio
             var uklonjene = await _obavestenja.UkloniAsync(Context.Notifikacije.Where(n => n.KomentarId == id));
             Context.Komentari.Remove(k);
@@ -126,6 +129,8 @@ namespace EventBoxApi.Controllers
             if (!Paginacija.TryDekodiraj(cursor, out int? posle))
                 return BadRequest("Neispravan kursor");
             var upit = Context.Komentari.Include(q => q.Autor).Where(q => q.Dogadjaj_Id.Id == id_dogadjaja);
+            if (!User.JeAdmin())
+                upit = upit.Where(q => q.Autor.Blokiran != -1); // komentari blokiranih se ne prikazuju
             var strana = await Paginacija.UzmiAsync(upit, posle, limit);
             return Ok(new
             {

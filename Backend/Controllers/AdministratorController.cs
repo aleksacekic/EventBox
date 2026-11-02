@@ -19,6 +19,29 @@ namespace EventBoxApi.Controllers
             this.Context = context;
         }
 
+        public const int MaxDuzinaImena = 50;
+
+        // ID prijavljenog administratora (claim admin_id, vidi TokenAuthenticationHandler)
+        private int? MojId() => int.TryParse(User.FindFirst("admin_id")?.Value, out int id) ? id : null;
+
+        // Sta klijent dobija o administratoru - bez lozinke i tokena. Ja = to je prijavljeni administrator.
+        private static object Javno(Administrator a, int? mojId) => new
+        {
+            a.Id, a.Ime, a.Prezime, a.Korisnicko_ime, a.Email_adresa, Ja = a.Id == mojId
+        };
+
+        // Lista administratora za admin stranicu (redom kako su dodavani)
+        [HttpGet]
+        [EnableCors("CORS")]
+        [Authorize(Roles = "Admin")]
+        [Route("VratiAdministratore")]
+        public async Task<ActionResult> VratiAdministratore()
+        {
+            int? mojId = MojId();
+            var admini = await Context.Administratori.OrderBy(a => a.Id).ToListAsync();
+            return Ok(admini.Select(a => Javno(a, mojId)));
+        }
+
         // Pravila (provera je u telu metode, zato nema [Authorize] na akciji):
         //  - dok u bazi nema nijednog administratora, prvog moze da napravi bilo ko, ali SAMO
         //    sa lokalnog racunara (npr. iz Swagger-a na localhost) - resava "ko pravi prvog admina"
@@ -48,6 +71,17 @@ namespace EventBoxApi.Controllers
             var greskaImena = KorisnickoIme.Proveri(zahtev.KorisnickoIme);
             if (greskaImena != null)
                 return BadRequest(greskaImena);
+
+            // Ime, prezime i email su obavezni (kolone su NOT NULL - bez provere bi pukao upis u bazu)
+            zahtev.Ime = zahtev.Ime?.Trim() ?? "";
+            zahtev.Prezime = zahtev.Prezime?.Trim() ?? "";
+            if (zahtev.Ime.Length == 0 || zahtev.Prezime.Length == 0)
+                return BadRequest("Ime i prezime su obavezni");
+            if (zahtev.Ime.Length > MaxDuzinaImena || zahtev.Prezime.Length > MaxDuzinaImena)
+                return BadRequest($"Ime i prezime mogu imati najvise {MaxDuzinaImena} karaktera");
+            zahtev.EmailAdresa = EmailAdresa.Normalizuj(zahtev.EmailAdresa);
+            if (EmailAdresa.Proveri(zahtev.EmailAdresa) is string greskaEmaila)
+                return BadRequest(greskaEmaila);
             if (await Context.Administratori.AnyAsync(p => p.Korisnicko_ime == zahtev.KorisnickoIme))
                 return Conflict("Administrator sa tim korisnickim imenom vec postoji");
 
@@ -66,7 +100,7 @@ namespace EventBoxApi.Controllers
             {
                 return Conflict("Administrator sa tim korisnickim imenom vec postoji");
             }
-            return Ok("Uspesno ubacen administrator: " + zahtev.Ime + " " + zahtev.Prezime);
+            return Ok(Javno(a, MojId())); // admin stranica ga odmah dodaje u listu
         }
 
         [HttpDelete]
@@ -78,6 +112,9 @@ namespace EventBoxApi.Controllers
             Administrator? a = await Context.Administratori.FindAsync(id);
             if (a == null)
                 return NotFound();
+            // Sopstveni nalog ne: administrator bi sam sebe izbacio usred rada
+            if (a.Id == MojId())
+                return BadRequest("Ne mozete obrisati sopstveni nalog");
             // Bez ijednog administratora prvog bi opet mogao da napravi bilo ko sa servera
             // (vidi DodajAdministratora) - poslednji se zato ne brise
             if (await Context.Administratori.CountAsync() == 1)

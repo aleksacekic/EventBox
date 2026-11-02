@@ -6,17 +6,19 @@ import AdminPrijave from './AdminPrijave';
 import AdminDogadjaji from './AdminDogadjaji';
 import AdminKorisnik from './AdminKorisnik';
 import BlokiraniKorisnici from './BlokiraniKorisnici';
-import { ADMIN_TABOVI } from '../utils/admin';
+import AdminAdministratori from './AdminAdministratori';
+import { ADMIN_STRANE } from '../utils/admin';
 
 // Admin stranica. Sta se prikazuje zavisi od adrese, pa radi i "Nazad" u brauzeru i
 // link se moze podeliti:
 //   /admin?tab=prijave | dogadjaji | blokirani   (tabovi su u headeru)
+//   /admin?tab=administratori                    (iz menija profila u headeru)
 //   /admin?korisnik=ID                           (pregled korisnika, iz pretrage ili sa kartice)
 function Administrator() {
   const [params] = useSearchParams();
   const korisnikId = params.get('korisnik');
   const trazeniTab = params.get('tab');
-  const tab = ADMIN_TABOVI.some((t) => t.tab === trazeniTab) ? trazeniTab : 'prijave';
+  const tab = ADMIN_STRANE.some((t) => t.tab === trazeniTab) ? trazeniTab : 'prijave';
 
   // Novi tab ili korisnik: pocni od vrha strane
   useEffect(() => {
@@ -27,6 +29,7 @@ function Administrator() {
   if (korisnikId) sadrzaj = <AdminKorisnik key={korisnikId} id={korisnikId} />;
   else if (tab === 'dogadjaji') sadrzaj = <AdminDogadjaji />;
   else if (tab === 'blokirani') sadrzaj = <BlokiraniKorisnici />;
+  else if (tab === 'administratori') sadrzaj = <AdminAdministratori />;
   else sadrzaj = <AdminPrijave />;
 
   return (

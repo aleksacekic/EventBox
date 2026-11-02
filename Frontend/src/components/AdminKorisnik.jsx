@@ -101,6 +101,11 @@ function AdminKorisnik({ id }) {
                   {k.brojPrijava > 0 ? `Prijavljen ${brojSaImenicom(k.brojPrijava, ['put', 'puta', 'puta'])}` : 'Bez prijava'}
                 </span>
               </div>
+              {k.blokiran && (
+                <p className="admin-skriveno">
+                  <i className="la la-eye-slash" /> Njegovi dogadjaji i komentari su sakriveni za ostale korisnike.
+                </p>
+              )}
             </div>
             <button
               type="button"

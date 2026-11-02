@@ -29,7 +29,8 @@ namespace EventBoxApi.Controllers
         public async Task<ActionResult> VratiDogadjaj(int id)
         {
             var dogadjaj = await Context.Dogadjaji.Include(d => d.KreatorId).FirstOrDefaultAsync(d => d.Id == id);
-            if (dogadjaj == null)
+            // Dogadjaj blokiranog korisnika je sakriven (kao da ne postoji) za sve osim administratora
+            if (dogadjaj == null || (dogadjaj.KreatorBlokiran && !User.JeAdmin()))
             {
                 return NotFound($"Događaj sa ID-em {id} nije pronađen.");
             }
@@ -169,6 +170,11 @@ namespace EventBoxApi.Controllers
         //   ?limit=3                -> prva strana
         //   ?limit=3&cursor=<kursor> -> sledeca (kursor = sledeciKursor iz prethodnog odgovora)
         // Odgovor: { stavke, sledeciKursor, imaJos, ukupno }  (ukupno samo uz prvu stranu)
+        // Sadrzaj blokiranih korisnika se ne prikazuje (ne brise se - posle odblokiranja je opet tu).
+        // Administrator vidi sve.
+        private IQueryable<Dogadjaj> Vidljivi(IQueryable<Dogadjaj> upit)
+            => User.JeAdmin() ? upit : upit.Where(d => d.KreatorId.Blokiran != -1);
+
         private async Task<ActionResult> StranaDogadjaja(IQueryable<Dogadjaj> upit, int limit, string? cursor)
         {
             if (!Paginacija.TryDekodiraj(cursor, out int? posle))
@@ -182,7 +188,7 @@ namespace EventBoxApi.Controllers
         public Task<ActionResult> VratiDogadjajeZaHomePage([FromQuery] int limit = Paginacija.PodrazumevanaVelicina, [FromQuery] string? cursor = null)
         {
             DateTime danas = DateTime.Today;
-            return StranaDogadjaja(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= danas), limit, cursor);
+            return StranaDogadjaja(Vidljivi(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= danas)), limit, cursor);
         }
 
         [HttpGet]
@@ -192,7 +198,7 @@ namespace EventBoxApi.Controllers
         {
             DateTime od = datum.Date;
             DateTime do_ = od.AddDays(1);
-            return StranaDogadjaja(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= od && d.Datum_Dogadjaja < do_), limit, cursor);
+            return StranaDogadjaja(Vidljivi(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= od && d.Datum_Dogadjaja < do_)), limit, cursor);
         }
 
         // Admin: SVI dogadjaji, i oni koji su prosli (feed korisnika prikazuje samo predstojece),
@@ -220,7 +226,7 @@ namespace EventBoxApi.Controllers
             if (string.IsNullOrWhiteSpace(naziv))
                 return BadRequest("Naziv je obavezan");
             DateTime danas = DateTime.Today;
-            return await StranaDogadjaja(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= danas && d.Naslov.Contains(naziv)), limit, cursor);
+            return await StranaDogadjaja(Vidljivi(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= danas && d.Naslov.Contains(naziv))), limit, cursor);
         }
     }
 }

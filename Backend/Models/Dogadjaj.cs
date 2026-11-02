@@ -23,6 +23,9 @@ namespace Models
         public string UserName_Kreatora => KreatorId?.Korisnicko_Ime;
         [NotMapped]
         public string SlikaKorisnika => KreatorId?.KorisnikImage;
+        // Kreator je blokiran: njegovi dogadjaji se korisnicima ne prikazuju, admin ih vidi sa oznakom
+        [NotMapped]
+        public bool KreatorBlokiran => KreatorId?.Blokiran == -1;
 
         [Required]
         public DateTime Datum_Objave {get; set;}

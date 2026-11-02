@@ -2,7 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { INFO_STRANICE } from '../infoStranice'
 import { useAuth } from '../auth'
-import { ADMIN_TABOVI, adminTabUrl } from '../utils/admin'
+import { ADMIN_STRANE, adminTabUrl } from '../utils/admin'
 
 const BRZI_LINKOVI = [
   { to: '/pocetna', label: 'Pocetna' },
@@ -13,7 +13,7 @@ const BRZI_LINKOVI = [
 function Footer() {
   const { isAdmin } = useAuth()
   // Administrator nema Pocetnu, Profil ni Poruke - umesto njih linkovi na admin tabove
-  const linkovi = isAdmin ? ADMIN_TABOVI.map((t) => ({ to: adminTabUrl(t.tab), label: t.label })) : BRZI_LINKOVI
+  const linkovi = isAdmin ? ADMIN_STRANE.map((t) => ({ to: adminTabUrl(t.tab), label: t.label })) : BRZI_LINKOVI
 
   return (
     <footer className="app-footer">

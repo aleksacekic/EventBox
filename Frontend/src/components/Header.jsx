@@ -209,7 +209,11 @@ function Header() {
 
               {meniOtvoren && (
                 <div className="app-header-menu" role="menu">
-                  {!isAdmin && (
+                  {isAdmin ? (
+                    <Link to={adminTabUrl("administratori")} role="menuitem" onClick={() => setMeniOtvoren(false)}>
+                      <i className="la la-user-secret" /> Administratori
+                    </Link>
+                  ) : (
                     <Link to="/profil" role="menuitem" onClick={() => setMeniOtvoren(false)}>
                       <i className="la la-user" /> Moj profil
                     </Link>

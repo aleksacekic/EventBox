@@ -4,21 +4,26 @@ import { toast } from 'react-toastify';
 import { api, API_BASE } from '../api';
 import Avatar from './Avatar';
 import HideShowMapa from './Hide&ShowMapa';
+import AdminKomentari from './AdminKomentari';
 import { formatDatum } from '../utils/datum';
 import { jeZavrsen } from '../utils/dogadjaj';
 import { RAZLOZI_PRIJAVE, adminKorisnikUrl, brojSaImenicom } from '../utils/admin';
 
 // Kartica dogadjaja za administratora. Izgled je isti kao kartica na feedu (dogadjaj-card-*),
-// ali bez reakcija i komentara, a sa akcijama moderacije.
+// ali bez reakcija i forme za komentar, a sa akcijama moderacije.
 //  - prijava: red iz /Pr_dog/VratiPrijavljene_dog (broj prijava + do 5 razloga) kad se
 //    kartica prikazuje u listi prijava; tada postoje i "Razlozi" i "Odbaci prijavu"
 //  - prikaziAutora=false: na pregledu korisnika (autor je vec prikazan iznad liste,
 //    a blokiranje je dugme na kartici korisnika)
 function AdminDogadjajKartica({ dogadjaj, prijava, onObrisan, onPrijavaOdbacena, prikaziAutora = true }) {
   const navigate = useNavigate();
-  const [razloziOtvoreni, setRazloziOtvoreni] = useState(false);
+  const [panel, setPanel] = useState(null); // 'razlozi' | 'komentari' | null
   const [radi, setRadi] = useState(false); // dok traje jedna akcija, dugmad su iskljucena
+  // Blokiran autor: dogadjaj je sakriven za korisnike (admin ga vidi). Menja se i odavde.
+  const [autorBlokiran, setAutorBlokiran] = useState(Boolean(dogadjaj.kreatorBlokiran));
   const zavrsen = jeZavrsen(dogadjaj);
+
+  const prebaciPanel = (ime) => setPanel((p) => (p === ime ? null : ime));
 
   const akcija = async (pitanje, posao) => {
     if (radi || !window.confirm(pitanje)) return;
@@ -44,18 +49,25 @@ function AdminDogadjajKartica({ dogadjaj, prijava, onObrisan, onPrijavaOdbacena,
     }
   );
 
-  const blokirajAutora = () => akcija(
-    `Blokirati korisnika @${dogadjaj.userName_Kreatora}? Odmah ce biti odjavljen i nece moci da se prijavi.`,
-    async () => {
-      try {
-        await api.put(`/Korisnik/BlokirajKorisnika/${dogadjaj.iD_Kreatora}`);
-        toast.success(`Korisnik @${dogadjaj.userName_Kreatora} je blokiran.`);
-      } catch (error) {
-        console.error('Blokiranje nije uspelo:', error);
-        toast.error('Blokiranje nije uspelo. Pokusajte ponovo.');
+  const promeniBlokaduAutora = () => {
+    const blokiraj = !autorBlokiran;
+    const ime = `@${dogadjaj.userName_Kreatora}`;
+    return akcija(
+      blokiraj
+        ? `Blokirati korisnika ${ime}? Odmah ce biti odjavljen, a njegovi dogadjaji i komentari se sakrivaju.`
+        : `Odblokirati korisnika ${ime}? Ponovo ce moci da se prijavi, a njegov sadrzaj se opet vidi.`,
+      async () => {
+        try {
+          await api.put(`/Korisnik/${blokiraj ? 'Blokiraj' : 'Odblokiraj'}Korisnika/${dogadjaj.iD_Kreatora}`);
+          setAutorBlokiran(blokiraj);
+          toast.success(`Korisnik ${ime} je ${blokiraj ? 'blokiran' : 'odblokiran'}.`);
+        } catch (error) {
+          console.error('Promena blokade nije uspela:', error);
+          toast.error('Akcija nije uspela. Pokusajte ponovo.');
+        }
       }
-    }
-  );
+    );
+  };
 
   const odbaciPrijavu = () => akcija(
     'Odbaciti prijavu? Dogadjaj ostaje objavljen, a razlozi prijave se brisu.',
@@ -112,6 +124,11 @@ function AdminDogadjajKartica({ dogadjaj, prijava, onObrisan, onPrijavaOdbacena,
             {formatDatum(dogadjaj.datum_Dogadjaja)}. od {dogadjaj.vreme_pocetka}
           </span>
         </div>
+        {autorBlokiran && prikaziAutora && (
+          <p className="admin-skriveno">
+            <i className="la la-eye-slash" /> Autor je blokiran, pa korisnici ne vide ovaj dogadjaj.
+          </p>
+        )}
         {dogadjaj.opis && <p className="dogadjaj-card-desc">{dogadjaj.opis}</p>}
         {dogadjaj.dogadjajImage && (
           <img src={`${API_BASE}/resources/${dogadjaj.dogadjajImage}`} alt="" loading="lazy" className="dogadjaj-card-image" />
@@ -124,7 +141,41 @@ function AdminDogadjajKartica({ dogadjaj, prijava, onObrisan, onPrijavaOdbacena,
         </div>
       </div>
 
-      {prijava && razloziOtvoreni && (
+      <div className="dogadjaj-card-actions admin-akcije">
+        {prijava && (
+          <>
+            <button
+              type="button"
+              className={`dogadjaj-card-action ${panel === 'razlozi' ? 'is-active' : ''}`}
+              onClick={() => prebaciPanel('razlozi')}
+              aria-expanded={panel === 'razlozi'}
+            >
+              <i className="la la-list" /> Razlozi
+            </button>
+            <button type="button" className="dogadjaj-card-action" onClick={odbaciPrijavu} disabled={radi}>
+              <i className="la la-check" /> Odbaci prijavu
+            </button>
+          </>
+        )}
+        <button
+          type="button"
+          className={`dogadjaj-card-action ${panel === 'komentari' ? 'is-active' : ''}`}
+          onClick={() => prebaciPanel('komentari')}
+          aria-expanded={panel === 'komentari'}
+        >
+          <i className="la la-comments" /> Komentari
+        </button>
+        {prikaziAutora && (
+          <button type="button" className="dogadjaj-card-action" onClick={promeniBlokaduAutora} disabled={radi}>
+            <i className={`la ${autorBlokiran ? 'la-unlock' : 'la-ban'}`} /> {autorBlokiran ? 'Odblokiraj autora' : 'Blokiraj autora'}
+          </button>
+        )}
+        <button type="button" className="dogadjaj-card-action is-danger" onClick={obrisi} disabled={radi}>
+          <i className="la la-trash" /> Obrisi dogadjaj
+        </button>
+      </div>
+
+      {prijava && panel === 'razlozi' && (
         <ul className="admin-razlozi">
           {prijava.razlozi.map((r) => (
             <li key={r.id}>
@@ -141,31 +192,7 @@ function AdminDogadjajKartica({ dogadjaj, prijava, onObrisan, onPrijavaOdbacena,
         </ul>
       )}
 
-      <div className="dogadjaj-card-actions admin-akcije">
-        {prijava && (
-          <>
-            <button
-              type="button"
-              className={`dogadjaj-card-action ${razloziOtvoreni ? 'is-active' : ''}`}
-              onClick={() => setRazloziOtvoreni((v) => !v)}
-              aria-expanded={razloziOtvoreni}
-            >
-              <i className="la la-list" /> Razlozi
-            </button>
-            <button type="button" className="dogadjaj-card-action" onClick={odbaciPrijavu} disabled={radi}>
-              <i className="la la-check" /> Odbaci prijavu
-            </button>
-          </>
-        )}
-        {prikaziAutora && (
-          <button type="button" className="dogadjaj-card-action" onClick={blokirajAutora} disabled={radi}>
-            <i className="la la-ban" /> Blokiraj autora
-          </button>
-        )}
-        <button type="button" className="dogadjaj-card-action is-danger" onClick={obrisi} disabled={radi}>
-          <i className="la la-trash" /> Obrisi dogadjaj
-        </button>
-      </div>
+      {panel === 'komentari' && <AdminKomentari dogadjajId={dogadjaj.id} />}
     </article>
   );
 }
