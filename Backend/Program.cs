@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.OpenApi.Models;
 using EventBoxApi.Auth;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.HttpOverrides;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,27 +20,27 @@ builder.Services.AddDbContext<EventBoxContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("EventBoxDB"));
 });
 
+// Dozvoljene adrese frontenda: Cors:Origins u appsettings.json (lokalno http://localhost:3000).
+// Na serveru se zadaju promenljivom okruzenja, npr. Cors__Origins__0=https://eventbox.vercel.app
+var dozvoljeneAdrese = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("CORS", builder =>
-                {
-                    builder.WithOrigins(new string[]
-                    {
-                        "http://localhost:8080",
-                        "https://localhost:8080",
-                        "http://127.0.0.1:8080",
-                        "https://127.0.0.1:8080",
-                        "http://127.0.0.1:5500",
-                        "http://localhost:5500",
-                        "http://127.0.0.1:5500",
-                        "https://localhost:5500",
-			            "http://localhost:3000"
-                    })
-                    .AllowAnyHeader()
-                    .AllowAnyMethod()
-                    .AllowCredentials();
-                });
-            });
+{
+    options.AddPolicy("CORS", policy => policy
+        .WithOrigins(dozvoljeneAdrese)
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
+});
+
+// Iza proksija (Azure App Service) zahtev stize sa adrese proksija i preko HTTP-a. Prava IP adresa
+// korisnika i https su u X-Forwarded-For / X-Forwarded-Proto - bez ovoga bi rate limit po IP-u
+// delili svi korisnici, a UseHttpsRedirection bi mogao da preusmerava u krug.
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    o.KnownNetworks.Clear(); // adresa Azure proksija nije unapred poznata
+    o.KnownProxies.Clear();
+});
 
 
 builder.Services.AddControllers();
@@ -80,6 +81,9 @@ builder.Services.AddSignalR();
 
 var app = builder.Build();
 
+// Prvo: prava IP adresa i protokol iz zaglavlja proksija (vidi ForwardedHeadersOptions gore)
+app.UseForwardedHeaders();
+
 // Globalni handler gresaka: svaki neocekivan izuzetak (baza nedostupna, bug u kodu...) se upise
 // u log sa svim detaljima, a klijent dobija 500 i opstu poruku - bez teksta izuzetka, jer bi
 // on otkrio semu baze i unutrasnjost servera. traceId povezuje odgovor sa zapisom u logu.
@@ -113,7 +117,7 @@ app.UseHttpsRedirection();
 // a nosniff zabranjuje pregledacu da fajl "pogadja" kao nesto drugo (npr. HTML sa skriptom).
 // Ime fajla je nasumicni GUID koji se nikad ne menja, pa slika moze dugo da stoji u kesu.
 app.UseStaticFiles(new StaticFileOptions {
-    FileProvider = new PhysicalFileProvider(Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "Uploads")).FullName),
+    FileProvider = new PhysicalFileProvider(Directory.CreateDirectory(FileService.Folder(builder.Configuration, builder.Environment)).FullName),
     RequestPath = "/Resources",
     OnPrepareResponse = ctx =>
     {

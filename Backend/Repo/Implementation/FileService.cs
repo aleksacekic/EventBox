@@ -11,11 +11,17 @@ namespace EventBoxApi.Repo.Implementation
         private readonly string _folder;
         private readonly ILogger<FileService> _log;
 
-        public FileService(IWebHostEnvironment env, ILogger<FileService> log)
+        public FileService(IWebHostEnvironment env, IConfiguration config, ILogger<FileService> log)
         {
-            _folder = Path.Combine(env.ContentRootPath, "Uploads");
+            _folder = Folder(config, env);
             _log = log;
         }
+
+        // Folder za slike: Uploads:Folder iz konfiguracije (lokalno "Uploads" pored projekta).
+        // Na Azure-u se zadaje van foldera sa kodom (npr. Uploads__Folder=/home/data/uploads),
+        // jer se folder sa kodom menja pri svakom deploy-u. Apsolutna putanja se koristi kakva jeste.
+        public static string Folder(IConfiguration config, IWebHostEnvironment env)
+            => Path.Combine(env.ContentRootPath, config["Uploads:Folder"] ?? "Uploads");
 
         public async Task<RezultatSlike> SacuvajSlikuAsync(IFormFile? fajl)
         {
