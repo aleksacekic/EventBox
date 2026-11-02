@@ -32,31 +32,6 @@
 	color:red;
 }
 
-.pr_dog_klasa {
-	padding-top: 60px;
-	padding-left: 28%;
-	padding-right: 28%; 
-	padding-bottom: 50px;
-}
-
-.profilnaslikaheader{
-	width: 30px;
-  height: 30px;
-  object-fit: cover;
-  object-position: center;
-}
-
-.job_descp2
-{
-	display:flex;
-	justify-content: center;
-	padding: 20px;
-	margin: 10px;
-	border:1px solid black;
-	color:white;
-	background-color: #e93933;
-	font-weight: bold;
-}
 
 /* Dodatni stilovi za bolji izgled */
 
@@ -2175,7 +2150,7 @@ select {
 }
 
 /* ================= app-header (moderan header, zamena za stari header/nav/search-bar/user-account) ================= */
-/* Napomena: HeaderAdmin.jsx i dalje koristi stare klase (logo, user-account...) - ne diramo ih. */
+/* Isti header koristi i administrator, u drugoj boji (.app-header--admin, na kraju fajla). */
 
 .app-header {
 	position: sticky;
@@ -4200,17 +4175,11 @@ a:hover {
 	border-width: 2px;
 	font-size: 20px;
 }
-.profilnaslikaheader.avatar-inicijal {
-	font-size: 14px;
-}
 .app-header-avatar.avatar-inicijal {
 	font-size: 15px;
 }
 
-/* Admin: tabovi i lista blokiranih korisnika (Administrator.jsx, BlokiraniKorisnici.jsx) */
-.admin-sadrzaj {
-	padding-top: 20px;
-}
+/* Admin: lista blokiranih korisnika (BlokiraniKorisnici.jsx) */
 .blokirani {
 	display: flex;
 	flex-direction: column;
@@ -4251,15 +4220,420 @@ a:hover {
 }
 .blokirani-dugme {
 	flex-shrink: 0;
-	border: 1.5px solid #ffa500;
+	border: 1.5px solid #53d690;
 	border-radius: 10px;
 	background: #fff;
-	color: #e69200;
+	color: #2f9e63;
 	padding: 6px 14px;
 	font-size: 14px;
 	font-weight: 600;
 	cursor: pointer;
 }
 .blokirani-dugme:hover {
-	background-color: #fff4e0;
+	background-color: #e9f7ee;
+}
+.blokirani-link {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	color: inherit;
+	text-decoration: none;
+}
+.blokirani-link:hover {
+	color: inherit;
+	text-decoration: none;
+}
+.blokirani-link:hover strong {
+	color: var(--eb-admin, #E8590C);
+}
+
+/* ================= admin stranica (Administrator.jsx i Admin* komponente) ================= */
+
+/* Header administratora: isti kao za korisnike, samo tamnija narandzasta, da se odmah vidi da
+   je to adminski nalog. Promenljive vaze samo unutar headera (pozadina, aktivna stavka, meni). */
+:root {
+	--eb-admin: #E8590C;
+	--eb-admin-tint: #FDEDE3;
+}
+.app-header--admin {
+	--eb-orange: var(--eb-admin);
+	--eb-orange-tint: var(--eb-admin-tint);
+}
+
+.admin-kontejner {
+	max-width: 760px;
+}
+
+/* Zaglavlje dela stranice (AdminNaslov.jsx) */
+.admin-naslov {
+	margin-bottom: 18px;
+	padding: 18px 20px;
+	background-color: #fff;
+	border-radius: 16px;
+	box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+}
+.admin-naslov-red {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+.admin-naslov-ikona {
+	width: 44px;
+	height: 44px;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 12px;
+	background-color: var(--eb-admin-tint);
+	color: var(--eb-admin);
+	font-size: 22px;
+}
+.admin-naslov-tekst {
+	min-width: 0;
+}
+.admin-naslov h2 {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	color: #1a1a1a;
+	font-size: 19px;
+	font-weight: 700;
+}
+.admin-naslov p {
+	margin: 3px 0 0;
+	color: #888;
+	font-size: 13.5px;
+	line-height: 1.45;
+}
+.admin-broj {
+	min-width: 24px;
+	padding: 0 8px;
+	border-radius: 999px;
+	background-color: #f1f1f1;
+	color: #555;
+	font-size: 12.5px;
+	font-weight: 700;
+	line-height: 22px;
+	text-align: center;
+}
+
+.admin-pretraga {
+	position: relative;
+	margin-top: 14px;
+}
+.admin-pretraga i {
+	position: absolute;
+	top: 50%;
+	left: 14px;
+	transform: translateY(-50%);
+	color: #aaa;
+	font-size: 18px;
+	pointer-events: none;
+}
+.admin-pretraga input {
+	width: 100%;
+	height: 42px;
+	padding: 0 14px 0 40px;
+	border: 1.5px solid #e4e4e4;
+	border-radius: 999px;
+	background-color: #fafafa;
+	font-size: 14.5px;
+	outline: none;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.admin-pretraga input:focus {
+	border-color: var(--eb-admin);
+	background-color: #fff;
+}
+
+.admin-prazno {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	background-color: #fff;
+}
+.admin-prazno i {
+	color: #ccc;
+	font-size: 34px;
+}
+
+/* Kartica dogadjaja za admina (AdminDogadjajKartica.jsx) - nasledjuje dogadjaj-card-* */
+.admin-autor {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	text-align: left;
+	cursor: pointer;
+}
+.admin-autor-ime {
+	color: #1a1a1a;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.2;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.admin-autor:hover .admin-autor-ime {
+	color: var(--eb-admin);
+	text-decoration: underline;
+}
+.admin-autor:focus-visible {
+	outline: 2px solid var(--eb-admin);
+	outline-offset: 4px;
+	border-radius: 8px;
+}
+.admin-prijave-broj {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	flex-shrink: 0;
+	padding: 5px 11px;
+	border-radius: 999px;
+	background-color: #fdecec;
+	color: #c9302c;
+	font-size: 12.5px;
+	font-weight: 700;
+	white-space: nowrap;
+}
+.admin-reakcije {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 16px;
+	margin-top: 14px;
+	color: #777;
+	font-size: 13px;
+}
+.admin-reakcije span {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+.admin-reakcije i {
+	font-size: 16px;
+}
+
+.admin-razlozi {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 12px 20px 14px;
+	border-top: 1px solid #f0f0f0;
+	background-color: #fcfcfc;
+	list-style: none;
+}
+.admin-razlozi li {
+	padding: 10px 12px;
+	border: 1px solid #f0f0f0;
+	border-radius: 10px;
+	background-color: #fff;
+}
+.admin-razlog-oznaka {
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: 999px;
+	background-color: #fdecec;
+	color: #c9302c;
+	font-size: 12.5px;
+	font-weight: 700;
+}
+.admin-razlozi p {
+	margin: 6px 0 0;
+	color: #555;
+	font-size: 13.5px;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+.admin-razlozi li.admin-razlozi-jos {
+	padding: 2px 4px;
+	border: 0;
+	background: transparent;
+	color: #999;
+	font-size: 13px;
+}
+
+.admin-akcije {
+	flex-wrap: wrap;
+}
+.dogadjaj-card-action.is-active {
+	background-color: var(--eb-admin-tint);
+	color: var(--eb-admin);
+}
+.admin-akcije .dogadjaj-card-action:hover {
+	background-color: var(--eb-admin-tint);
+	color: var(--eb-admin);
+}
+.admin-akcije .dogadjaj-card-action.is-danger:hover {
+	background-color: rgba(224, 90, 90, 0.08);
+	color: #e05a5a;
+}
+.dogadjaj-card-action:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+/* Pregled korisnika (AdminKorisnik.jsx) */
+.admin-nazad {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 14px;
+	padding: 7px 14px 7px 10px;
+	border: 0;
+	border-radius: 999px;
+	background-color: #fff;
+	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+	color: #555;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+}
+.admin-nazad:hover {
+	color: var(--eb-admin);
+}
+.admin-korisnik {
+	display: flex;
+	align-items: center;
+	gap: 20px;
+	margin-bottom: 24px;
+	padding: 22px;
+	background-color: #fff;
+	border-radius: 16px;
+	box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+}
+.admin-korisnik-avatar {
+	width: 88px;
+	height: 88px;
+	flex-shrink: 0;
+	border-radius: 999px;
+	object-fit: cover;
+	object-position: center;
+}
+.admin-korisnik-avatar.avatar-inicijal {
+	font-size: 34px;
+}
+.admin-korisnik-info {
+	flex: 1;
+	min-width: 0;
+}
+.admin-korisnik-info h2 {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	color: #1a1a1a;
+	font-size: 21px;
+	font-weight: 700;
+}
+.admin-korisnik-korisnicko {
+	margin-top: 2px;
+	color: #888;
+	font-size: 14.5px;
+}
+.admin-korisnik-detalji {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 16px;
+	margin-top: 12px;
+	color: #666;
+	font-size: 13.5px;
+}
+.admin-korisnik-detalji span {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	min-width: 0;
+	word-break: break-all;
+}
+.admin-korisnik-detalji .admin-korisnik-prijave {
+	color: #c9302c;
+	font-weight: 600;
+}
+.admin-korisnik-ucitava {
+	padding: 30px 0;
+	color: #999;
+}
+.admin-status {
+	padding: 3px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 700;
+}
+.admin-status.is-aktivan {
+	background-color: #e9f7ee;
+	color: #2f9e63;
+}
+.admin-status.is-blokiran {
+	background-color: #fdecec;
+	color: #c9302c;
+}
+.admin-dugme {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	flex-shrink: 0;
+	height: 40px;
+	padding: 0 18px;
+	border: 1.5px solid #e05a5a;
+	border-radius: 10px;
+	background-color: #fff;
+	color: #c9302c;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+.admin-dugme:hover {
+	background-color: #fdecec;
+}
+.admin-dugme.is-odblokiraj {
+	border-color: #53d690;
+	color: #2f9e63;
+}
+.admin-dugme.is-odblokiraj:hover {
+	background-color: #e9f7ee;
+}
+.admin-dugme:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+.admin-podnaslov {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 14px;
+	color: #1a1a1a;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+@media (max-width: 600px) {
+	.admin-akcije .dogadjaj-card-action {
+		flex: 1 1 45%;
+	}
+	.admin-korisnik {
+		flex-direction: column;
+		text-align: center;
+	}
+	.admin-korisnik-info h2,
+	.admin-korisnik-detalji {
+		justify-content: center;
+	}
+	.admin-dugme {
+		width: 100%;
+	}
+	.admin-naslov {
+		padding: 16px;
+	}
+	.admin-naslov h2 {
+		font-size: 17px;
+	}
 }

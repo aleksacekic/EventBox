@@ -33,7 +33,7 @@ function App() {
             <Route path="/objava/:id" element={<RequireAuth><DogadjajZasebno /></RequireAuth>} />
             <Route path="/chat" element={<RequireAuth><Chat /></RequireAuth>} />
             {INFO_STRANICE.map((s) => (
-              <Route key={s.slug} path={s.putanja} element={<RequireAuth><InfoStranica slug={s.slug} /></RequireAuth>} />
+              <Route key={s.slug} path={s.putanja} element={<RequireAuth svi><InfoStranica slug={s.slug} /></RequireAuth>} />
             ))}
           </Routes>
           {/* Kratke poruke (toast.success/error/...) umesto alert(), koji blokira stranicu */}

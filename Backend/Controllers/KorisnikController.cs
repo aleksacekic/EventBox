@@ -432,6 +432,35 @@ namespace EventBoxApi.Controllers
             return Ok("Korisnik je odblokiran");
         }
 
+        // Admin: pregled jednog korisnika - javni podaci + status naloga i koliko je puta
+        // prijavljen njegov sadrzaj (bez lozinke, heša i tokena, kao KorisnikJavniDto)
+        [HttpGet]
+        [EnableCors("CORS")]
+        [Authorize(Roles = "Admin")]
+        [Route("VratiKorisnikaAdmin/{korisnik_id}")]
+        public async Task<ActionResult> VratiKorisnikaAdmin(int korisnik_id)
+        {
+            var k = await Context.Korisnici
+                .Where(p => p.Id == korisnik_id)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.Ime,
+                    p.Prezime,
+                    p.Korisnicko_Ime,
+                    p.Email_Adresa,
+                    p.Datum_rodjenja,
+                    p.KorisnikImage,
+                    Blokiran = p.Blokiran == -1,
+                    BrojDogadjaja = Context.Dogadjaji.Count(d => d.ID_Kreatora == p.Id),
+                    BrojPrijava = Context.Razlozi.Count(r => r.Prijavljeni_dogadjaj_Id.Dogadjaj_Id.ID_Kreatora == p.Id),
+                })
+                .FirstOrDefaultAsync();
+            if (k == null)
+                return NotFound($"Korisnik sa id-em {korisnik_id} ne postoji");
+            return Ok(k);
+        }
+
         // Blokirani korisnici za admina, najnoviji nalozi prvi,
         // stranicenje kursorom kao i ostale liste (Models/Paginacija.cs)
         [HttpGet]

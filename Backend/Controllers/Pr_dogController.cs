@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using Models;
 
 namespace EventBoxApi.Controllers
@@ -55,34 +56,54 @@ namespace EventBoxApi.Controllers
             if (await Context.Razlozi.AnyAsync(r => r.PrijavioId == prijavio && r.Prijavljeni_dogadjaj_Id.Dogadjaj_Id.Id == dogadjaj_Id))
                 return Conflict("Vec ste prijavili ovaj dogadjaj");
 
-            using var transakcija = await Context.Database.BeginTransactionAsync();
-            Prijavljeni_dogadjaj pr_dog = await Context.Prijavljeni_dogadjaji.FirstOrDefaultAsync(p => p.Dogadjaj_Id.Id == dogadjaj_Id);
-            if (pr_dog == null)
+            // Retry (EnableRetryOnFailure u Program.cs) ne radi sa rucnom transakcijom, pa cela
+            // transakcija ide kroz execution strategy: ako baza privremeno nije dostupna, ponovi se ceo blok.
+            Prijavljeni_dogadjaj? pr_dog = null;
+            Razlog? razlog = null;
+            bool vecPrijavljeno = false;
+            var strategija = Context.Database.CreateExecutionStrategy();
+            await strategija.ExecuteAsync(async () =>
             {
-                pr_dog = new Prijavljeni_dogadjaj { Dogadjaj_Id = d, Broj_prijava = 0 };
-                Context.Prijavljeni_dogadjaji.Add(pr_dog);
-            }
-            Context.Razlozi.Add(new Razlog
-            {
-                Prijavljeni_dogadjaj_Id = pr_dog,
-                Razlog_prijave = zahtev.Razlog,
-                Opis = opis,
-                PrijavioId = prijavio
-            });
+                // Ponovni pokusaj: odbaci ono sto je prethodni (neuspeli) pokusaj dodao u context
+                if (razlog != null)
+                    Context.Entry(razlog).State = EntityState.Detached;
+                if (pr_dog != null && Context.Entry(pr_dog).State == EntityState.Added)
+                    Context.Entry(pr_dog).State = EntityState.Detached;
 
-            try
-            {
-                await Context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                // Jedinstveni indeksi: isti korisnik ili drugi prvi prijavljivac u istom trenutku
+                await using var transakcija = await Context.Database.BeginTransactionAsync();
+                pr_dog = await Context.Prijavljeni_dogadjaji.FirstOrDefaultAsync(p => p.Dogadjaj_Id.Id == dogadjaj_Id);
+                if (pr_dog == null)
+                {
+                    pr_dog = new Prijavljeni_dogadjaj { Dogadjaj_Id = d, Broj_prijava = 0 };
+                    Context.Prijavljeni_dogadjaji.Add(pr_dog);
+                }
+                razlog = new Razlog
+                {
+                    Prijavljeni_dogadjaj_Id = pr_dog,
+                    Razlog_prijave = zahtev.Razlog,
+                    Opis = opis,
+                    PrijavioId = prijavio
+                };
+                Context.Razlozi.Add(razlog);
+
+                try
+                {
+                    await Context.SaveChangesAsync();
+                }
+                catch (DbUpdateException e) when (e.InnerException is SqlException { Number: 2601 or 2627 })
+                {
+                    // Jedinstveni indeksi: isti korisnik ili drugi prvi prijavljivac u istom trenutku.
+                    // Samo greska duplikata - privremene greske baze idu dalje, na retry.
+                    vecPrijavljeno = true;
+                    return; // transakcija se ponistava pri izlasku (await using)
+                }
+                // Brojac se racuna iz razloga jednim UPDATE-om (bez ++ koji gubi paralelne prijave)
+                await Context.Database.ExecuteSqlInterpolatedAsync(
+                    $"UPDATE Prijavljeni_dogadjaj SET Broj_prijava = (SELECT COUNT(*) FROM Razlog WHERE Prijavljeni_dogadjaj_IdId = {pr_dog.Id}) WHERE Id = {pr_dog.Id}");
+                await transakcija.CommitAsync();
+            });
+            if (vecPrijavljeno)
                 return Conflict("Prijava je vec upisana, pokusajte ponovo");
-            }
-            // Brojac se racuna iz razloga jednim UPDATE-om (bez ++ koji gubi paralelne prijave)
-            await Context.Database.ExecuteSqlInterpolatedAsync(
-                $"UPDATE Prijavljeni_dogadjaj SET Broj_prijava = (SELECT COUNT(*) FROM Razlog WHERE Prijavljeni_dogadjaj_IdId = {pr_dog.Id}) WHERE Id = {pr_dog.Id}");
-            await transakcija.CommitAsync();
 
             // Vlasnik saznaje razlog, ali ne i ko je prijavio
             await _obavestenja.NotifikujVlasnikaAsync(d, null, TipNotifikacije.Prijava, zahtev.Razlog);

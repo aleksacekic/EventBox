@@ -31,7 +31,6 @@
 
 
 @media (max-width: 768px) {
-	.pr_dog_klasa {padding-left: 10%; padding-right: 10%; padding-top: 80px;}
 	.no-pd {padding: 0;}
 	/* .user-profile{display:none !important;}
 	.user-fw-status{display:none !important;} */
@@ -39,7 +38,6 @@
 
 
 @media (max-width: 576px) {
-	.pr_dog_klasa {padding-left: 4%; padding-right: 4%; padding-top: 120px;}
 	.logo {width: 100%;text-align: center;}
 	.logo img {float: none;}
 	.user-account {float: left;}
@@ -51,13 +49,7 @@
 	.user-account-settingss {right: auto;left: 0;}
 }
 
-	@media (max-width: 1015px)
-{
-    /* .pr_dog_klasa {padding-left: 20%; padding-right: 20%; padding-top: 80px;} */
-}
-
 @media (max-width: 410px) {
-	.pr_dog_klasa {padding-left: 4%; padding-right: 4%; padding-top: 120px;}
 	.komentardiv,
   .prijavidiv {padding: 10px 4px;text-align: center;}
 	.like-com li a{white-space: nowrap;}

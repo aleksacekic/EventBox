@@ -17,7 +17,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<EventBoxContext>(options => 
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("EventBoxDB"));
+    // Retry: besplatna Azure SQL baza je serverless i posle neaktivnosti se pauzira. Dok se budi
+    // (do ~1 min), odbija konekcije privremenom greskom - EF tada sam ponovi upit umesto da
+    // korisnik dobije 500. Rucne transakcije zato moraju kroz CreateExecutionStrategy (Pr_dog).
+    options.UseSqlServer(builder.Configuration.GetConnectionString("EventBoxDB"),
+        sql => sql.EnableRetryOnFailure(maxRetryCount: 6, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null));
 });
 
 // Dozvoljene adrese frontenda: Cors:Origins u appsettings.json (lokalno http://localhost:3000).

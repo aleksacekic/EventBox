@@ -195,6 +195,23 @@ namespace EventBoxApi.Controllers
             return StranaDogadjaja(Context.Dogadjaji.Where(d => d.Datum_Dogadjaja >= od && d.Datum_Dogadjaja < do_), limit, cursor);
         }
 
+        // Admin: SVI dogadjaji, i oni koji su prosli (feed korisnika prikazuje samo predstojece),
+        // najnoviji prvi, stranicenje kursorom. ?naziv= opciono suzava po nazivu.
+        [HttpGet]
+        [EnableCors("CORS")]
+        [Authorize(Roles = "Admin")]
+        [Route("VratiSveDogadjaje")]
+        public Task<ActionResult> VratiSveDogadjaje([FromQuery] string? naziv, [FromQuery] int limit = Paginacija.PodrazumevanaVelicina, [FromQuery] string? cursor = null)
+        {
+            IQueryable<Dogadjaj> upit = Context.Dogadjaji;
+            if (!string.IsNullOrWhiteSpace(naziv))
+            {
+                string trazi = naziv.Trim();
+                upit = upit.Where(d => d.Naslov.Contains(trazi));
+            }
+            return StranaDogadjaja(upit, limit, cursor);
+        }
+
         [HttpGet]
         [EnableCors("CORS")]
         [Route("VratiDogadjajePoNazivu")]

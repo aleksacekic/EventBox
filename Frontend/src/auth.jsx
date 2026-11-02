@@ -99,13 +99,15 @@ export function useAuth() {
 // se zasticena strana montira (nema bleska UI-ja, nema bacenih zahteva).
 // `from` cuva gde je korisnik hteo, da ga login vrati tamo posle prijave.
 // admin=true: ruta samo za administratore; obicna ruta administratora salje na /admin.
-export function RequireAuth({ children, admin = false }) {
+// svi=true: ruta za oba (info stranice iz footera).
+export function RequireAuth({ children, admin = false, svi = false }) {
   const { isLoggedIn, isAdmin } = useAuth()
   const location = useLocation()
 
   if (!isLoggedIn) {
     return <Navigate to="/" replace state={{ from: location }} />
   }
+  if (svi) return children // npr. info stranice: i korisnik i administrator
   if (admin && !isAdmin) return <Navigate to="/pocetna" replace />
   if (!admin && isAdmin) return <Navigate to="/admin" replace />
   return children

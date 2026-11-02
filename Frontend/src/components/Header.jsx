@@ -1,9 +1,10 @@
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useNotifications } from '../notifications';
+import { ADMIN_TABOVI, adminKorisnikUrl, adminTabUrl } from '../utils/admin';
 import Avatar from './Avatar';
-import React, { useState, useEffect, useRef } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Link, NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 const NAV_STAVKE = [
   { to: "/pocetna", label: "Pocetna", ikona: "la-home" },
@@ -11,9 +12,14 @@ const NAV_STAVKE = [
   { to: "/chat", label: "Poruke", ikona: "la-envelope" },
 ];
 
+// Isti header za korisnika i administratora. Administrator ima drugu boju (app-header--admin),
+// a stavke navigacije vode na tabove admin stranice (/admin?tab=...). Pretraga korisnika je
+// ista, samo kod administratora rezultat otvara admin pregled korisnika umesto profila.
 function Header() {
-  const { userId } = useAuth();
+  const { userId, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [params] = useSearchParams();
 
   const [korisnik, setKorisnik] = useState(null);
   const [meniOtvoren, setMeniOtvoren] = useState(false);
@@ -25,26 +31,16 @@ function Header() {
   const searchRef = useRef();
   const profilRef = useRef();
 
+  // Aktivan admin tab (nijedan dok je otvoren pregled korisnika ili info stranica)
+  const aktivniTab = location.pathname === "/admin" && !params.get("korisnik")
+    ? (params.get("tab") || "prijave")
+    : null;
+
   const prosledi = (id) => {
     setSearchResults([]);
     setSearchValue("");
-    navigate(`/profilkorisnika/${id}`);
+    navigate(isAdmin ? adminKorisnikUrl(id) : `/profilkorisnika/${id}`);
   };
-
-  async function handleSearchSubmit(e) {
-    e.preventDefault();
-
-    try {
-      const data = await api.get(`/Korisnik/VratiKorisnikeSearch/${searchValue}`);
-      if (data.kraj === "KRAJ") {
-        setSearchResults([]);
-      } else {
-        setSearchResults(data);
-      }
-    } catch (error) {
-      console.error("Greška prilikom pretrage:", error);
-    }
-  }
 
   // Klik van pretrage zatvara rezultate, klik van profila zatvara padajuci meni
   useEffect(() => {
@@ -71,58 +67,59 @@ function Header() {
     };
   }, []);
 
+  // Pretraga dok se kuca: kratka pauza (ne zahtev na svako slovo), unos se kodira (znakovi
+  // poput / ? # inace kvare adresu), a zakasneli odgovor za stari unos se ignorise
   useEffect(() => {
-    async function searchUsers() {
-      if (searchValue === "") {
-        setSearchResults([]);
-        return;
-      }
-
+    const unos = searchValue.trim();
+    if (unos === "") {
+      setSearchResults([]);
+      return;
+    }
+    let vazi = true;
+    const tajmer = setTimeout(async () => {
       try {
-        const data = await api.get(`/Korisnik/VratiKorisnikeSearch/${searchValue}`);
-        if (data.kraj === "KRAJ") {
-          setSearchResults([]);
-        } else {
-          setSearchResults(data);
-        }
+        const data = await api.get(`/Korisnik/VratiKorisnikeSearch/${encodeURIComponent(unos)}`);
+        if (vazi) setSearchResults(Array.isArray(data) ? data : []); // { kraj: "KRAJ" } = nema rezultata
       } catch (error) {
         console.error("Greška prilikom pretrage:", error);
       }
-    }
-
-    searchUsers();
+    }, 250);
+    return () => {
+      vazi = false;
+      clearTimeout(tajmer);
+    };
   }, [searchValue]);
 
-  useEffect(() => {
-    ucitajKorisnika();
-  }, []);
-
-  const ucitajKorisnika = async () => {
+  // Administrator nije korisnik (nema profil), pa za njega nema sta da se ucita
+  const ucitajKorisnika = useCallback(async () => {
+    if (isAdmin || !userId) return;
     try {
-      const data = await api.get(`/Korisnik/VratiKorisnika_ID/${userId}`);
-      setKorisnik(data);
+      setKorisnik(await api.get(`/Korisnik/VratiKorisnika_ID/${userId}`));
     } catch (error) {
       console.log(error);
     }
-  };
+  }, [isAdmin, userId]);
+
+  useEffect(() => {
+    ucitajKorisnika();
+  }, [ucitajKorisnika]);
 
   // Profil.jsx javlja kad se promeni profilna slika, da avatar u headeru ne kasni do refresha
   useEffect(() => {
     window.addEventListener("korisnik-azuriran", ucitajKorisnika);
     return () => window.removeEventListener("korisnik-azuriran", ucitajKorisnika);
-  }, []);
-
+  }, [ucitajKorisnika]);
 
   return (
-    <header className="app-header">
+    <header className={`app-header ${isAdmin ? "app-header--admin" : ""}`}>
       <div className="app-header-inner container">
         <div className="app-header-left">
-          <Link to="/pocetna" className="app-header-logo" aria-label="Pocetna">
+          <Link to={isAdmin ? "/admin" : "/pocetna"} className="app-header-logo" aria-label={isAdmin ? "Administracija" : "Pocetna"}>
             <img src="/images/logosajt(4).ico" alt="EventBox" />
           </Link>
 
           <div className="app-header-search" ref={searchRef}>
-            <form onSubmit={handleSearchSubmit}>
+            <form onSubmit={(e) => e.preventDefault()}>
               <i className="la la-search" />
               <input
                 type="text"
@@ -156,28 +153,43 @@ function Header() {
         </div>
 
         <div className="app-header-nav" role="navigation" aria-label="Glavna navigacija">
-          {NAV_STAVKE.map((stavka) => (
-            <NavLink
-              key={stavka.to}
-              to={stavka.to}
-              title={stavka.label}
-              className={({ isActive }) => `app-header-link ${isActive ? "is-active" : ""}`}
-            >
-              <span className="app-header-link-icon">
-                <i className={`la ${stavka.ikona}`} />
-                {stavka.to === "/chat" && neprocitanePoruke > 0 && (
-                  <span className="app-header-badge">
-                    {neprocitanePoruke > 99 ? "99+" : neprocitanePoruke}
+          {isAdmin
+            ? ADMIN_TABOVI.map((stavka) => (
+                <Link
+                  key={stavka.tab}
+                  to={adminTabUrl(stavka.tab)}
+                  title={stavka.label}
+                  aria-current={aktivniTab === stavka.tab ? "page" : undefined}
+                  className={`app-header-link ${aktivniTab === stavka.tab ? "is-active" : ""}`}
+                >
+                  <span className="app-header-link-icon">
+                    <i className={`la ${stavka.ikona}`} />
                   </span>
-                )}
-              </span>
-              <span className="app-header-link-label">{stavka.label}</span>
-            </NavLink>
-          ))}
+                  <span className="app-header-link-label">{stavka.label}</span>
+                </Link>
+              ))
+            : NAV_STAVKE.map((stavka) => (
+                <NavLink
+                  key={stavka.to}
+                  to={stavka.to}
+                  title={stavka.label}
+                  className={({ isActive }) => `app-header-link ${isActive ? "is-active" : ""}`}
+                >
+                  <span className="app-header-link-icon">
+                    <i className={`la ${stavka.ikona}`} />
+                    {stavka.to === "/chat" && neprocitanePoruke > 0 && (
+                      <span className="app-header-badge">
+                        {neprocitanePoruke > 99 ? "99+" : neprocitanePoruke}
+                      </span>
+                    )}
+                  </span>
+                  <span className="app-header-link-label">{stavka.label}</span>
+                </NavLink>
+              ))}
         </div>
 
         <div className="app-header-right" ref={profilRef}>
-          {korisnik ? (
+          {isAdmin || korisnik ? (
             <>
               <button
                 type="button"
@@ -186,16 +198,23 @@ function Header() {
                 aria-haspopup="menu"
                 aria-expanded={meniOtvoren}
               >
-                <Avatar className="app-header-avatar" slika={korisnik.korisnikImage} ime={korisnik.ime} />
-                <span className="app-header-profile-name">{korisnik.ime}</span>
+                <Avatar
+                  className="app-header-avatar"
+                  slika={isAdmin ? null : korisnik.korisnikImage}
+                  ime={isAdmin ? "Administrator" : korisnik.ime}
+                />
+                <span className="app-header-profile-name">{isAdmin ? "Administrator" : korisnik.ime}</span>
                 <i className="la la-angle-down app-header-chevron" />
               </button>
 
               {meniOtvoren && (
                 <div className="app-header-menu" role="menu">
-                  <Link to="/profil" role="menuitem" onClick={() => setMeniOtvoren(false)}>
-                    <i className="la la-user" /> Moj profil
-                  </Link>
+                  {!isAdmin && (
+                    <Link to="/profil" role="menuitem" onClick={() => setMeniOtvoren(false)}>
+                      <i className="la la-user" /> Moj profil
+                    </Link>
+                  )}
+                  {/* Strana za prijavu pri otvaranju poziva logout() (odjava i na serveru) */}
                   <Link to="/" role="menuitem" className="is-danger">
                     <i className="la la-sign-out" /> Odjavi se
                   </Link>
