@@ -20,7 +20,7 @@
 
 EventBox lets people publish events with a location on the map, react to them, comment, chat in real time and get live notifications when someone interacts with their events. Moderators review reported content in a dedicated admin panel.
 
-It started as a project for the *Software Engineering* course and was later rebuilt and deployed to the cloud.
+It started as a project for the _Software Engineering_ course and was later rebuilt and deployed to the cloud.
 
 > **Note:** the demo runs on free hosting plans. After a period of inactivity the server and the database go to sleep, so the first request can take up to ~30 seconds.
 
@@ -28,25 +28,26 @@ It started as a project for the *Software Engineering* course and was later rebu
 
 <!-- Add the images to docs/screenshots/ with these names -->
 
-| Feed | Event |
-|---|---|
+| Feed                               | Event                                |
+| ---------------------------------- | ------------------------------------ |
 | ![Feed](docs/screenshots/feed.png) | ![Event](docs/screenshots/event.png) |
 
-| Profile | Chat |
-|---|---|
+| Profile                                  | Chat                               |
+| ---------------------------------------- | ---------------------------------- |
 | ![Profile](docs/screenshots/profile.png) | ![Chat](docs/screenshots/chat.png) |
 
-| Admin panel | Mobile |
-|---|---|
-| ![Admin panel](docs/screenshots/admin.png) | ![Mobile](docs/screenshots/mobile.png) |
+| Admin panel                                | Mobile |
+| ------------------------------------------ | ------ |
+| ![Admin panel](docs/screenshots/admin.png) |
 
 ## Features
 
 **Users**
+
 - Registration and login, profile editing, profile picture, account deletion (confirmed with password)
 - Events with title, category, date and time, description, image and a location picked on Google Maps
 - Feed of upcoming events with infinite scroll, filtering by date or by title
-- Reactions (*Interested / Maybe / Not interested*) with live counters
+- Reactions (_Interested / Maybe / Not interested_) with live counters
 - Comments with editing and deleting
 - Real-time notifications and one-to-one chat with unread message badges
 - Reporting events that break the community rules
@@ -55,6 +56,7 @@ It started as a project for the *Software Engineering* course and was later rebu
 - English and Serbian interface (English by default), switchable from the header; the choice is remembered
 
 **Administrators**
+
 - Reported events with reasons; dismiss a report or delete the event
 - All events (including past ones) with search
 - User overview, blocking and unblocking (blocked users' content is hidden from everyone else and restored on unblock)
@@ -63,13 +65,13 @@ It started as a project for the *Software Engineering* course and was later rebu
 
 ## Tech stack
 
-| Layer | Technologies |
-|---|---|
+| Layer    | Technologies                                                                                                           |
+| -------- | ---------------------------------------------------------------------------------------------------------------------- |
 | Frontend | React 18, Vite 5, React Router 6, react-i18next, SignalR client, `@vis.gl/react-google-maps`, date-fns, react-toastify |
-| Backend | ASP.NET Core 9 Web API, Entity Framework Core 9, SignalR, ASP.NET Core localization, Swagger |
-| Database | Microsoft SQL Server (Azure SQL Database in production) |
-| Hosting | Vercel (frontend), Azure App Service (backend), Azure SQL Database |
-| CI/CD | GitHub Actions (backend), Vercel Git integration (frontend) |
+| Backend  | ASP.NET Core 9 Web API, Entity Framework Core 9, SignalR, ASP.NET Core localization, Swagger                           |
+| Database | Microsoft SQL Server (Azure SQL Database in production)                                                                |
+| Hosting  | Vercel (frontend), Azure App Service (backend), Azure SQL Database                                                     |
+| CI/CD    | GitHub Actions (backend), Vercel Git integration (frontend)                                                            |
 
 ## Architecture
 
@@ -99,16 +101,16 @@ The frontend is a static single-page app. All data comes from the REST API, and 
 
 ## API overview
 
-| Resource | Endpoints |
-|---|---|
-| Users | `POST /api/users` · `POST /api/users/login` · `POST /api/users/logout` · `GET /api/users/{id}` · `PUT /api/users/me` · `GET /api/users/search?query=` · `GET /api/users/{id}/events` · `PUT /api/users/{id}/image` |
-| Events | `GET /api/events` · `GET /api/events/by-date?date=` · `GET /api/events/search?title=` · `POST /api/events` · `GET` / `PUT` / `DELETE /api/events/{id}` · `PUT /api/events/{id}/image` |
-| Comments | `GET` / `POST /api/events/{id}/comments` · `PUT` / `DELETE /api/comments/{id}` |
-| Reactions | `PUT` / `DELETE /api/events/{id}/reaction` · `GET /api/reactions/mine?eventIds=` |
-| Chat | `GET /api/conversations` · `GET` / `POST /api/conversations/{userId}/messages` · `PUT /api/conversations/{userId}/read` · `GET /api/messages/unread-count` |
-| Notifications | `GET /api/notifications` · `DELETE /api/notifications/{id}` |
-| Moderation | `POST /api/events/{id}/reports` · `GET /api/reports` · `DELETE /api/reports/{id}` · `PUT` / `DELETE /api/users/{id}/block` · `GET /api/users/blocked` |
-| Admins | `POST /api/admins/login` · `GET` / `POST /api/admins` · `DELETE /api/admins/{id}` |
+| Resource      | Endpoints                                                                                                                                                                                                          |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Users         | `POST /api/users` · `POST /api/users/login` · `POST /api/users/logout` · `GET /api/users/{id}` · `PUT /api/users/me` · `GET /api/users/search?query=` · `GET /api/users/{id}/events` · `PUT /api/users/{id}/image` |
+| Events        | `GET /api/events` · `GET /api/events/by-date?date=` · `GET /api/events/search?title=` · `POST /api/events` · `GET` / `PUT` / `DELETE /api/events/{id}` · `PUT /api/events/{id}/image`                              |
+| Comments      | `GET` / `POST /api/events/{id}/comments` · `PUT` / `DELETE /api/comments/{id}`                                                                                                                                     |
+| Reactions     | `PUT` / `DELETE /api/events/{id}/reaction` · `GET /api/reactions/mine?eventIds=`                                                                                                                                   |
+| Chat          | `GET /api/conversations` · `GET` / `POST /api/conversations/{userId}/messages` · `PUT /api/conversations/{userId}/read` · `GET /api/messages/unread-count`                                                         |
+| Notifications | `GET /api/notifications` · `DELETE /api/notifications/{id}`                                                                                                                                                        |
+| Moderation    | `POST /api/events/{id}/reports` · `GET /api/reports` · `DELETE /api/reports/{id}` · `PUT` / `DELETE /api/users/{id}/block` · `GET /api/users/blocked`                                                              |
+| Admins        | `POST /api/admins/login` · `GET` / `POST /api/admins` · `DELETE /api/admins/{id}`                                                                                                                                  |
 
 The full list with request and response shapes is available in Swagger (`/swagger`) when the backend runs locally.
 
@@ -172,13 +174,13 @@ The app opens on `http://localhost:3000`.
 
 ### Configuration
 
-| Variable | Where | Purpose |
-|---|---|---|
-| `VITE_API_URL` | Frontend `.env` | Backend address (default `http://localhost:5153`) |
-| `VITE_GOOGLE_MAPS_API_KEY` | Frontend `.env` | Google Maps key for the map; the rest of the app works without it |
-| `ConnectionStrings__EventBoxDB` | Backend environment | Database connection string |
-| `Cors__Origins__0` | Backend environment | Allowed frontend origin |
-| `Uploads__Folder` | Backend environment | Folder for uploaded images |
+| Variable                        | Where               | Purpose                                                           |
+| ------------------------------- | ------------------- | ----------------------------------------------------------------- |
+| `VITE_API_URL`                  | Frontend `.env`     | Backend address (default `http://localhost:5153`)                 |
+| `VITE_GOOGLE_MAPS_API_KEY`      | Frontend `.env`     | Google Maps key for the map; the rest of the app works without it |
+| `ConnectionStrings__EventBoxDB` | Backend environment | Database connection string                                        |
+| `Cors__Origins__0`              | Backend environment | Allowed frontend origin                                           |
+| `Uploads__Folder`               | Backend environment | Folder for uploaded images                                        |
 
 Locally the backend reads these from `appsettings.json`; in production they are set as environment variables, so no secrets are stored in the repository.
 
