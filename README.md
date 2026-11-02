@@ -36,8 +36,8 @@ It started as a project for the _Software Engineering_ course and was later rebu
 | ---------------------------------------- | ---------------------------------- |
 | ![Profile](docs/screenshots/profile.png) | ![Chat](docs/screenshots/chat.png) |
 
-| Admin panel                                | Mobile |
-| ------------------------------------------ | ------ |
+| Admin panel                                |
+| ------------------------------------------ |
 | ![Admin panel](docs/screenshots/admin.png) |
 
 ## Features
